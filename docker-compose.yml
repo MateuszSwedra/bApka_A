@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: bapka_db
+    environment:
+      POSTGRES_USER: bapka_user
+      POSTGRES_PASSWORD: bapka_password
+      POSTGRES_DB: bapka_db
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: bapka_api
+    environment:
+      - DATABASE_URL=postgresql://bapka_user:bapka_password@db:5432/bapka_db?schema=public
+      - PORT=3000
+    ports:
+      - '3000:3000'
+    depends_on:
+      - db
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    command: npm run start:dev
+
+volumes:
+  postgres_data:

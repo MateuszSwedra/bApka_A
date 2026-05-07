@@ -1,0 +1,24 @@
+# Dependency directories
+node_modules/
+
+# Build outputs
+dist/
+build/
+.expo/
+ios/
+android/
+
+# Environment variables (SECURITY!)
+.env
+.env.local
+
+# Docker
+.docker/
+
+# Logs and databases
+*.log
+postgres_data/
+
+# OS files
+.DS_Store
+Thumbs.db

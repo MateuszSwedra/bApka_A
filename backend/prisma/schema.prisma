@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  CARETAKER
+  DEPENDENT
+  HYBRID
+}
+
+enum LogStatus {
+  TAKEN
+  MISSED
+  PENDING
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String?  
+  role      Role
+  fcmToken  String?
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  caretakerConnections Connection[] @relation("CaretakerConnections")
+  dependentConnections Connection[] @relation("DependentConnections")
+
+  schedules Schedule[]
+  inventory Inventory[]
+}
+
+model Connection {
+  id           String   @id @default(uuid())
+  caretakerId  String
+  dependentId  String
+  pin          String?  
+  isPaired     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  caretaker User @relation("CaretakerConnections", fields: [caretakerId], references: [id])
+  dependent User @relation("DependentConnections", fields: [dependentId], references: [id])
+
+  @@unique([caretakerId, dependentId])
+}
+
+model Inventory {
+  id              String   @id @default(uuid())
+  userId          String
+  name            String
+  totalPills      Int
+  currentPills    Int
+  pillsPerDose    Int
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id])
+  schedules Schedule[]
+}
+
+model Schedule {
+  id          String   @id @default(uuid())
+  userId      String
+  inventoryId String?
+  medication  String?
+  dosage      String
+  time        String   // np. "08:30"
+  type        String   @default("DAILY") // e.g., DAILY, ONCE
+  startDate   String?  // format YYYY-MM-DD
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id])
+  inventory Inventory? @relation(fields: [inventoryId], references: [id])
+  logs      DoseLog[]
+}
+
+model DoseLog {
+  id          String    @id @default(uuid())
+  scheduleId  String
+  status      LogStatus @default(PENDING)
+  scheduledAt DateTime
+  takenAt     DateTime?
+  createdAt   DateTime  @default(now())
+
+  schedule Schedule @relation(fields: [scheduleId], references: [id])
+}

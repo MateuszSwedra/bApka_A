@@ -1,0 +1,81 @@
+import { Tabs, router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { Theme } from '../../../../constants/theme';
+import { View, Pressable, Text } from 'react-native';
+
+export default function DependentTabsLayout() {
+  return (
+    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+      {/* Header wspólny dla wszystkich zakładek */}
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: Theme.spacing.l,
+        paddingTop: Theme.spacing.xxl,
+        backgroundColor: Theme.colors.surfaceWhite,
+        borderBottomWidth: 1,
+        borderBottomColor: Theme.colors.border,
+      }}>
+        <Pressable onPress={() => router.push('/(caretaker)')} style={{ padding: 4 }}>
+          <MaterialIcons name="arrow-back" size={28} color={Theme.colors.textDark} />
+        </Pressable>
+        <Text style={{
+          fontSize: Theme.typography.title,
+          fontWeight: '800',
+          color: Theme.colors.textDark,
+          marginLeft: Theme.spacing.m,
+        }}>Profil Podopiecznego</Text>
+      </View>
+
+      <Tabs
+        screenOptions={{
+          headerShown: false,
+          tabBarActiveTintColor: Theme.colors.accentOrange,
+          tabBarInactiveTintColor: Theme.colors.textLight,
+          tabBarStyle: {
+            borderTopWidth: 1,
+            borderTopColor: Theme.colors.border,
+            height: 60,
+            paddingBottom: 8,
+            paddingTop: 8,
+            backgroundColor: Theme.colors.background,
+            elevation: 0,
+          },
+          tabBarLabelStyle: {
+            fontSize: Theme.typography.small,
+            fontWeight: '600',
+          }
+        }}
+      >
+        <Tabs.Screen
+          name="index"
+          options={{
+            title: 'Today',
+            tabBarIcon: ({ color }) => <MaterialIcons name="home" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="calendar"
+          options={{
+            title: 'Calendar',
+            tabBarIcon: ({ color }) => <MaterialIcons name="calendar-today" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="meds"
+          options={{
+            title: 'Meds',
+            tabBarIcon: ({ color }) => <MaterialIcons name="medication" size={24} color={color} />,
+          }}
+        />
+        <Tabs.Screen
+          name="insights"
+          options={{
+            title: 'Insights',
+            tabBarIcon: ({ color }) => <MaterialIcons name="show-chart" size={24} color={color} />,
+          }}
+        />
+      </Tabs>
+    </View>
+  );
+}
