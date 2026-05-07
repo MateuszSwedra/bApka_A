@@ -32,8 +32,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        const token = await SecureStore.getItemAsync('userToken');
-        const roleStr = await SecureStore.getItemAsync('userRole');
+        let token = null;
+        let roleStr = null;
+        if (Platform.OS === 'web') {
+          token = localStorage.getItem('userToken');
+          roleStr = localStorage.getItem('userRole');
+        } else {
+          token = await SecureStore.getItemAsync('userToken');
+          roleStr = await SecureStore.getItemAsync('userRole');
+        }
         
         if (token && roleStr) {
           setUserRole(roleStr as Role);
@@ -82,9 +89,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserSession = async (token: string, role: Role) => {
     try {
-      await SecureStore.setItemAsync('userToken', token);
-      if (role) {
-        await SecureStore.setItemAsync('userRole', role);
+      if (Platform.OS === 'web') {
+        localStorage.setItem('userToken', token);
+        if (role) {
+          localStorage.setItem('userRole', role);
+        }
+      } else {
+        await SecureStore.setItemAsync('userToken', token);
+        if (role) {
+          await SecureStore.setItemAsync('userRole', role);
+        }
       }
       setUserRole(role);
       registerForPushNotificationsAsync();
@@ -99,9 +113,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await SecureStore.deleteItemAsync('userToken');
-      await SecureStore.deleteItemAsync('userRole');
-    } catch (e) {}
+      if (Platform.OS === 'web') {
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userRole');
+      } else {
+        await SecureStore.deleteItemAsync('userToken');
+        await SecureStore.deleteItemAsync('userRole');
+      }
+    } catch (e) {
+      console.warn('Logout error', e);
+    }
     setUserRole(null);
   };
 

@@ -30,7 +30,7 @@ services:
       - ./backend:/app
       - /app/node_modules
     restart: unless-stopped
-    command: npm run start:dev
+    command: sh -c "npx prisma db push && npm run start:dev"
 
 volumes:
   postgres_data:

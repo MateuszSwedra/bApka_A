@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { router } from 'expo-router';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../components/Card';
@@ -27,6 +28,14 @@ export default function DependentCalendarScreen() {
 
   return (
     <View style={styles.container}>
+      <View style={styles.header}>
+        <Pressable onPress={() => router.back()} style={styles.backBtn}>
+          <MaterialIcons name="arrow-back" size={28} color={Theme.colors.textDark} />
+        </Pressable>
+        <Text style={styles.headerTitle}>Twój kalendarz</Text>
+        <View style={{ width: 28 }} />
+      </View>
+
       <ScrollView style={styles.scroll}>
         <View style={styles.calendarContainer}>
           <Calendar
@@ -80,6 +89,25 @@ export default function DependentCalendarScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Theme.spacing.l,
+    paddingTop: Theme.spacing.xxl,
+    paddingBottom: Theme.spacing.m,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border,
+  },
+  backBtn: {
+    padding: Theme.spacing.xs,
+  },
+  headerTitle: {
+    fontSize: Theme.typography.title,
+    fontWeight: 'bold',
+    color: Theme.colors.textDark,
+  },
   scroll: { flex: 1 },
   calendarContainer: { backgroundColor: Theme.colors.surfaceWhite, paddingBottom: Theme.spacing.m },
   scheduleSection: { paddingHorizontal: Theme.spacing.l, paddingTop: Theme.spacing.m, paddingBottom: 100 },

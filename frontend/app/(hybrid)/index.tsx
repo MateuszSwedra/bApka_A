@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
@@ -9,74 +9,96 @@ import { router } from 'expo-router';
 export default function HybridDashboard() {
   const { logout } = useAuth();
 
-  const handleLogout = () => {
-    logout();
-    router.replace('/');
+  const handleLogout = async () => {
+    await logout();
+    if (Platform.OS === 'web') {
+      window.location.href = '/';
+    } else {
+      router.replace('/');
+    }
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.greeting}>Good evening: Barbara</Text>
-        <Pressable onPress={handleLogout} style={styles.giftIcon}>
-          <MaterialIcons name="card-giftcard" size={24} color={Theme.colors.textDark} />
-        </Pressable>
+        <View>
+          <Text style={styles.greetingText}>Dzień dobry,</Text>
+          <Text style={styles.greeting}>Użytkowniku</Text>
+        </View>
+        <View style={styles.headerIcons}>
+          <Pressable style={styles.iconBtn}>
+            <MaterialIcons name="settings" size={28} color={Theme.colors.textLight} />
+          </Pressable>
+          <Pressable onPress={handleLogout} style={[styles.iconBtn, styles.logoutBtn]}>
+            <MaterialIcons name="logout" size={28} color={Theme.colors.accentOrange} />
+          </Pressable>
+        </View>
       </View>
 
       {/* Główny kafelek - Lime Green */}
-      <Pressable onPress={() => alert('Wzięto lek!')}>
+      <Pressable 
+        onPress={() => alert('Wzięto lek!')}
+        style={({ pressed }) => pressed && styles.pressedCard}
+      >
         <Card variant="lime" style={styles.mainCard}>
-          <Text style={styles.mainCardSubtitle}>Time to take:</Text>
-          <Text style={styles.mainCardTime}>11:00 AM</Text>
-          <Text style={styles.mainCardDetails}>6 medications (6 pills)</Text>
+          <MaterialIcons name="notifications-active" size={24} color={Theme.colors.textDark} style={styles.bellIcon} />
+          <Text style={styles.mainCardSubtitle}>Pora na leki:</Text>
+          <Text style={styles.mainCardTime}>11:00</Text>
+          <Text style={styles.mainCardDetails}>6 leków (6 tabletek)</Text>
         </Card>
       </Pressable>
 
       {/* Karta informacyjna z pomarańczowym akcentem */}
       <Card variant="white" style={styles.infoCard}>
         <View style={styles.infoCardTop}>
-          <Text style={styles.infoCardText}>Protect your device settings with 4-digit passcode.</Text>
-          <MaterialIcons name="close" size={20} color={Theme.colors.textLight} />
+          <View style={styles.infoTextContainer}>
+            <Text style={styles.infoCardText}>Zabezpiecz aplikację 4-cyfrowym kodem PIN.</Text>
+          </View>
+          <MaterialIcons name="close" size={24} color={Theme.colors.textLight} />
         </View>
         <View style={styles.infoCardBottom}>
-          <Text style={styles.setupText}>Setup now</Text>
-          <MaterialIcons name="campaign" size={36} color={Theme.colors.accentOrange} />
+          <Text style={styles.setupText}>Skonfiguruj teraz</Text>
+          <MaterialIcons name="security" size={40} color={Theme.colors.accentOrange} />
         </View>
       </Card>
 
       {/* Sekcja Harmonogramu */}
-      <Text style={styles.sectionTitle}>Today's schedule</Text>
+      <Text style={styles.sectionTitle}>Dzisiejszy harmonogram</Text>
 
       {/* Szara karta (przeszłość) */}
       <Card variant="grey" style={styles.scheduleCard}>
-        <Text style={styles.scheduleTime}>10:00 AM</Text>
+        <Text style={styles.scheduleTime}>10:00</Text>
         
         <View style={styles.scheduleRow}>
-          <MaterialIcons name="check-circle" size={20} color={Theme.colors.success} />
-          <Text style={styles.scheduleItemDone}>6 Meds: Taken 10:02 AM</Text>
+          <MaterialIcons name="check-circle" size={24} color={Theme.colors.success} />
+          <Text style={styles.scheduleItemDone}>6 leków: Przyjęto o 10:02</Text>
         </View>
 
         <View style={styles.scheduleRow}>
-          <MaterialIcons name="circle" size={8} color={Theme.colors.accentOrange} style={{ marginLeft: 6, marginRight: 6 }} />
-          <Text style={styles.scheduleItemWarning}>Incomplete dose: 3/4 pills taken</Text>
+          <MaterialIcons name="error" size={24} color={Theme.colors.accentOrange} />
+          <Text style={styles.scheduleItemWarning}>Niepełna dawka: 3/4 przyjęte</Text>
         </View>
 
         <View style={styles.divider} />
 
         <View style={styles.scheduleRow}>
-          <MaterialIcons name="check-circle" size={20} color={Theme.colors.success} />
-          <Text style={styles.scheduleItemDone}>3 Meds: Taken 10:30 AM</Text>
+          <Text style={styles.scheduleTimeInner}>10:30</Text>
+          <MaterialIcons name="check-circle" size={24} color={Theme.colors.success} />
+          <Text style={styles.scheduleItemDone}>3 leki: Przyjęto</Text>
           <View style={{ flex: 1 }} />
-          <MaterialIcons name="medication" size={20} color={Theme.colors.textLight} />
+          <MaterialIcons name="medication" size={24} color={Theme.colors.textLight} />
         </View>
       </Card>
 
       {/* Aktywna, limonkowa sekcja */}
       <Card variant="lime" style={styles.activeScheduleCard}>
-        <Text style={styles.scheduleTimeDark}>11:00 AM</Text>
+        <View style={styles.activeLeft}>
+          <MaterialIcons name="schedule" size={24} color={Theme.colors.textDark} />
+          <Text style={styles.scheduleTimeDark}>11:00</Text>
+        </View>
         <Pressable style={styles.nowBtn}>
-          <Text style={styles.nowBtnText}>Now</Text>
+          <Text style={styles.nowBtnText}>TERAZ</Text>
         </Pressable>
       </Card>
 
@@ -87,33 +109,62 @@ export default function HybridDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: Theme.colors.surfaceGrey,
   },
   content: {
     padding: Theme.spacing.l,
     paddingTop: Theme.spacing.xxl,
+    paddingBottom: Theme.spacing.xxl,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Theme.spacing.m,
+    marginBottom: Theme.spacing.xl,
+  },
+  greetingText: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textLight,
   },
   greeting: {
-    fontSize: Theme.typography.body,
+    fontSize: Theme.typography.largeTitle,
     fontWeight: 'bold',
     color: Theme.colors.textDark,
   },
-  giftIcon: {
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    borderRadius: 8,
-    padding: 6,
+  headerIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.s,
+  },
+  iconBtn: {
+    backgroundColor: Theme.colors.surfaceWhite,
+    padding: Theme.spacing.s,
+    borderRadius: Theme.borderRadius.round,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  logoutBtn: {
+    backgroundColor: '#FFE5E0',
+  },
+  pressedCard: {
+    transform: [{ scale: 0.98 }],
+    opacity: 0.9,
   },
   mainCard: {
     alignItems: 'center',
-    paddingVertical: Theme.spacing.xl,
-    borderRadius: 8, // Mniejsze zaokrąglenie, jak na zdjęciu
+    paddingVertical: Theme.spacing.xxl,
+    borderRadius: Theme.borderRadius.xlarge,
+    shadowColor: Theme.colors.primaryLimeDark,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  bellIcon: {
+    marginBottom: Theme.spacing.s,
   },
   mainCardSubtitle: {
     fontSize: Theme.typography.body,
@@ -122,100 +173,127 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.xs,
   },
   mainCardTime: {
-    fontSize: Theme.typography.huge,
+    fontSize: 64,
     fontWeight: '900',
     color: Theme.colors.textDark,
     marginBottom: Theme.spacing.xs,
+    letterSpacing: -2,
   },
   mainCardDetails: {
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
+    fontSize: Theme.typography.title,
+    fontWeight: '700',
     color: Theme.colors.textDark,
   },
   infoCard: {
-    borderRadius: 8,
-    marginTop: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.xlarge,
+    marginTop: Theme.spacing.xl,
+    padding: Theme.spacing.xl,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+    elevation: 4,
   },
   infoCardTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  infoTextContainer: {
+    flex: 1,
+    paddingRight: Theme.spacing.m,
   },
   infoCardText: {
-    flex: 1,
     fontSize: Theme.typography.body,
     fontWeight: '600',
     color: Theme.colors.textDark,
-    paddingRight: Theme.spacing.m,
+    lineHeight: 24,
   },
   infoCardBottom: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: Theme.spacing.m,
+    alignItems: 'center',
+    marginTop: Theme.spacing.l,
   },
   setupText: {
     color: Theme.colors.accentOrange,
     fontWeight: 'bold',
-    fontSize: Theme.typography.body,
+    fontSize: Theme.typography.title,
   },
   sectionTitle: {
-    fontSize: Theme.typography.body,
-    fontWeight: '500',
+    fontSize: Theme.typography.title,
+    fontWeight: 'bold',
     color: Theme.colors.textDark,
-    marginTop: Theme.spacing.xl,
+    marginTop: Theme.spacing.xxl,
     marginBottom: Theme.spacing.m,
   },
   scheduleCard: {
-    borderRadius: 8,
-    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.large,
+    padding: Theme.spacing.l,
   },
   scheduleTime: {
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
+    fontSize: Theme.typography.title,
+    fontWeight: 'bold',
     color: Theme.colors.textDark,
     marginBottom: Theme.spacing.m,
   },
   scheduleRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Theme.spacing.s,
+    marginBottom: Theme.spacing.m,
   },
   scheduleItemDone: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textLight,
+    fontSize: Theme.typography.body,
+    fontWeight: '500',
+    color: Theme.colors.textDark,
     marginLeft: Theme.spacing.s,
   },
   scheduleItemWarning: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textLight,
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.accentOrange,
     marginLeft: Theme.spacing.s,
   },
   divider: {
     height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: Theme.spacing.m,
+    backgroundColor: Theme.colors.border,
+    marginVertical: Theme.spacing.s,
+    marginBottom: Theme.spacing.l,
+  },
+  scheduleTimeInner: {
+    fontSize: Theme.typography.body,
+    fontWeight: 'bold',
+    color: Theme.colors.textDark,
+    marginRight: Theme.spacing.m,
   },
   activeScheduleCard: {
-    borderRadius: 8,
+    borderRadius: Theme.borderRadius.large,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: Theme.spacing.m,
+    padding: Theme.spacing.l,
+    marginTop: Theme.spacing.m,
+  },
+  activeLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   scheduleTimeDark: {
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
+    fontSize: Theme.typography.title,
+    fontWeight: 'bold',
     color: Theme.colors.textDark,
+    marginLeft: Theme.spacing.s,
   },
   nowBtn: {
     backgroundColor: Theme.colors.primaryLimeDark,
-    paddingHorizontal: Theme.spacing.m,
-    paddingVertical: Theme.spacing.xs,
-    borderRadius: 16,
+    paddingHorizontal: Theme.spacing.l,
+    paddingVertical: Theme.spacing.s,
+    borderRadius: Theme.borderRadius.round,
   },
   nowBtnText: {
     color: Theme.colors.surfaceWhite,
-    fontWeight: 'bold',
-    fontSize: Theme.typography.small,
+    fontWeight: '900',
+    fontSize: Theme.typography.body,
+    letterSpacing: 1,
   }
 });

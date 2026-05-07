@@ -1,12 +1,38 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ActivityIndicator, Platform, Alert } from 'react-native';
 import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { HugeButton } from '../../components/HugeButton';
 import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
+import { usersAPI } from '../../services/api';
+
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
 
 export default function CaretakerPairingScreen() {
-  const pinCode = "123456"; // Mocked PIN
+  const [pinCode, setPinCode] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPin = async () => {
+      try {
+        const data = await usersAPI.generatePin();
+        setPinCode(data.pin);
+      } catch (e: any) {
+        showAlert('Błąd', 'Nie udało się wygenerować kodu parowania.');
+        router.back();
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchPin();
+  }, []);
 
   const handleDone = () => {
     router.replace('/(caretaker)');
@@ -14,14 +40,24 @@ export default function CaretakerPairingScreen() {
 
   return (
     <View style={styles.container}>
+      <MaterialIcons name="link" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>Dodaj Podopiecznego</Text>
       
-      <Card style={styles.card}>
-        <Text style={styles.subtitle}>Poproś podopiecznego o wpisanie poniższego kodu w swojej aplikacji:</Text>
-        <Text style={styles.pin}>{pinCode}</Text>
-      </Card>
+      {isLoading ? (
+        <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
+      ) : (
+        <>
+          <Card style={styles.card}>
+            <Text style={styles.subtitle}>Poproś podopiecznego o wybranie opcji "Mam Opiekuna" i wpisanie poniższego kodu:</Text>
+            <Text style={styles.pin}>{pinCode ? `${pinCode.substring(0, 3)} ${pinCode.substring(3, 6)}` : '------'}</Text>
+          </Card>
 
-      <HugeButton title="Gotowe" onPress={handleDone} style={styles.button} />
+          <View style={styles.actions}>
+            <HugeButton title="Gotowe" onPress={handleDone} style={styles.button} />
+            <HugeButton title="Anuluj" variant="outline" onPress={() => router.back()} style={styles.button} />
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -33,11 +69,16 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
     justifyContent: 'center',
   },
+  icon: {
+    alignSelf: 'center',
+    marginBottom: Theme.spacing.m,
+  },
   title: {
-    fontSize: Theme.typography.title,
+    fontSize: Theme.typography.largeTitle,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: Theme.spacing.xl,
+    color: Theme.colors.textDark,
+    marginBottom: Theme.spacing.xxl,
   },
   card: {
     alignItems: 'center',
@@ -51,12 +92,18 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
   },
   pin: {
-    fontSize: 64,
+    fontSize: 56,
     fontWeight: 'bold',
-    letterSpacing: 8,
-    color: Theme.colors.primary,
+    letterSpacing: 4,
+    color: Theme.colors.primaryLimeDark,
+  },
+  loader: {
+    marginVertical: Theme.spacing.xxl,
+  },
+  actions: {
+    gap: Theme.spacing.m,
   },
   button: {
-    marginTop: Theme.spacing.m,
+    width: '100%',
   }
 });

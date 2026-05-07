@@ -9,7 +9,11 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   
   let token = null;
   try {
-    token = await SecureStore.getItemAsync('userToken');
+    if (Platform.OS === 'web') {
+      token = localStorage.getItem('userToken');
+    } else {
+      token = await SecureStore.getItemAsync('userToken');
+    }
   } catch (e) {
     // secure store not available on web sometimes
   }
@@ -63,11 +67,19 @@ export const usersAPI = {
       body: JSON.stringify({ fcmToken })
     });
   },
-  pairDependent: async (dependentEmail: string) => {
-    return fetchApi('/users/pair', {
-      method: 'POST',
-      body: JSON.stringify({ dependentEmail })
+  generatePin: async () => {
+    return fetchApi('/users/generate-pin', {
+      method: 'POST'
     });
+  },
+  pairWithPin: async (pin: string) => {
+    return fetchApi('/users/pair-with-pin', {
+      method: 'POST',
+      body: JSON.stringify({ pin })
+    });
+  },
+  getDependents: async () => {
+    return fetchApi('/users/me/dependents');
   }
 };
 

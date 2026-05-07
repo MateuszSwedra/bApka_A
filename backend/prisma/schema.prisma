@@ -38,15 +38,13 @@ model User {
 model Connection {
   id           String   @id @default(uuid())
   caretakerId  String
-  dependentId  String
-  pin          String?  
+  dependentId  String?
+  pin          String?  @unique
   isPaired     Boolean  @default(false)
   createdAt    DateTime @default(now())
 
   caretaker User @relation("CaretakerConnections", fields: [caretakerId], references: [id])
-  dependent User @relation("DependentConnections", fields: [dependentId], references: [id])
-
-  @@unique([caretakerId, dependentId])
+  dependent User? @relation("DependentConnections", fields: [dependentId], references: [id])
 }
 
 model Inventory {
