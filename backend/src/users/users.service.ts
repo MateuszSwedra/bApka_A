@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 
@@ -90,6 +94,22 @@ export class UsersService {
       where: { id: userId },
       data: { fcmToken },
       select: { id: true, email: true }
+    });
+  }
+
+  /** Imię / forma zwrotu — m.in. przy łączeniu kont i na liście podopiecznych. */
+  async updateDisplayName(userId: string, name: string) {
+    const trimmed = (name ?? '').trim();
+    if (trimmed.length < 2) {
+      throw new BadRequestException('Imię musi mieć co najmniej 2 znaki');
+    }
+    if (trimmed.length > 80) {
+      throw new BadRequestException('Imię może mieć co najwyżej 80 znaków');
+    }
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { name: trimmed },
+      select: { id: true, email: true, name: true, role: true },
     });
   }
 }

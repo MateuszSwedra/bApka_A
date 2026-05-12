@@ -1,4 +1,4 @@
-import { Controller, Patch, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { Controller, Patch, Post, Get, Body, UseGuards, Request, HttpCode } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '@prisma/client';
@@ -39,5 +39,27 @@ export class UsersController {
   @ApiOperation({ summary: 'Update push notification token' })
   updateFcmToken(@Request() req: any, @Body('fcmToken') fcmToken: string) {
     return this.usersService.updateFcmToken(req.user.userId, fcmToken);
+  }
+
+  @Patch('me/name')
+  @ApiOperation({ summary: 'Update display name (how we address you)' })
+  updateDisplayName(@Request() req: any, @Body('name') name: string) {
+    return this.usersService.updateDisplayName(req.user.userId, name);
+  }
+
+  /** POST na tę samą ścieżkę co PATCH — niektóre wdrożenia / cache miały tylko PATCH. */
+  @Post('me/name')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Update display name (POST alias, same path as PATCH)' })
+  updateDisplayNamePostOnNamePath(@Request() req: any, @Body('name') name: string) {
+    return this.usersService.updateDisplayName(req.user.userId, name);
+  }
+
+  /** POST — alternatywna ścieżka (np. starszy klient). */
+  @Post('me/display-name')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Update display name (POST alias, hyphen path)' })
+  updateDisplayNamePost(@Request() req: any, @Body('name') name: string) {
+    return this.usersService.updateDisplayName(req.user.userId, name);
   }
 }

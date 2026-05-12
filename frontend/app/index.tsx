@@ -28,22 +28,48 @@ export default function IndexRouter() {
         return;
       }
 
-      // 2) sprawdzamy czy onboarding zostal juz pokazany
+      // 2) onboarding: welcome -> zgody -> login (tylko przy pierwszym uruchomieniu)
       let hasSeenWelcome: string | null = null;
+      let hasSeenConsents: string | null = null;
       try {
         if (Platform.OS === 'web') {
           hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
+          hasSeenConsents = localStorage.getItem('hasSeenConsents');
         } else {
           hasSeenWelcome = await SecureStore.getItemAsync('hasSeenWelcome');
+          hasSeenConsents = await SecureStore.getItemAsync('hasSeenConsents');
         }
       } catch {
         hasSeenWelcome = null;
+        hasSeenConsents = null;
       }
 
-      if (hasSeenWelcome === 'true') {
-        router.replace('/login');
-      } else {
+      let needsDisplayName: string | null = null;
+      let hasToken = false;
+      try {
+        if (Platform.OS === 'web') {
+          needsDisplayName = localStorage.getItem('needsDisplayName');
+          hasToken = !!localStorage.getItem('userToken');
+        } else {
+          needsDisplayName = await SecureStore.getItemAsync('needsDisplayName');
+          hasToken = !!(await SecureStore.getItemAsync('userToken'));
+        }
+      } catch {
+        needsDisplayName = null;
+      }
+
+      if (hasToken && needsDisplayName === 'true') {
+        router.replace('/onboarding-name');
+        setResolved(true);
+        return;
+      }
+
+      if (hasSeenWelcome !== 'true') {
         router.replace('/welcome');
+      } else if (hasSeenConsents !== 'true') {
+        router.replace('/consents');
+      } else {
+        router.replace('/login');
       }
       setResolved(true);
     };

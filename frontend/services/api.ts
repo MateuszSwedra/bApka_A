@@ -1,12 +1,99 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
-// Use standard localhost for iOS/web, 10.0.2.2 for Android emulator
-const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+/** Porty dev-serwera (Metro / Expo) — nigdy nie używamy ich jako portu API. */
+const METRO_LIKE_PORTS = new Set([
+  '8081',
+  '8082',
+  '19000',
+  '19001',
+  '19002',
+  '19006',
+]);
+
+function stripTrailingSlash(s: string): string {
+  return s.replace(/\/$/, '');
+}
+
+/** hostUri bywa `192.168.1.2:8081` albo `http://localhost:8081` — nie używamy `split(':')`. */
+function hostnameFromExpoHostUri(hostUri: string): string | null {
+  const t = hostUri.trim();
+  if (!t) return null;
+  try {
+    const withScheme = /^https?:\/\//i.test(t) ? t : `http://${t}`;
+    const u = new URL(withScheme);
+    return u.hostname || null;
+  } catch {
+    return null;
+  }
+}
+
+/** Gdy ktoś wklei URL bundlera lub zły hostUri, nie wysyłamy API na port Metro. */
+function ensureApiBaseNotOnMetroPort(base: string): string {
+  const trimmed = stripTrailingSlash(base);
+  try {
+    const href = /^https?:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
+    const u = new URL(href);
+    if (METRO_LIKE_PORTS.has(u.port)) {
+      u.port = '3000';
+    }
+    const path =
+      u.pathname && u.pathname !== '/'
+        ? stripTrailingSlash(u.pathname)
+        : '';
+    return stripTrailingSlash(path ? `${u.origin}${path}` : u.origin);
+  } catch {
+    return trimmed;
+  }
+}
+
+/**
+ * Bazowy URL API — zawsze absolutny (unikamy żądań względnych do Metro :8081).
+ * Ustaw EXPO_PUBLIC_API_URL (np. http://192.168.0.10:3000) gdy API nie jest na tym samym hoście co bundler.
+ */
+function resolveApiBaseUrl(): string {
+  const raw =
+    typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL
+      ? String(process.env.EXPO_PUBLIC_API_URL).trim()
+      : '';
+  if (raw) {
+    return ensureApiBaseNotOnMetroPort(raw);
+  }
+
+  /** W przeglądarce host strony jest wiarygodniejszy niż hostUri z manifestu. */
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const h = window.location?.hostname;
+    if (h) {
+      return ensureApiBaseNotOnMetroPort(`http://${h}:3000`);
+    }
+  }
+
+  const hostUri = Constants.expoConfig?.hostUri;
+  if (hostUri) {
+    const host = hostnameFromExpoHostUri(hostUri);
+    if (host) {
+      return ensureApiBaseNotOnMetroPort(`http://${host}:3000`);
+    }
+  }
+
+  if (Platform.OS === 'android') {
+    return 'http://10.0.2.2:3000';
+  }
+
+  return ensureApiBaseNotOnMetroPort('http://localhost:3000');
+}
+
+const API_URL = resolveApiBaseUrl();
 
 const fetchApi = async (endpoint: string, options?: RequestInit) => {
-  const url = `${API_URL}${endpoint}`;
-  
+  const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+  const url = `${API_URL.replace(/\/$/, '')}${path}`;
+
+  if (!/^https?:\/\//i.test(url)) {
+    throw new Error(`Nieprawidłowy adres API: ${url}`);
+  }
+
   let token = null;
   try {
     if (Platform.OS === 'web') {
@@ -17,26 +104,49 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   } catch (e) {
     // secure store not available on web sometimes
   }
-  
-  const headers: any = {
+
+  const headers: Record<string, string> = {
     'Content-Type': 'application/json',
-    ...options?.headers,
+    Accept: 'application/json',
+    ...((options?.headers as Record<string, string>) || {}),
   };
 
   if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
 
   const response = await fetch(url, {
     ...options,
     headers,
   });
-  
+
+  const text = await response.text();
+
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status}`);
+    let detail = `Serwer zwrócił błąd ${response.status}.`;
+    if (text) {
+      try {
+        const body = JSON.parse(text) as {
+          message?: string | string[];
+          error?: string;
+        };
+        if (body.message) {
+          detail = Array.isArray(body.message)
+            ? body.message.join(', ')
+            : String(body.message);
+        } else if (body.error) {
+          detail = String(body.error);
+        }
+      } catch {
+        if (text.length < 200) {
+          detail = text;
+        }
+      }
+    }
+    throw new Error(detail);
   }
-  
-  return response.json();
+
+  return text ? JSON.parse(text) : {};
 };
 
 export const authAPI = {
@@ -80,7 +190,34 @@ export const usersAPI = {
   },
   getDependents: async () => {
     return fetchApi('/users/me/dependents');
-  }
+  },
+  updateDisplayName: async (name: string) => {
+    const body = JSON.stringify({ name });
+    const attempts: Array<{ method: 'PATCH' | 'POST'; path: string }> = [
+      { method: 'PATCH', path: '/users/me/name' },
+      { method: 'POST', path: '/users/me/name' },
+      { method: 'POST', path: '/users/me/display-name' },
+    ];
+    let lastError: unknown;
+    for (const { method, path } of attempts) {
+      try {
+        return await fetchApi(path, { method, body });
+      } catch (e) {
+        lastError = e;
+        const msg = e instanceof Error ? e.message : '';
+        const looksLikeMissingRoute =
+          /\b404\b/.test(msg) ||
+          /\b405\b/.test(msg) ||
+          /Cannot\s+PATCH\b/i.test(msg) ||
+          /Cannot\s+POST\b/i.test(msg) ||
+          /\bNot Found\b/i.test(msg);
+        if (!looksLikeMissingRoute) {
+          throw e;
+        }
+      }
+    }
+    throw lastError;
+  },
 };
 
 export const inventoryAPI = {

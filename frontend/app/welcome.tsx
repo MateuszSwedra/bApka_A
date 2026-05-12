@@ -323,7 +323,7 @@ export default function WelcomeScreen() {
     } catch (e) {
       // ignore
     }
-    router.replace('/login');
+    router.replace('/consents');
   };
 
   const slide = SLIDES[index];

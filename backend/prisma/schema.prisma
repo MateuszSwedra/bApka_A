@@ -24,7 +24,7 @@ model User {
   password  String?  
   role      Role
   fcmToken  String?
-  name      String?
+  name      String?  // Jak się zwracać do użytkownika (para kont / UI)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
