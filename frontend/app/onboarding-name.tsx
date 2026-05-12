@@ -99,67 +99,62 @@ export default function OnboardingNameScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.inlineHeroCard}>
-          <Image
-            source={require('../assets/images/onboarding-name-hero.png')}
-            style={styles.inlineHeroImage}
-            resizeMode="contain"
-          />
-        </View>
-        <Text style={styles.title}>Jak mamy się do Ciebie zwracać?</Text>
-        <Text style={styles.subtitle}>
-          To imię lub zwrot zobaczysz Ty oraz osoby połączone z Tobą w aplikacji
-          — np. na powitaniu lub przy współdzieleniu opieki.
-        </Text>
+        <View style={styles.nameColumn}>
+          <Text style={styles.title}>Jak mamy się do Ciebie zwracać?</Text>
+          <Text style={styles.subtitle}>
+            To imię lub zwrot zobaczysz Ty oraz osoby połączone z Tobą w aplikacji
+            — np. na powitaniu lub przy współdzieleniu opieki.
+          </Text>
 
-        <View style={styles.formCard}>
-          <View style={styles.field}>
-            <MaterialCommunityIcons
-              name="account-heart-outline"
-              size={22}
-              color={OnboardingPalette.primary}
-              style={styles.fieldIcon}
-            />
-            <TextInput
-              style={styles.input}
-              placeholder="Np. Ania, Pani Basia, Tato…"
-              value={name}
-              onChangeText={setName}
-              autoCapitalize="sentences"
-              autoCorrect
-              maxLength={80}
-              placeholderTextColor={OnboardingPalette.textSecondary}
-            />
-          </View>
-        </View>
-
-        <View style={styles.ctaShadowWrap}>
-          <Pressable
-            onPress={() => void handleContinue()}
-            disabled={loading}
-            style={({ pressed }) => [
-              styles.ctaPressable,
-              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-              loading && { opacity: 0.65 },
-            ]}
-          >
-            <LinearGradient
-              colors={[...OnboardingGradient.colors]}
-              start={OnboardingGradient.start}
-              end={OnboardingGradient.end}
-              style={styles.primaryCta}
-            >
-              <Text style={styles.primaryCtaText}>
-                {loading ? 'Zapisujemy…' : 'Dalej'}
-              </Text>
+          <View style={styles.formCard}>
+            <View style={styles.field}>
               <MaterialCommunityIcons
-                name="arrow-right"
+                name="account-heart-outline"
                 size={22}
-                color={OnboardingPalette.surface}
-                style={{ marginLeft: 8 }}
+                color={OnboardingPalette.primary}
+                style={styles.fieldIcon}
               />
-            </LinearGradient>
-          </Pressable>
+              <TextInput
+                style={styles.input}
+                placeholder="Np. Ania, Pani Basia, Tato…"
+                value={name}
+                onChangeText={setName}
+                autoCapitalize="sentences"
+                autoCorrect
+                maxLength={80}
+                placeholderTextColor={OnboardingPalette.textSecondary}
+              />
+            </View>
+          </View>
+
+          <View style={styles.ctaShadowWrap}>
+            <Pressable
+              onPress={() => void handleContinue()}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.ctaPressable,
+                pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
+                loading && { opacity: 0.65 },
+              ]}
+            >
+              <LinearGradient
+                colors={[...OnboardingGradient.colors]}
+                start={OnboardingGradient.start}
+                end={OnboardingGradient.end}
+                style={styles.primaryCta}
+              >
+                <Text style={styles.primaryCtaText}>
+                  {loading ? 'Zapisujemy…' : 'Dalej'}
+                </Text>
+                <MaterialCommunityIcons
+                  name="arrow-right"
+                  size={22}
+                  color={OnboardingPalette.surface}
+                  style={{ marginLeft: 8 }}
+                />
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -191,25 +186,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: SCREEN_H * 0.55,
   },
-  inlineHeroCard: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.82)',
-    borderRadius: Theme.borderRadius.large,
-    borderWidth: 1,
-    borderColor: OnboardingPalette.border,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    shadowColor: OnboardingPalette.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  inlineHeroImage: {
-    width: 220,
-    height: 140,
-  },
   scroll: {
     flex: 1,
     zIndex: 1,
@@ -221,8 +197,14 @@ const styles = StyleSheet.create({
   },
   scrollNameCentered: {
     justifyContent: 'center',
+    alignItems: 'center',
     minHeight: SCREEN_H - (Platform.OS === 'ios' ? 48 : 32),
     paddingTop: Platform.OS === 'ios' ? 24 : 16,
+  },
+  nameColumn: {
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
   },
   title: {
     fontSize: 26,

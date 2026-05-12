@@ -288,14 +288,7 @@ export default function LoginScreen() {
         )}
 
         {mode === 'register' && (
-          <>
-            <View style={styles.formInlineHeroCard}>
-              <Image
-                source={require('../assets/images/auth-register-hero.png')}
-                style={styles.formInlineHero}
-                resizeMode="contain"
-              />
-            </View>
+          <View style={styles.formColumn}>
             <Text style={styles.formTitle}>Rejestracja</Text>
             <Text style={styles.formHint}>
               Podaj e-mail i hasło. Na kolejnym kroku wybierzesz rolę w aplikacji.
@@ -346,18 +339,11 @@ export default function LoginScreen() {
                 <Text style={styles.switchModeBold}>Zaloguj się</Text>
               </Text>
             </Pressable>
-          </>
+          </View>
         )}
 
         {mode === 'signIn' && (
-          <>
-            <View style={styles.formInlineHeroCard}>
-              <Image
-                source={require('../assets/images/auth-login-hero.png')}
-                style={styles.formInlineHero}
-                resizeMode="contain"
-              />
-            </View>
+          <View style={styles.formColumn}>
             <Text style={styles.formTitle}>Logowanie</Text>
             <Text style={styles.formHint}>
               Wpisz dane użyte przy rejestracji.
@@ -401,7 +387,7 @@ export default function LoginScreen() {
                 <Text style={styles.switchModeBold}>Załóż konto</Text>
               </Text>
             </Pressable>
-          </>
+          </View>
         )}
       </ScrollView>
     </KeyboardAvoidingView>
@@ -433,26 +419,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: SCREEN_H * 0.55,
   },
-  formInlineHeroCard: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.82)',
-    borderRadius: Theme.borderRadius.large,
-    borderWidth: 1,
-    borderColor: OnboardingPalette.border,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 10,
-    shadowColor: OnboardingPalette.primaryDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 10,
-    elevation: 3,
-  },
-  formInlineHero: {
-    width: 240,
-    height: 150,
-    alignSelf: 'center',
-  },
   backBtn: {
     position: 'absolute',
     top: Platform.OS === 'ios' ? 52 : 36,
@@ -481,6 +447,7 @@ const styles = StyleSheet.create({
   },
   scrollPick: {
     justifyContent: 'center',
+    alignItems: 'center',
     minHeight: SCREEN_H - (Platform.OS === 'ios' ? 100 : 72),
     paddingTop: 8,
     paddingBottom: 24,
@@ -489,8 +456,14 @@ const styles = StyleSheet.create({
     paddingTop: 92,
     flexGrow: 1,
     justifyContent: 'center',
+    alignItems: 'center',
     minHeight: SCREEN_H - (Platform.OS === 'ios' ? 56 : 40),
     paddingBottom: 48,
+  },
+  formColumn: {
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
   },
   pickColumn: {
     width: '100%',

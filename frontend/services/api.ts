@@ -191,6 +191,9 @@ export const usersAPI = {
   getDependents: async () => {
     return fetchApi('/users/me/dependents');
   },
+  getMe: async () => {
+    return fetchApi('/users/me');
+  },
   updateDisplayName: async (name: string) => {
     const body = JSON.stringify({ name });
     const attempts: Array<{ method: 'PATCH' | 'POST'; path: string }> = [

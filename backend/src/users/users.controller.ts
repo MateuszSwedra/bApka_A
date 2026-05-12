@@ -17,6 +17,12 @@ export class UsersController {
     return this.usersService.updateRole(req.user.userId, role);
   }
 
+  @Get('me')
+  @ApiOperation({ summary: 'Current user (id, email, name, role)' })
+  getMe(@Request() req: any) {
+    return this.usersService.getProfile(req.user.userId);
+  }
+
   @Post('generate-pin')
   @ApiOperation({ summary: 'Generate a pairing PIN for caretaker' })
   generatePin(@Request() req: any) {

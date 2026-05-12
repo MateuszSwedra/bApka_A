@@ -14,6 +14,10 @@ export default function RootLayout() {
           options={{ animation: 'slide_from_right' }}
         />
         <Stack.Screen name="role-selection" />
+        <Stack.Screen
+          name="profile-ready"
+          options={{ animation: 'slide_from_right' }}
+        />
         <Stack.Screen name="senior-type" />
         <Stack.Screen name="(caretaker)" />
         <Stack.Screen name="(dependent)" />

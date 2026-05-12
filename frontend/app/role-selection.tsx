@@ -30,11 +30,7 @@ export default function RoleSelectionScreen() {
         loginFake(role);
       }
 
-      if (role === 'CARETAKER') {
-        router.replace('/(caretaker)');
-      } else {
-        router.push('/senior-type');
-      }
+      router.replace('/profile-ready');
     } catch (e) {
       if (Platform.OS === 'web') {
         window.alert('Błąd: Nie udało się zaktualizować roli na serwerze.');
