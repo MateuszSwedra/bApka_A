@@ -1,8 +1,15 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-// Use standard localhost for iOS/web, 10.0.2.2 for Android emulator
-const API_URL = Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000';
+const fromEnv = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, '');
+
+/**
+ * Na telefonie fizycznym `localhost` to sam telefon, a `10.0.2.2` działa tylko w emulatorze Android.
+ * Ustaw w `.env` adres komputera w sieci LAN (np. `http://192.168.1.5:3000`) — Expo wczytuje `EXPO_PUBLIC_*` przy starcie.
+ */
+const API_URL =
+  fromEnv ||
+  (Platform.OS === 'android' ? 'http://10.0.2.2:3000' : 'http://localhost:3000');
 
 const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const url = `${API_URL}${endpoint}`;

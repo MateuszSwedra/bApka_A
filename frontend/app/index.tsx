@@ -44,6 +44,7 @@ export default function LoginScreen() {
     }
     
     setIsLoading(true);
+    console.log("Halo Expo! Adres API to:", process.env.EXPO_PUBLIC_API_URL);
     try {
       const response = await authAPI.login({ email, password });
       await setUserSession(response.access_token, response.user.role);

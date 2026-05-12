@@ -1,9 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
-import * as Device from 'expo-device';
-import { usersAPI } from '../services/api';
 import { Platform } from 'react-native';
+import { syncPushTokenToBackend, NOTIFICATION_PROMPT_DONE_KEY } from '../services/pushNotifications';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -22,6 +21,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -44,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         if (token && roleStr) {
           setUserRole(roleStr as Role);
-          registerForPushNotificationsAsync();
+          void syncPushTokenToBackend();
         }
       } catch (e) {
         console.warn('Session restore failed', e);
@@ -54,38 +55,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     restoreSession();
   }, []);
-
-  async function registerForPushNotificationsAsync() {
-    let token;
-    if (Platform.OS === 'android') {
-      await Notifications.setNotificationChannelAsync('default', {
-        name: 'default',
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#FF231F7C',
-      });
-    }
-
-    if (Device.isDevice) {
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
-      }
-      if (finalStatus !== 'granted') {
-        return;
-      }
-      try {
-        token = (await Notifications.getExpoPushTokenAsync({
-          projectId: 'bapka-anti-project-id' // dummy ID for expo go
-        })).data;
-        await usersAPI.updateFcmToken(token);
-      } catch (e) {
-        console.warn('Failed to get push token', e);
-      }
-    }
-  }
 
   const setUserSession = async (token: string, role: Role) => {
     try {
@@ -101,7 +70,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       setUserRole(role);
-      registerForPushNotificationsAsync();
+      void syncPushTokenToBackend();
     } catch (e) {
       console.warn('Could not store session', e);
     }
@@ -119,6 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } else {
         await SecureStore.deleteItemAsync('userToken');
         await SecureStore.deleteItemAsync('userRole');
+        try {
+          await SecureStore.deleteItemAsync(NOTIFICATION_PROMPT_DONE_KEY);
+        } catch {
+          /* ignore */
+        }
       }
     } catch (e) {
       console.warn('Logout error', e);
