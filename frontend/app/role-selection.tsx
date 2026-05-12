@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Alert, ActivityIndicator, Pressable, Platform }
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
+import { OnboardingPalette } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
@@ -48,21 +49,21 @@ export default function RoleSelectionScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <MaterialIcons name="account-circle" size={64} color={Theme.colors.primaryLimeDark} />
+        <MaterialIcons name="account-circle" size={64} color={OnboardingPalette.navy} />
         <Text style={styles.title}>Wybierz swoją rolę</Text>
         <Text style={styles.subtitle}>Dostosujemy aplikację do Twoich potrzeb</Text>
       </View>
       
       {isLoading ? (
-        <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={OnboardingPalette.navy} style={{ marginTop: 40 }} />
       ) : (
         <View style={styles.cardsContainer}>
           <Pressable 
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={() => updateAndNavigate('CARETAKER')}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.surfaceWhite }]}>
-              <MaterialIcons name="favorite" size={40} color={Theme.colors.primaryLimeDark} />
+            <View style={[styles.iconWrapper, { backgroundColor: OnboardingPalette.background }]}>
+              <MaterialIcons name="favorite" size={40} color={OnboardingPalette.navy} />
             </View>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Opiekun</Text>
@@ -70,15 +71,15 @@ export default function RoleSelectionScreen() {
                 Chcę pomagać moim bliskim w przyjmowaniu leków i zarządzać ich harmonogramem.
               </Text>
             </View>
-            <MaterialIcons name="chevron-right" size={28} color={Theme.colors.textLight} />
+            <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>
 
           <Pressable 
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed, styles.cardDependent]}
             onPress={() => updateAndNavigate('DEPENDENT')}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.surfaceWhite }]}>
-              <MaterialIcons name="elderly" size={40} color={Theme.colors.accentOrange} />
+            <View style={[styles.iconWrapper, { backgroundColor: OnboardingPalette.background }]}>
+              <MaterialIcons name="elderly" size={40} color={OnboardingPalette.orange} />
             </View>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Podopieczny</Text>
@@ -86,7 +87,7 @@ export default function RoleSelectionScreen() {
                 Będę korzystać z aplikacji, aby pamiętać o swoich lekach i wizytach.
               </Text>
             </View>
-            <MaterialIcons name="chevron-right" size={28} color={Theme.colors.textLight} />
+            <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>
         </View>
       )}
@@ -98,7 +99,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: Theme.spacing.l,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: OnboardingPalette.background,
     justifyContent: 'center',
   },
   header: {
@@ -108,14 +109,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Theme.typography.largeTitle,
     fontWeight: 'bold',
-    color: Theme.colors.textDark,
+    color: OnboardingPalette.textPrimary,
     marginTop: Theme.spacing.m,
     marginBottom: Theme.spacing.xs,
   },
   subtitle: {
     fontSize: Theme.typography.body,
-    color: Theme.colors.textLight,
+    color: OnboardingPalette.textPrimary,
     textAlign: 'center',
+    opacity: 0.65,
   },
   cardsContainer: {
     gap: Theme.spacing.l,
@@ -123,11 +125,11 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceWhite,
+    backgroundColor: OnboardingPalette.surface,
     padding: Theme.spacing.l,
     borderRadius: Theme.borderRadius.large,
     borderWidth: 2,
-    borderColor: Theme.colors.primaryLime,
+    borderColor: OnboardingPalette.navy,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -135,7 +137,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardDependent: {
-    borderColor: Theme.colors.accentOrange,
+    borderColor: OnboardingPalette.orange,
   },
   cardPressed: {
     opacity: 0.8,
@@ -161,12 +163,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Theme.typography.title,
     fontWeight: 'bold',
-    color: Theme.colors.textDark,
+    color: OnboardingPalette.textPrimary,
     marginBottom: Theme.spacing.xs,
   },
   cardDescription: {
     fontSize: Theme.typography.small,
-    color: Theme.colors.textLight,
+    color: OnboardingPalette.textPrimary,
     lineHeight: 20,
+    opacity: 0.7,
   }
 });

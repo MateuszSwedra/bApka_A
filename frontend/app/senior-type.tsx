@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, Pressable, Platform, Alert, ActivityIndicator }
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
+import { OnboardingPalette } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
@@ -49,21 +50,21 @@ export default function SeniorTypeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <MaterialIcons name="settings-accessibility" size={64} color={Theme.colors.accentOrange} />
+        <MaterialIcons name="settings-accessibility" size={64} color={OnboardingPalette.orange} />
         <Text style={styles.title}>Jak chcesz korzystać?</Text>
         <Text style={styles.subtitle}>Wybierz tryb dopasowany do Twoich potrzeb</Text>
       </View>
       
       {isLoading ? (
-        <ActivityIndicator size="large" color={Theme.colors.accentOrange} style={{ marginTop: 40 }} />
+        <ActivityIndicator size="large" color={OnboardingPalette.orange} style={{ marginTop: 40 }} />
       ) : (
         <View style={styles.cardsContainer}>
           <Pressable 
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
             onPress={handleWithCaretaker}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.surfaceWhite }]}>
-              <MaterialIcons name="group" size={40} color={Theme.colors.primaryLimeDark} />
+            <View style={[styles.iconWrapper, { backgroundColor: OnboardingPalette.background }]}>
+              <MaterialIcons name="group" size={40} color={OnboardingPalette.navy} />
             </View>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Z Opiekunem</Text>
@@ -71,15 +72,15 @@ export default function SeniorTypeScreen() {
                 Mój opiekun skonfiguruje mi harmonogram i będzie czuwał nad moimi lekami.
               </Text>
             </View>
-            <MaterialIcons name="chevron-right" size={28} color={Theme.colors.textLight} />
+            <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>
 
           <Pressable 
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed, styles.cardIndependent]}
             onPress={handleIndependent}
           >
-            <View style={[styles.iconWrapper, { backgroundColor: Theme.colors.surfaceWhite }]}>
-              <MaterialIcons name="person" size={40} color={Theme.colors.accentOrange} />
+            <View style={[styles.iconWrapper, { backgroundColor: OnboardingPalette.background }]}>
+              <MaterialIcons name="person" size={40} color={OnboardingPalette.orange} />
             </View>
             <View style={styles.cardContent}>
               <Text style={styles.cardTitle}>Samodzielnie</Text>
@@ -87,7 +88,7 @@ export default function SeniorTypeScreen() {
                 Chcę samodzielnie zarządzać swoimi lekami oraz korzystać ze wszystkich zaawansowanych opcji aplikacji.
               </Text>
             </View>
-            <MaterialIcons name="chevron-right" size={28} color={Theme.colors.textLight} />
+            <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>
         </View>
       )}
@@ -99,7 +100,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: Theme.spacing.l,
-    backgroundColor: Theme.colors.background,
+    backgroundColor: OnboardingPalette.background,
     justifyContent: 'center',
   },
   header: {
@@ -109,15 +110,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: Theme.typography.largeTitle,
     fontWeight: 'bold',
-    color: Theme.colors.textDark,
+    color: OnboardingPalette.textPrimary,
     marginTop: Theme.spacing.m,
     marginBottom: Theme.spacing.xs,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: Theme.typography.body,
-    color: Theme.colors.textLight,
+    color: OnboardingPalette.textPrimary,
     textAlign: 'center',
+    opacity: 0.65,
   },
   cardsContainer: {
     gap: Theme.spacing.l,
@@ -125,11 +127,11 @@ const styles = StyleSheet.create({
   card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Theme.colors.surfaceWhite,
+    backgroundColor: OnboardingPalette.surface,
     padding: Theme.spacing.l,
     borderRadius: Theme.borderRadius.large,
     borderWidth: 2,
-    borderColor: Theme.colors.primaryLime,
+    borderColor: OnboardingPalette.navy,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
@@ -137,7 +139,7 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   cardIndependent: {
-    borderColor: Theme.colors.accentOrange,
+    borderColor: OnboardingPalette.orange,
   },
   cardPressed: {
     opacity: 0.8,
@@ -163,12 +165,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: Theme.typography.title,
     fontWeight: 'bold',
-    color: Theme.colors.textDark,
+    color: OnboardingPalette.textPrimary,
     marginBottom: Theme.spacing.xs,
   },
   cardDescription: {
     fontSize: Theme.typography.small,
-    color: Theme.colors.textLight,
+    color: OnboardingPalette.textPrimary,
     lineHeight: 20,
+    opacity: 0.7,
   }
 });
