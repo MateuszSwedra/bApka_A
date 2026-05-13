@@ -47,6 +47,12 @@ export class UsersController {
     return this.usersService.updateFcmToken(req.user.userId, fcmToken);
   }
 
+  @Patch('me/mood')
+  @ApiOperation({ summary: 'Update senior mood' })
+  updateMood(@Request() req: any, @Body('mood') mood: string) {
+    return this.usersService.updateMood(req.user.userId, mood);
+  }
+
   @Patch('me/name')
   @ApiOperation({ summary: 'Update display name (how we address you)' })
   updateDisplayName(@Request() req: any, @Body('name') name: string) {

@@ -91,13 +91,26 @@ export class UsersService {
             id: true,
             email: true,
             name: true,
-            role: true
+            role: true,
+            lastMood: true,
+            lastMoodAt: true,
           }
         }
       }
     });
     
     return connections.map(conn => conn.dependent);
+  }
+
+  async updateMood(userId: string, mood: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        lastMood: mood,
+        lastMoodAt: new Date()
+      },
+      select: { id: true, lastMood: true, lastMoodAt: true }
+    });
   }
 
   async updateFcmToken(userId: string, fcmToken: string) {

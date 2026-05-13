@@ -13,7 +13,7 @@ import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { scheduleAPI } from '../../services/api';
+import { scheduleAPI, usersAPI } from '../../services/api';
 import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { format } from 'date-fns';
@@ -91,8 +91,13 @@ export default function DependentDashboard() {
     }
   };
 
-  const onMoodPick = () => {
+  const onMoodPick = async (mood: string) => {
     setMoodPhase('thanks');
+    try {
+      await usersAPI.updateMood(mood);
+    } catch (e) {
+      console.warn('Could not save mood', e);
+    }
     setTimeout(() => {
       setMoodPhase('hidden');
       setHighlightMood(false);
@@ -150,19 +155,19 @@ export default function DependentDashboard() {
                 </Text>
                 <View style={styles.moodRow}>
                   <Pressable
-                    onPress={onMoodPick}
+                    onPress={() => onMoodPick('sad')}
                     style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
                   >
                     <Text style={styles.moodEmoji}>🙁</Text>
                   </Pressable>
                   <Pressable
-                    onPress={onMoodPick}
+                    onPress={() => onMoodPick('neutral')}
                     style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
                   >
                     <Text style={styles.moodEmoji}>😐</Text>
                   </Pressable>
                   <Pressable
-                    onPress={onMoodPick}
+                    onPress={() => onMoodPick('happy')}
                     style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
                   >
                     <Text style={styles.moodEmoji}>🙂</Text>
@@ -330,9 +335,11 @@ export default function DependentDashboard() {
           inventory.map(item => (
             <Card key={item.id} variant="grey" style={{ ...styles.stockCard, borderColor: colors.border }}>
               <Text style={[styles.stockName, { color: colors.textDark }]}>{item.name}</Text>
-              <Text style={[styles.stockCount, { color: colors.primaryLimeDark }]}>
-                {item.totalPills} dose(s) left
-              </Text>
+              {Number(item.totalPills) > 0 && (
+                <Text style={[styles.stockCount, { color: colors.primaryLimeDark }]}>
+                  {item.totalPills} dose(s) left
+                </Text>
+              )}
             </Card>
           ))
         )}

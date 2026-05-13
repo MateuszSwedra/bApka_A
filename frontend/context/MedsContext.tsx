@@ -101,7 +101,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       if (fetchedInventory && fetchedInventory.length > 0) {
         const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
           id: String(it.id),
-          type: 'MEDICATION',
+          type: it.type as TreatmentType || 'MEDICATION',
           name: it.name,
           totalPills: it.totalPills,
           description: it.description,
@@ -155,8 +155,10 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     try {
       const data = await inventoryAPI.create(targetUserId, {
         name: treatment.name,
-        totalPills: treatment.totalPills ?? 0,
-        currentPills: treatment.totalPills ?? 0,
+        type: treatment.type,
+        description: treatment.description,
+        totalPills: treatment.totalPills,
+        currentPills: treatment.totalPills,
         pillsPerDose: 1,
       });
       setTreatments(prev => [...prev, { ...treatment, id: String(data.id) }]);
@@ -175,8 +177,13 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     } catch (e) { console.error('Error removing treatment:', e); }
   };
 
-  const updateTreatment = (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
-    setTreatments(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
+  const updateTreatment = async (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
+    try {
+      await inventoryAPI.update(id, patch);
+      setTreatments(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
+    } catch (e) {
+      console.error('Error updating treatment:', e);
+    }
   };
 
   const addInventoryItem = (name: string, totalPills: number, description?: string) => {

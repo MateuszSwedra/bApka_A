@@ -12,6 +12,8 @@ interface Dependent {
   email: string;
   name?: string;
   role: string;
+  lastMood?: string;
+  lastMoodAt?: string;
 }
 
 export default function CaretakerDashboard() {
@@ -72,6 +74,19 @@ export default function CaretakerDashboard() {
     return email.substring(0, 2).toUpperCase();
   };
 
+  const renderMood = (dependent: Dependent) => {
+    if (!dependent.lastMood || !dependent.lastMoodAt) return null;
+    const moodEmoji = dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
+    const date = new Date(dependent.lastMoodAt);
+    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+        <Text style={{ fontSize: 16 }}>{moodEmoji}</Text>
+        <Text style={{ fontSize: 12, color: Theme.colors.textLight, marginLeft: 4 }}>o {timeStr}</Text>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -119,13 +134,14 @@ export default function CaretakerDashboard() {
                 </View>
                 <View style={styles.cardInfo}>
                   <Text style={styles.dependentName}>{dependent.name || dependent.email}</Text>
+                  {renderMood(dependent)}
                   {index % 2 !== 0 ? (
-                    <View style={styles.statusBadgeWarning}>
+                    <View style={[styles.statusBadgeWarning, { marginTop: 4 }]}>
                       <MaterialIcons name="error-outline" size={14} color={Theme.colors.accentOrange} />
                       <Text style={styles.statusWarningText}>Wymaga uwagi</Text>
                     </View>
                   ) : (
-                    <View style={styles.statusBadgeSuccess}>
+                    <View style={[styles.statusBadgeSuccess, { marginTop: 4 }]}>
                       <MaterialIcons name="check-circle-outline" size={14} color={Theme.colors.success} />
                       <Text style={styles.statusSuccessText}>Wszystko ok</Text>
                     </View>

@@ -9,7 +9,7 @@ import { format } from 'date-fns';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
-import { usersAPI } from '../../../../services/api';
+import { usersAPI, scheduleAPI } from '../../../../services/api';
 
 interface DependentInfo {
   id: string;
@@ -31,12 +31,16 @@ export default function DependentTodayDashboard() {
     return () => clearInterval(t);
   }, []);
 
+  const [logs, setLogs] = useState<any[]>([]);
+
   const fetchDependent = useCallback(async () => {
     if (!dependentId) return;
     try {
       const all = (await usersAPI.getDependents()) as DependentInfo[];
       const found = all?.find?.(d => String(d.id) === String(dependentId));
       if (found) setDependent(found);
+      const todayLogs = await scheduleAPI.getTodayLogs(dependentId);
+      setLogs(todayLogs);
     } catch (e) {
       console.warn('Nie udało się pobrać danych podopiecznego', e);
     }
@@ -82,15 +86,44 @@ export default function DependentTodayDashboard() {
 
   const greeting = dependent?.name?.trim() || dependent?.email || 'Podopieczny';
 
+  const renderMood = () => {
+    // @ts-ignore
+    if (!dependent?.lastMood || !dependent?.lastMoodAt) return null;
+    // @ts-ignore
+    const moodEmoji = dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
+    // @ts-ignore
+    const date = new Date(dependent.lastMoodAt);
+    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Theme.spacing.m }}>
+        <Text style={{ fontSize: 24 }}>{moodEmoji}</Text>
+        <Text style={{ fontSize: 16, color: Theme.colors.textLight, marginLeft: 8 }}>o {timeStr}</Text>
+      </View>
+    );
+  };
+
   const handleAdd = () => {
     if (!dependentId) return;
     router.push(`/(caretaker)/add-med/${dependentId}` as any);
+  };
+
+  const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {
+    const log = logs.find(l => l.scheduleId === sch.id);
+    if (log) {
+      if (log.status === 'TAKEN') return { label: 'Odebrane', color: Theme.colors.success, pill: styles.statusPillSuccess };
+      if (log.status === 'MISSED') return { label: 'Pominięte', color: Theme.colors.surfaceWhite, pill: styles.statusPillMissed };
+    }
+    const isPast = minutes < currentMinutes;
+    if (isPast) return { label: 'Minęło', color: Theme.colors.textLight, pill: styles.statusPillPast };
+    if (isNext) return { label: 'Teraz', color: Theme.colors.surfaceWhite, pill: styles.statusPillNext };
+    return { label: 'Zaplanowane', color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.greeting}>{greeting}</Text>
+        {renderMood()}
 
         {nextSchedule ? (
           <Card variant="lime" style={styles.mainCard}>
@@ -156,21 +189,16 @@ export default function DependentTodayDashboard() {
             const tType = typeFor(sch);
             const vis = tType ? TREATMENT_VISUAL[tType] : null;
             const minutes = timeToMinutes(sch.time);
-            const isPast = minutes < currentMinutes;
             const isNext = nextSchedule?.id === sch.id;
-
-            const status: 'past' | 'next' | 'upcoming' = isPast
-              ? 'past'
-              : isNext
-                ? 'next'
-                : 'upcoming';
+            
+            const display = getStatusDisplay(sch, minutes, isNext);
 
             return (
               <Card
                 key={sch.id}
-                variant={status === 'next' ? 'lime' : 'grey'}
+                variant={isNext ? 'lime' : 'grey'}
                 style={
-                  status === 'next' ? styles.activeScheduleCard : styles.scheduleCard
+                  isNext ? styles.activeScheduleCard : styles.scheduleCard
                 }
               >
                 <View style={styles.scheduleHead}>
@@ -195,26 +223,9 @@ export default function DependentTodayDashboard() {
                     </View>
                   </View>
 
-                  <View
-                    style={[
-                      styles.statusPill,
-                      status === 'past' && styles.statusPillPast,
-                      status === 'next' && styles.statusPillNext,
-                      status === 'upcoming' && styles.statusPillUpcoming,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusPillText,
-                        status === 'past' && { color: Theme.colors.textLight },
-                        status === 'next' && { color: Theme.colors.surfaceWhite },
-                      ]}
-                    >
-                      {status === 'past'
-                        ? 'Minęło'
-                        : status === 'next'
-                          ? 'Teraz'
-                          : 'Zaplanowane'}
+                  <View style={[styles.statusPill, display.pill]}>
+                    <Text style={[styles.statusPillText, { color: display.color }]}>
+                      {display.label}
                     </Text>
                   </View>
                 </View>
@@ -386,6 +397,16 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.small,
     fontWeight: '700',
     color: Theme.colors.textDark,
+  },
+  statusPillSuccess: {
+    backgroundColor: Theme.colors.badgeSuccessBackground || '#e8f5e9',
+    borderColor: Theme.colors.success || '#4caf50',
+    borderWidth: 1,
+  },
+  statusPillMissed: {
+    backgroundColor: Theme.colors.badgeWarningBackground || '#ffebee',
+    borderColor: Theme.colors.accentOrange || '#ff9800',
+    borderWidth: 1,
   },
   fab: {
     position: 'absolute',

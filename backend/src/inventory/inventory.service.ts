@@ -10,8 +10,10 @@ export class InventoryService {
       data: {
         userId,
         name: data.name,
-        totalPills: data.totalPills ?? 0,
-        currentPills: data.currentPills ?? data.totalPills ?? 0,
+        type: data.type || 'MEDICATION',
+        description: data.description,
+        totalPills: data.totalPills,
+        currentPills: data.currentPills ?? data.totalPills,
         pillsPerDose: data.pillsPerDose ?? 1,
       },
     });

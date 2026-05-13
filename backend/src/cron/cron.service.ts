@@ -73,4 +73,28 @@ export class CronService {
       }
     }
   }
+
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async markMissedDoses() {
+    this.logger.debug('Sprawdzanie pominiętych leków...');
+    
+    const oneHourAgo = new Date();
+    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+
+    const result = await this.prisma.doseLog.updateMany({
+      where: {
+        status: 'PENDING',
+        scheduledAt: {
+          lt: oneHourAgo,
+        },
+      },
+      data: {
+        status: 'MISSED',
+      },
+    });
+
+    if (result.count > 0) {
+      this.logger.log(`Oznaczono ${result.count} leków jako POMINIĘTE`);
+    }
+  }
 }

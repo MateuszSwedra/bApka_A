@@ -44,4 +44,55 @@ export class SchedulesService {
       where: { id },
     });
   }
+
+  async getTodayDoseLogs(userId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    return this.prisma.doseLog.findMany({
+      where: {
+        schedule: {
+          userId: userId,
+        },
+        createdAt: {
+          gte: today,
+        },
+      },
+    });
+  }
+
+  async markDose(scheduleId: string, status: 'TAKEN' | 'MISSED') {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const existingLog = await this.prisma.doseLog.findFirst({
+      where: {
+        scheduleId,
+        createdAt: {
+          gte: today,
+        },
+      },
+    });
+
+    if (existingLog) {
+      return this.prisma.doseLog.update({
+        where: { id: existingLog.id },
+        data: {
+          status,
+          takenAt: status === 'TAKEN' ? new Date() : null,
+          source: 'APP_SENIOR'
+        },
+      });
+    } else {
+      return this.prisma.doseLog.create({
+        data: {
+          scheduleId,
+          status,
+          scheduledAt: new Date(),
+          takenAt: status === 'TAKEN' ? new Date() : null,
+          source: 'APP_SENIOR'
+        },
+      });
+    }
+  }
 }

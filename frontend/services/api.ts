@@ -224,6 +224,12 @@ export const usersAPI = {
     }
     throw lastError;
   },
+  updateMood: async (mood: string) => {
+    return fetchApi('/users/me/mood', {
+      method: 'PATCH',
+      body: JSON.stringify({ mood }),
+    });
+  },
 };
 
 export const inventoryAPI = {
@@ -256,6 +262,12 @@ export const inventoryAPI = {
       method: 'DELETE',
     });
   },
+  update: async (id: string, data: any) => {
+    return fetchApi(`/inventory/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 export const scheduleAPI = {
@@ -280,7 +292,22 @@ export const scheduleAPI = {
     });
   },
   markTaken: async (scheduleId: string) => {
-    // Zostanie podpięte pod DoseLog
-    return { success: true };
+    return fetchApi(`/schedules/logs/${scheduleId}/mark`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'TAKEN' })
+    });
+  },
+  markMissed: async (scheduleId: string) => {
+    return fetchApi(`/schedules/logs/${scheduleId}/mark`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'MISSED' })
+    });
+  },
+  getTodayLogs: async (userId: string) => {
+    try {
+      return await fetchApi(`/schedules/user/${userId}/logs`);
+    } catch {
+      return [];
+    }
   }
 };

@@ -29,4 +29,14 @@ export class SchedulesController {
   remove(@Param('id') id: string) {
     return this.schedulesService.remove(id);
   }
+
+  @Get('user/:userId/logs')
+  getTodayDoseLogs(@Param('userId') userId: string) {
+    return this.schedulesService.getTodayDoseLogs(userId);
+  }
+
+  @Patch('logs/:scheduleId/mark')
+  markDose(@Param('scheduleId') scheduleId: string, @Body('status') status: 'TAKEN' | 'MISSED') {
+    return this.schedulesService.markDose(scheduleId, status);
+  }
 }
