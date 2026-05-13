@@ -5,10 +5,11 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
-import { format, getDay, isBefore, isSameDay, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 import { router, useLocalSearchParams } from 'expo-router';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
 import type { ScheduleItem } from '../../../../context/MedsContext';
+import { scheduleAppliesToDate } from '../../../../utils/scheduleHelpers';
 
 LocaleConfig.locales['pl'] = {
   monthNames: [
@@ -31,31 +32,6 @@ LocaleConfig.locales['pl'] = {
   today: 'Dzisiaj',
 };
 LocaleConfig.defaultLocale = 'pl';
-
-function isoWeekdayFromDateString(dateStr: string): number {
-  const d = parseISO(dateStr);
-  const day = getDay(d);
-  return day === 0 ? 7 : day;
-}
-
-function scheduleAppliesToDate(s: ScheduleItem, dateStr: string): boolean {
-  const day = parseISO(dateStr);
-  if (s.type === 'ONCE') {
-    return s.startDate === dateStr;
-  }
-  const start = parseISO(s.startDate);
-  const afterStart = !isBefore(day, start) || isSameDay(day, start);
-  if (!afterStart) return false;
-  const dow = isoWeekdayFromDateString(dateStr);
-  // Puste daysOfWeek w TEMPORARY znaczy „codziennie w okresie”.
-  const everyDay = s.type === 'TEMPORARY' && (!s.daysOfWeek || s.daysOfWeek.length === 0);
-  if (!everyDay && !s.daysOfWeek.includes(dow)) return false;
-  if (s.type === 'TEMPORARY' && s.endDate) {
-    const end = parseISO(s.endDate);
-    return !isBefore(end, day) || isSameDay(day, end);
-  }
-  return true;
-}
 
 export default function DependentCalendarScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
