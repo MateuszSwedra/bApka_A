@@ -1,6 +1,7 @@
 import { Stack } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { AuthProvider } from '../context/AuthContext';
+import { MedsProvider } from '../context/MedsContext';
 import { Theme } from '../constants/theme';
 
 Notifications.setNotificationHandler({
@@ -16,6 +17,7 @@ Notifications.setNotificationHandler({
 export default function RootLayout() {
   return (
     <AuthProvider>
+      <MedsProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="welcome" options={{ animation: 'fade' }} />
@@ -49,6 +51,7 @@ export default function RootLayout() {
         <Stack.Screen name="(dependent)" />
         <Stack.Screen name="(hybrid)" />
       </Stack>
+      </MedsProvider>
     </AuthProvider>
   );
 }
