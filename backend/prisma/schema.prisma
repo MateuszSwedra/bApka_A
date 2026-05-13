@@ -51,9 +51,11 @@ model Inventory {
   id              String   @id @default(uuid())
   userId          String
   name            String
-  totalPills      Int
-  currentPills    Int
-  pillsPerDose    Int
+  totalPills      Int?     @default(0)
+  currentPills    Int?     @default(0)
+  pillsPerDose    Int?     @default(1)
+  type            String   @default("MEDICATION")
+  description     String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -66,10 +68,12 @@ model Schedule {
   userId      String
   inventoryId String?
   medication  String?
-  dosage      String
+  dosage      String?
   time        String   // np. "08:30"
-  type        String   @default("DAILY") // e.g., DAILY, ONCE
+  type        String   @default("REGULAR") // e.g., REGULAR, ONCE, TEMPORARY
   startDate   String?  // format YYYY-MM-DD
+  endDate     String?  // format YYYY-MM-DD
+  daysOfWeek  Int[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

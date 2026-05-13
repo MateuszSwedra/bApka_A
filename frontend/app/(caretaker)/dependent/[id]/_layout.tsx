@@ -2,10 +2,12 @@ import { Tabs, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { View, Pressable, Text } from 'react-native';
+import { MedsProvider } from '../../../../context/MedsContext';
 
 export default function DependentTabsLayout() {
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+    <MedsProvider>
+      <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
       {/* Header wspólny dla wszystkich zakładek */}
       <View style={{
         flexDirection: 'row',
@@ -77,5 +79,6 @@ export default function DependentTabsLayout() {
         />
       </Tabs>
     </View>
+    </MedsProvider>
   );
 }

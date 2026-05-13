@@ -227,6 +227,12 @@ export const usersAPI = {
 };
 
 export const inventoryAPI = {
+  create: async (userId: string, data: any) => {
+    return fetchApi(`/inventory/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
   getInventory: async (userId: string) => {
     try {
       const data = await fetchApi(`/inventory/user/${userId}`);
@@ -244,13 +250,30 @@ export const inventoryAPI = {
       console.warn('Error fetching depletion', error);
       return null;
     }
+  },
+  remove: async (id: string) => {
+    return fetchApi(`/inventory/${id}`, { method: 'DELETE' });
   }
 };
 
 export const scheduleAPI = {
+  create: async (userId: string, data: any) => {
+    return fetchApi(`/schedules/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(data)
+    });
+  },
   getSchedules: async (userId: string) => {
-    // Zostanie podpięte pod dedykowany kontroler Schedules w przyszłości
-    return [];
+    try {
+      const data = await fetchApi(`/schedules/user/${userId}`);
+      return data;
+    } catch (error) {
+      console.warn('Error fetching schedules', error);
+      return [];
+    }
+  },
+  remove: async (id: string) => {
+    return fetchApi(`/schedules/${id}`, { method: 'DELETE' });
   },
   markTaken: async (scheduleId: string) => {
     // Zostanie podpięte pod DoseLog

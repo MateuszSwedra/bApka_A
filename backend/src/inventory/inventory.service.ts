@@ -50,12 +50,13 @@ export class InventoryService {
     const dailyDoses = inventory.schedules.filter((s: any) => s.type === 'DAILY').length;
     if (dailyDoses === 0) return { daysLeft: 999, pillsLeft: inventory.currentPills };
     
-    const pillsPerDay = dailyDoses * inventory.pillsPerDose;
-    const daysLeft = Math.floor(inventory.currentPills / pillsPerDay);
+    const pillsPerDay = dailyDoses * (inventory.pillsPerDose ?? 1);
+    const currentPills = inventory.currentPills ?? 0;
+    const daysLeft = pillsPerDay > 0 ? Math.floor(currentPills / pillsPerDay) : 999;
     
     return {
       daysLeft,
-      pillsLeft: inventory.currentPills,
+      pillsLeft: currentPills,
     };
   }
 }

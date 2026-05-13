@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect } from 'react';
 import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
-import { inventoryAPI, scheduleAPI } from '../services/api';
+import { inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
+import { useLocalSearchParams } from 'expo-router';
 import type { TreatmentType } from '../constants/treatmentVisuals';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
@@ -24,25 +25,20 @@ export type MedScheduleType = 'ONCE' | 'REGULAR' | 'TEMPORARY';
 
 export interface ScheduleItem {
   id: string;
-  /** Wybrana aktywność z listy Treatment (wszystkie typy) */
   treatmentId?: string;
-  /** @deprecated — używaj treatmentId; zostawione dla starych wpisów */
   inventoryId?: string;
-  /** @deprecated — jednorazowe wpisy bez karty aktywności */
   customName?: string;
   type: MedScheduleType;
   time: string;
   daysOfWeek: number[]; // 1(Pn) - 7(Nd)
   startDate: string; // yyyy-MM-dd
-  endDate?: string; // yyyy-MM-dd (dla TEMPORARY)
+  endDate?: string; // yyyy-MM-dd
 }
 
-/** Id aktywności przypisanej do wpisu harmonogramu (nowe: treatmentId, stare: inventoryId). */
 export function getScheduleTreatmentId(s: ScheduleItem): string | undefined {
   return s.treatmentId ?? s.inventoryId;
 }
 
-// Wynik obliczeń algorytmu
 export interface DepletionAlert {
   date: string;
   inventoryItemName: string;
@@ -63,42 +59,32 @@ interface MedsContextType {
 
 const MedsContext = createContext<MedsContextType | undefined>(undefined);
 
-const randomId = () => Math.random().toString(36).substring(2, 10);
-
 export function MedsProvider({ children }: { children: ReactNode }) {
-  const [treatments, setTreatments] = useState<Treatment[]>([
-    {
-      id: 'tr-1',
-      type: 'MEDICATION',
-      name: 'Acard 75mg',
-      totalPills: 14,
-      description: 'Przyjmować po posiłku',
-    },
-  ]);
+  const { id } = useLocalSearchParams<{ id?: string }>();
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([
-    {
-      id: 'sch-1',
-      treatmentId: 'tr-1',
-      type: 'REGULAR',
-      time: '08:00',
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 7], // codziennie
-      startDate: format(new Date(), 'yyyy-MM-dd')
-    }
-  ]);
+  const [treatments, setTreatments] = useState<Treatment[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
 
-  // Symulacja pobierania danych z API backendu
   useEffect(() => {
+    if (id) {
+      setTargetUserId(id);
+    } else {
+      usersAPI.getMe().then(me => {
+        if (me?.id) setTargetUserId(me.id);
+      }).catch(e => console.error('Failed to fetch user ID', e));
+    }
+  }, [id]);
+
+  useEffect(() => {
+    if (!targetUserId) return;
     const fetchData = async () => {
       try {
-        // Dla demonstracji - twardo kodowany user. W produkcji brany z AuthContext.
-        const userId = 'mock-id';
-        const fetchedInventory = await inventoryAPI.getInventory(userId);
+        const fetchedInventory = await inventoryAPI.getInventory(targetUserId);
         if (fetchedInventory && fetchedInventory.length > 0) {
-          // Mapowanie surowych danych z backendu na uniwersalny model Treatment
           const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
             id: String(it.id),
-            type: 'MEDICATION',
+            type: it.type || 'MEDICATION',
             name: it.name,
             totalPills: it.totalPills,
             description: it.description,
@@ -106,19 +92,27 @@ export function MedsProvider({ children }: { children: ReactNode }) {
           setTreatments(mapped);
         }
 
-        const fetchedSchedules = await scheduleAPI.getSchedules(userId);
+        const fetchedSchedules = await scheduleAPI.getSchedules(targetUserId);
         if (fetchedSchedules && fetchedSchedules.length > 0) {
-          setSchedules(fetchedSchedules);
+          const mappedSchedules: ScheduleItem[] = fetchedSchedules.map((sch: any) => ({
+            id: String(sch.id),
+            treatmentId: sch.inventoryId,
+            customName: sch.medication,
+            type: sch.type as MedScheduleType,
+            time: sch.time,
+            startDate: sch.startDate,
+            endDate: sch.endDate,
+            daysOfWeek: sch.daysOfWeek || [],
+          }));
+          setSchedules(mappedSchedules);
         }
       } catch (e) {
         console.error('Błąd pobierania danych z backendu:', e);
       }
     };
-
     fetchData();
-  }, []);
+  }, [targetUserId]);
 
-  // Widok zgodny ze starym API – tylko leki, używany przez kalendarz i ekran add-med.
   const inventory: InventoryItem[] = useMemo(
     () =>
       treatments
@@ -132,13 +126,25 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     [treatments]
   );
 
-  const addTreatment = (treatment: Omit<Treatment, 'id'>) => {
-    setTreatments(prev => [...prev, { ...treatment, id: randomId() }]);
+  const addTreatment = async (treatment: Omit<Treatment, 'id'>) => {
+    if (!targetUserId) return;
+    try {
+      const data = await inventoryAPI.create(targetUserId, {
+        name: treatment.name,
+        type: treatment.type,
+        totalPills: treatment.totalPills,
+        description: treatment.description
+      });
+      setTreatments(prev => [...prev, { ...treatment, id: String(data.id) }]);
+    } catch (e) { console.error('Error adding treatment:', e); }
   };
 
-  const removeTreatment = (id: string) => {
-    setTreatments(prev => prev.filter(t => t.id !== id));
-    setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
+  const removeTreatment = async (id: string) => {
+    try {
+      await inventoryAPI.remove(id);
+      setTreatments(prev => prev.filter(t => t.id !== id));
+      setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
+    } catch (e) { console.error('Error removing treatment:', e); }
   };
 
   const updateTreatment = (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
@@ -153,21 +159,29 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     removeTreatment(id);
   };
 
-  const addSchedule = (schedule: Omit<ScheduleItem, 'id'>) => {
-    setSchedules(prev => [...prev, { ...schedule, id: randomId() }]);
+  const addSchedule = async (schedule: Omit<ScheduleItem, 'id'>) => {
+    if (!targetUserId) return;
+    try {
+      const data = await scheduleAPI.create(targetUserId, {
+        inventoryId: schedule.treatmentId || schedule.inventoryId,
+        medication: schedule.customName,
+        time: schedule.time,
+        type: schedule.type,
+        startDate: schedule.startDate,
+        endDate: schedule.endDate,
+        daysOfWeek: schedule.daysOfWeek
+      });
+      setSchedules(prev => [...prev, { ...schedule, id: String(data.id) }]);
+    } catch (e) { console.error('Error adding schedule:', e); }
   };
 
-  // ALGORYTM: Przewidywanie zużycia na podstawie kalendarza
   const depletionAlerts = useMemo(() => {
     const alerts: DepletionAlert[] = [];
-    
-    // JS date-fns getDay(): 0 to Nd, 1 to Pn. Zmieniamy na 1=Pn, 7=Nd
     const getIsoDay = (date: Date) => {
       const d = getDay(date);
       return d === 0 ? 7 : d;
     };
 
-    // Tylko leki (MEDICATION) — zużycie tabletek i alerty końca zapasu
     treatments
       .filter(t => t.type === 'MEDICATION')
       .forEach(med => {
@@ -179,8 +193,8 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       if (relatedSchedules.length === 0) return;
 
       let remainingPills = med.totalPills ?? 0;
-      let currentDate = new Date(); // Zaczynamy symulację od dzisiaj
-      let emergencyBreak = 0; // Zabezpieczenie przed nieskończoną pętlą (np. leki na 10 lat)
+      let currentDate = new Date();
+      let emergencyBreak = 0;
 
       while (remainingPills > 0 && emergencyBreak < 1000) {
         const currentDateStr = format(currentDate, 'yyyy-MM-dd');
@@ -189,13 +203,10 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         let pillsTakenToday = 0;
 
         for (const sch of relatedSchedules) {
-          // ONCE ignorujemy w zasobach Apteczki z założenia (zrobiłeś wyjątek wpisywania nazwy ręcznie)
           if (sch.type === 'ONCE') continue; 
 
-          // Sprawdzamy czy harmonogram obowiązuje w tym dniu (startDate)
           const isAfterOrOnStart = !isBefore(currentDate, new Date(sch.startDate)) || isSameDay(currentDate, new Date(sch.startDate));
           
-          // Sprawdzamy zakończenie (dla TEMPORARY)
           let isBeforeOrOnEnd = true;
           if (sch.type === 'TEMPORARY' && sch.endDate) {
             isBeforeOrOnEnd = !isBefore(new Date(sch.endDate), currentDate) || isSameDay(currentDate, new Date(sch.endDate));
@@ -203,7 +214,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
 
           if (isAfterOrOnStart && isBeforeOrOnEnd) {
             if (sch.daysOfWeek.includes(currentIsoDay)) {
-              pillsTakenToday += 1; // Jedna porcja z tego harmonogramu
+              pillsTakenToday += 1;
             }
           }
         }
@@ -215,7 +226,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
             date: currentDateStr,
             inventoryItemName: med.name
           });
-          break; // Koniec zapasu dla tego leku
+          break;
         }
 
         currentDate = addDays(currentDate, 1);

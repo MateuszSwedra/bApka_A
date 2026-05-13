@@ -97,7 +97,7 @@ export class UsersService {
       }
     });
     
-    return connections.map(conn => conn.dependent);
+    return connections.map((conn: any) => conn.dependent);
   }
 
   async updateFcmToken(userId: string, fcmToken: string) {
