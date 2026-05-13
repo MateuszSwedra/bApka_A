@@ -1,24 +1,45 @@
 import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect } from 'react';
 import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
 import { inventoryAPI, scheduleAPI } from '../services/api';
+import type { TreatmentType } from '../constants/treatmentVisuals';
+
+export type { TreatmentType } from '../constants/treatmentVisuals';
+
+export interface Treatment {
+  id: string;
+  type: TreatmentType;
+  name: string;
+  description?: string;
+  totalPills?: number;
+}
 
 export interface InventoryItem {
   id: string;
   name: string;
   totalPills: number;
+  description?: string;
 }
 
 export type MedScheduleType = 'ONCE' | 'REGULAR' | 'TEMPORARY';
 
 export interface ScheduleItem {
   id: string;
-  inventoryId?: string; // Powiązanie z fizycznym lekiem z apteczki (null dla ONCE wpisanego ręcznie)
-  customName?: string; // Nazwa dla ONCE
+  /** Wybrana aktywność z listy Treatment (wszystkie typy) */
+  treatmentId?: string;
+  /** @deprecated — używaj treatmentId; zostawione dla starych wpisów */
+  inventoryId?: string;
+  /** @deprecated — jednorazowe wpisy bez karty aktywności */
+  customName?: string;
   type: MedScheduleType;
   time: string;
   daysOfWeek: number[]; // 1(Pn) - 7(Nd)
   startDate: string; // yyyy-MM-dd
   endDate?: string; // yyyy-MM-dd (dla TEMPORARY)
+}
+
+/** Id aktywności przypisanej do wpisu harmonogramu (nowe: treatmentId, stare: inventoryId). */
+export function getScheduleTreatmentId(s: ScheduleItem): string | undefined {
+  return s.treatmentId ?? s.inventoryId;
 }
 
 // Wynik obliczeń algorytmu
@@ -28,9 +49,13 @@ export interface DepletionAlert {
 }
 
 interface MedsContextType {
+  treatments: Treatment[];
   inventory: InventoryItem[];
   schedules: ScheduleItem[];
-  addInventoryItem: (name: string, totalPills: number) => void;
+  addTreatment: (treatment: Omit<Treatment, 'id'>) => void;
+  removeTreatment: (id: string) => void;
+  updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => void;
+  addInventoryItem: (name: string, totalPills: number, description?: string) => void;
   removeInventoryItem: (id: string) => void;
   addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => void;
   depletionAlerts: DepletionAlert[];
@@ -38,15 +63,23 @@ interface MedsContextType {
 
 const MedsContext = createContext<MedsContextType | undefined>(undefined);
 
+const randomId = () => Math.random().toString(36).substring(2, 10);
+
 export function MedsProvider({ children }: { children: ReactNode }) {
-  const [inventory, setInventory] = useState<InventoryItem[]>([
-    { id: 'inv-1', name: 'Acard 75mg', totalPills: 14 }
+  const [treatments, setTreatments] = useState<Treatment[]>([
+    {
+      id: 'tr-1',
+      type: 'MEDICATION',
+      name: 'Acard 75mg',
+      totalPills: 14,
+      description: 'Przyjmować po posiłku',
+    },
   ]);
 
   const [schedules, setSchedules] = useState<ScheduleItem[]>([
     {
       id: 'sch-1',
-      inventoryId: 'inv-1',
+      treatmentId: 'tr-1',
       type: 'REGULAR',
       time: '08:00',
       daysOfWeek: [1, 2, 3, 4, 5, 6, 7], // codziennie
@@ -59,13 +92,20 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     const fetchData = async () => {
       try {
         // Dla demonstracji - twardo kodowany user. W produkcji brany z AuthContext.
-        const userId = 'mock-id'; 
+        const userId = 'mock-id';
         const fetchedInventory = await inventoryAPI.getInventory(userId);
         if (fetchedInventory && fetchedInventory.length > 0) {
-          // Dostosuj format danych backendu do interfejsu (w produkcji trzeba maperów)
-          setInventory(fetchedInventory);
+          // Mapowanie surowych danych z backendu na uniwersalny model Treatment
+          const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
+            id: String(it.id),
+            type: 'MEDICATION',
+            name: it.name,
+            totalPills: it.totalPills,
+            description: it.description,
+          }));
+          setTreatments(mapped);
         }
-        
+
         const fetchedSchedules = await scheduleAPI.getSchedules(userId);
         if (fetchedSchedules && fetchedSchedules.length > 0) {
           setSchedules(fetchedSchedules);
@@ -74,21 +114,47 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         console.error('Błąd pobierania danych z backendu:', e);
       }
     };
-    
+
     fetchData();
   }, []);
 
-  const addInventoryItem = (name: string, totalPills: number) => {
-    setInventory(prev => [...prev, { id: Math.random().toString(36).substring(7), name, totalPills }]);
+  // Widok zgodny ze starym API – tylko leki, używany przez kalendarz i ekran add-med.
+  const inventory: InventoryItem[] = useMemo(
+    () =>
+      treatments
+        .filter(t => t.type === 'MEDICATION')
+        .map(t => ({
+          id: t.id,
+          name: t.name,
+          totalPills: t.totalPills ?? 0,
+          description: t.description,
+        })),
+    [treatments]
+  );
+
+  const addTreatment = (treatment: Omit<Treatment, 'id'>) => {
+    setTreatments(prev => [...prev, { ...treatment, id: randomId() }]);
+  };
+
+  const removeTreatment = (id: string) => {
+    setTreatments(prev => prev.filter(t => t.id !== id));
+    setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
+  };
+
+  const updateTreatment = (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
+    setTreatments(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
+  };
+
+  const addInventoryItem = (name: string, totalPills: number, description?: string) => {
+    addTreatment({ type: 'MEDICATION', name, totalPills, description });
   };
 
   const removeInventoryItem = (id: string) => {
-    setInventory(prev => prev.filter(item => item.id !== id));
-    setSchedules(prev => prev.filter(sch => sch.inventoryId !== id)); // Usunięcie sierot
+    removeTreatment(id);
   };
 
   const addSchedule = (schedule: Omit<ScheduleItem, 'id'>) => {
-    setSchedules(prev => [...prev, { ...schedule, id: Math.random().toString(36).substring(7) }]);
+    setSchedules(prev => [...prev, { ...schedule, id: randomId() }]);
   };
 
   // ALGORYTM: Przewidywanie zużycia na podstawie kalendarza
@@ -101,11 +167,18 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       return d === 0 ? 7 : d;
     };
 
-    inventory.forEach(invItem => {
-      const relatedSchedules = schedules.filter(s => s.inventoryId === invItem.id);
-      if (relatedSchedules.length === 0) return; // Lek w apteczce, ale nie przypisany do harmonogramu
+    // Tylko leki (MEDICATION) — zużycie tabletek i alerty końca zapasu
+    treatments
+      .filter(t => t.type === 'MEDICATION')
+      .forEach(med => {
+      const relatedSchedules = schedules.filter(s => {
+        const tid = getScheduleTreatmentId(s);
+        if (tid !== med.id) return false;
+        return true;
+      });
+      if (relatedSchedules.length === 0) return;
 
-      let remainingPills = invItem.totalPills;
+      let remainingPills = med.totalPills ?? 0;
       let currentDate = new Date(); // Zaczynamy symulację od dzisiaj
       let emergencyBreak = 0; // Zabezpieczenie przed nieskończoną pętlą (np. leki na 10 lat)
 
@@ -140,7 +213,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         if (remainingPills <= 0 && pillsTakenToday > 0) {
           alerts.push({
             date: currentDateStr,
-            inventoryItemName: invItem.name
+            inventoryItemName: med.name
           });
           break; // Koniec zapasu dla tego leku
         }
@@ -151,10 +224,23 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     });
 
     return alerts;
-  }, [inventory, schedules]);
+  }, [treatments, schedules]);
 
   return (
-    <MedsContext.Provider value={{ inventory, schedules, addInventoryItem, removeInventoryItem, addSchedule, depletionAlerts }}>
+    <MedsContext.Provider
+      value={{
+        treatments,
+        inventory,
+        schedules,
+        addTreatment,
+        removeTreatment,
+        updateTreatment,
+        addInventoryItem,
+        removeInventoryItem,
+        addSchedule,
+        depletionAlerts,
+      }}
+    >
       {children}
     </MedsContext.Provider>
   );

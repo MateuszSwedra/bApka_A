@@ -62,10 +62,10 @@ export default function DependentTabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="meds"
+          name="treatments"
           options={{
-            title: 'Meds',
-            tabBarIcon: ({ color }) => <MaterialIcons name="medication" size={24} color={color} />,
+            title: 'Treatment',
+            tabBarIcon: ({ color }) => <MaterialIcons name="healing" size={24} color={color} />,
           }}
         />
         <Tabs.Screen
