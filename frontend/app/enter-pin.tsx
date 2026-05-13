@@ -7,6 +7,7 @@ import { Theme } from '../constants/theme';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
+import { normalizePinInput } from '../utils/pin';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -22,7 +23,8 @@ export default function EnterPinScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handlePair = async () => {
-    if (!pin.trim() || pin.length < 6) {
+    const digits = normalizePinInput(pin);
+    if (digits.length !== 6) {
       showAlert('Błąd', 'Wprowadź poprawny 6-cyfrowy kod PIN.');
       return;
     }
@@ -30,7 +32,7 @@ export default function EnterPinScreen() {
     setIsLoading(true);
     try {
       // Przypiszemy rolę DEPENDENT po udanym sparowaniu, choć domyślnie rejestracja już to robi
-      await usersAPI.pairWithPin(pin.trim());
+      await usersAPI.pairWithPin(digits);
       await usersAPI.updateRole('DEPENDENT');
       
       let token = null;
@@ -55,6 +57,14 @@ export default function EnterPinScreen() {
     }
   };
 
+  const handleBack = () => {
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/login');
+    }
+  };
+
   return (
     <View style={styles.container}>
       <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
@@ -68,9 +78,8 @@ export default function EnterPinScreen() {
           style={styles.input}
           placeholder="------"
           value={pin}
-          onChangeText={setPin}
+          onChangeText={(t) => setPin(normalizePinInput(t))}
           keyboardType="number-pad"
-          maxLength={6}
           editable={!isLoading}
           textAlign="center"
         />
@@ -81,7 +90,7 @@ export default function EnterPinScreen() {
       ) : (
         <View style={styles.actions}>
           <HugeButton title="Połącz konto" onPress={handlePair} style={styles.button} />
-          <HugeButton title="Wróć" variant="outline" onPress={() => router.back()} style={styles.button} />
+          <HugeButton title="Wróć" variant="outline" onPress={handleBack} style={styles.button} />
         </View>
       )}
     </View>

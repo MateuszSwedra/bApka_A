@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { Theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
@@ -18,9 +19,23 @@ export default function CaretakerDashboard() {
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchDependents = async () => {
+  const fetchDependents = useCallback(async () => {
     setIsLoading(true);
     try {
+      let token: string | null = null;
+      try {
+        if (Platform.OS === 'web') {
+          token = localStorage.getItem('userToken');
+        } else {
+          token = await SecureStore.getItemAsync('userToken');
+        }
+      } catch {
+        token = null;
+      }
+      if (!token) {
+        setDependents([]);
+        return;
+      }
       const data = await usersAPI.getDependents();
       setDependents(data);
     } catch (e) {
@@ -28,12 +43,12 @@ export default function CaretakerDashboard() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchDependents();
-    }, [])
+      void fetchDependents();
+    }, [fetchDependents])
   );
 
   const handleAddDependent = () => {
@@ -47,9 +62,9 @@ export default function CaretakerDashboard() {
   const handleLogout = async () => {
     await logout();
     if (Platform.OS === 'web') {
-      window.location.href = '/';
+      window.location.href = '/login';
     } else {
-      router.replace('/');
+      router.replace('/login');
     }
   };
 
@@ -64,9 +79,14 @@ export default function CaretakerDashboard() {
           <Text style={styles.greetingText}>Panel Opiekuna</Text>
           <Text style={styles.nameText}>Twoi podopieczni</Text>
         </View>
-        <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-          <MaterialIcons name="logout" size={28} color={Theme.colors.accentOrange} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push('/notification-sound-settings' as any)} style={styles.iconBtn}>
+            <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
+          </Pressable>
+          <Pressable onPress={handleLogout} style={styles.logoutBtn}>
+            <MaterialIcons name="logout" size={28} color={Theme.colors.accentOrange} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -145,6 +165,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.s,
+  },
+  iconBtn: {
+    padding: Theme.spacing.s,
+    backgroundColor: Theme.colors.primaryLime,
+    borderRadius: Theme.borderRadius.round,
+  },
   greeting: {
     flex: 1,
   },
@@ -159,7 +189,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     padding: Theme.spacing.s,
-    backgroundColor: '#FFE5E0',
+    backgroundColor: Theme.colors.surfaceSoftOrange,
     borderRadius: Theme.borderRadius.round,
   },
   scrollContent: {
@@ -206,15 +236,15 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.m,
     borderWidth: 1,
     borderColor: 'transparent',
-    shadowColor: '#000',
+    shadowColor: Theme.colors.shadowNeutral,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.05,
+    shadowOpacity: 1,
     shadowRadius: 8,
     elevation: 2,
   },
   cardWarning: {
     borderColor: Theme.colors.accentOrange,
-    backgroundColor: '#FFF8F6',
+    backgroundColor: Theme.colors.surfaceWarmHighlight,
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
@@ -234,7 +264,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   avatarWarning: {
-    backgroundColor: '#FFE5E0',
+    backgroundColor: Theme.colors.surfaceSoftOrange,
   },
   avatarText: {
     color: Theme.colors.textDark,
@@ -257,7 +287,7 @@ const styles = StyleSheet.create({
   statusBadgeSuccess: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#E8F5E9',
+    backgroundColor: Theme.colors.badgeSuccessBackground,
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -265,14 +295,14 @@ const styles = StyleSheet.create({
   },
   statusSuccessText: {
     fontSize: Theme.typography.small,
-    color: Theme.colors.success,
+    color: Theme.colors.primaryLimeDark,
     fontWeight: 'bold',
     marginLeft: 4,
   },
   statusBadgeWarning: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFEBEE',
+    backgroundColor: Theme.colors.badgeWarningBackground,
     alignSelf: 'flex-start',
     paddingHorizontal: 8,
     paddingVertical: 4,

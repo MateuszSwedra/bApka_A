@@ -14,8 +14,19 @@ export default function IndexRouter() {
     if (!isReady) return;
 
     const route = async () => {
-      // 1) zalogowana sesja - prosto do panelu
-      if (userRole) {
+      let sessionToken: string | null = null;
+      try {
+        if (Platform.OS === 'web') {
+          sessionToken = localStorage.getItem('userToken');
+        } else {
+          sessionToken = await SecureStore.getItemAsync('userToken');
+        }
+      } catch {
+        sessionToken = null;
+      }
+
+      // 1) zalogowana sesja — wymagany token (unika wyścigu: rola w pamięci vs SecureStore po wylogowaniu)
+      if (userRole && sessionToken) {
         if (userRole === 'CARETAKER') {
           router.replace('/(caretaker)');
         } else if (userRole === 'DEPENDENT') {

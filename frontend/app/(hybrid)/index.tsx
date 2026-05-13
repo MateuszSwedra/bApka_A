@@ -12,9 +12,9 @@ export default function HybridDashboard() {
   const handleLogout = async () => {
     await logout();
     if (Platform.OS === 'web') {
-      window.location.href = '/';
+      window.location.href = '/login';
     } else {
-      router.replace('/');
+      router.replace('/login');
     }
   };
 
@@ -27,7 +27,10 @@ export default function HybridDashboard() {
           <Text style={styles.greeting}>Użytkowniku</Text>
         </View>
         <View style={styles.headerIcons}>
-          <Pressable style={styles.iconBtn}>
+          <Pressable
+            onPress={() => router.push('/notification-sound-settings' as any)}
+            style={styles.iconBtn}
+          >
             <MaterialIcons name="settings" size={28} color={Theme.colors.textLight} />
           </Pressable>
           <Pressable onPress={handleLogout} style={[styles.iconBtn, styles.logoutBtn]}>
@@ -140,14 +143,14 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.surfaceWhite,
     padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.round,
-    shadowColor: '#000',
+    shadowColor: Theme.colors.shadowNeutral,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
   logoutBtn: {
-    backgroundColor: '#FFE5E0',
+    backgroundColor: Theme.colors.surfaceSoftOrange,
   },
   pressedCard: {
     transform: [{ scale: 0.98 }],
@@ -188,7 +191,7 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.xlarge,
     marginTop: Theme.spacing.xl,
     padding: Theme.spacing.xl,
-    shadowColor: '#000',
+    shadowColor: Theme.colors.shadowNeutral,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.05,
     shadowRadius: 12,

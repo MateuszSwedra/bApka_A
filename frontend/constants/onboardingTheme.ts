@@ -1,7 +1,5 @@
 /**
- * Paleta kolorów uzywana TYLKO na ekranach onboardingu (welcome, login,
- * role-selection, senior-type). Reszta aplikacji nadal korzysta z `Theme`
- * z `./theme.ts` - nie chcemy zmieniac jej tutaj zeby nie ruszac calej aplikacji.
+ * Paleta onboardingu — ta sama baza co `Theme` w `theme.ts` (spójna marka w całej aplikacji).
  */
 export const OnboardingPalette = {
   /** Główne tło ekranów */

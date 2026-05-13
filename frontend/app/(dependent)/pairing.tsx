@@ -3,17 +3,18 @@ import { View, Text, TextInput, StyleSheet } from 'react-native';
 import { router } from 'expo-router';
 import { HugeButton } from '../../components/HugeButton';
 import { Theme } from '../../constants/theme';
+import { normalizePinInput } from '../../utils/pin';
 
 export default function DependentPairingScreen() {
   const [pin, setPin] = useState('');
 
   const handlePair = () => {
-    // Weryfikacja PIN (mock)
-    if (pin.length === 6) {
-      router.replace('/(dependent)');
-    } else {
-      alert("PIN musi mieć 6 cyfr.");
+    const digits = normalizePinInput(pin);
+    if (digits.length !== 6) {
+      alert('PIN musi mieć 6 cyfr.');
+      return;
     }
+    router.replace('/(dependent)');
   };
 
   return (
@@ -23,9 +24,8 @@ export default function DependentPairingScreen() {
       <TextInput 
         style={styles.pinInput}
         value={pin}
-        onChangeText={setPin}
+        onChangeText={(t) => setPin(normalizePinInput(t))}
         keyboardType="number-pad"
-        maxLength={6}
         placeholder="------"
         autoFocus
       />
@@ -34,7 +34,7 @@ export default function DependentPairingScreen() {
         title="POŁĄCZ" 
         size="huge" 
         onPress={handlePair} 
-        disabled={pin.length !== 6}
+        disabled={normalizePinInput(pin).length !== 6}
         style={styles.button}
       />
     </View>
@@ -55,7 +55,7 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.xxl,
   },
   pinInput: {
-    backgroundColor: Theme.colors.surface,
+    backgroundColor: Theme.colors.surfaceWhite,
     fontSize: 64,
     fontWeight: 'bold',
     textAlign: 'center',
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.m,
     marginBottom: Theme.spacing.xxl,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: Theme.colors.shadowNeutral,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,

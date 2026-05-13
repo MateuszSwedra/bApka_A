@@ -12,7 +12,6 @@ import {
   Easing,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -25,6 +24,7 @@ import {
 } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
+import { requestUserNotificationPermission } from '../services/notificationPermissions';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -99,7 +99,7 @@ export default function NotificationScreen() {
     setBusy(true);
     try {
       if (Platform.OS !== 'web') {
-        await Notifications.requestPermissionsAsync();
+        await requestUserNotificationPermission();
       }
     } catch (e) {
       console.warn('Notification permission', e);

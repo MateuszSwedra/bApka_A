@@ -47,7 +47,20 @@ export default function LoginScreen() {
   const isBusy = loading !== 'idle';
 
   useEffect(() => {
-    if (isReady && userRole) {
+    if (!isReady || !userRole) return;
+    let cancelled = false;
+    const go = async () => {
+      let token: string | null = null;
+      try {
+        if (Platform.OS === 'web') {
+          token = localStorage.getItem('userToken');
+        } else {
+          token = await SecureStore.getItemAsync('userToken');
+        }
+      } catch {
+        token = null;
+      }
+      if (cancelled || !token) return;
       if (userRole === 'CARETAKER') {
         router.replace('/(caretaker)');
       } else if (userRole === 'DEPENDENT') {
@@ -57,7 +70,11 @@ export default function LoginScreen() {
       } else {
         router.replace('/role-selection');
       }
-    }
+    };
+    void go();
+    return () => {
+      cancelled = true;
+    };
   }, [isReady, userRole]);
 
   const goPick = useCallback(() => {
@@ -92,8 +109,12 @@ export default function LoginScreen() {
         password,
       });
       await setUserSession(response.access_token, response.user.role);
-    } catch {
-      showAlert('Błąd logowania', 'Nieprawidłowy e-mail lub hasło');
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : 'Nieprawidłowy e-mail lub hasło albo brak połączenia z serwerem.';
+      showAlert('Błąd logowania', msg);
     } finally {
       setLoading('idle');
     }
@@ -127,11 +148,12 @@ export default function LoginScreen() {
         await SecureStore.setItemAsync('needsDisplayName', 'true');
       }
       router.replace('/onboarding-name');
-    } catch {
-      showAlert(
-        'Błąd rejestracji',
-        'Użytkownik już istnieje lub dane są niepoprawne.',
-      );
+    } catch (e) {
+      const msg =
+        e instanceof Error
+          ? e.message
+          : 'Sprawdź dane lub połączenie z serwerem.';
+      showAlert('Błąd rejestracji', msg);
     } finally {
       setLoading('idle');
     }

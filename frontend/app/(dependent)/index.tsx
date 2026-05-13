@@ -14,9 +14,9 @@ export default function DependentDashboard() {
   const handleLogout = async () => {
     await logout();
     if (Platform.OS === 'web') {
-      window.location.href = '/';
+      window.location.href = '/login';
     } else {
-      router.replace('/');
+      router.replace('/login');
     }
   };
 
@@ -40,9 +40,14 @@ export default function DependentDashboard() {
           <Text style={styles.greetingText}>Dzień dobry,</Text>
           <Text style={styles.nameText}>Seniorze</Text>
         </View>
-        <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-          <MaterialIcons name="logout" size={28} color={Theme.colors.accentOrange} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push('/notification-sound-settings' as any)} style={styles.iconBtn}>
+            <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
+          </Pressable>
+          <Pressable onPress={handleLogout} style={styles.logoutBtn}>
+            <MaterialIcons name="logout" size={28} color={Theme.colors.accentOrange} />
+          </Pressable>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -125,6 +130,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: Theme.colors.border,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.s,
+  },
+  iconBtn: {
+    padding: Theme.spacing.s,
+    backgroundColor: Theme.colors.primaryLime,
+    borderRadius: Theme.borderRadius.round,
+  },
   greeting: {
     flex: 1,
   },
@@ -139,7 +154,7 @@ const styles = StyleSheet.create({
   },
   logoutBtn: {
     padding: Theme.spacing.s,
-    backgroundColor: '#FFE5E0',
+    backgroundColor: Theme.colors.surfaceSoftOrange,
     borderRadius: Theme.borderRadius.round,
   },
   scrollContent: {
@@ -271,7 +286,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   timeBadgePending: {
-    backgroundColor: '#FFF8E1',
+    backgroundColor: Theme.colors.schedulePendingBackground,
   },
   scheduleTime: {
     fontSize: Theme.typography.small,
@@ -279,7 +294,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
   },
   scheduleTimePending: {
-    color: '#F57F17',
+    color: Theme.colors.schedulePendingText,
   },
   scheduleItem: {
     flex: 1,

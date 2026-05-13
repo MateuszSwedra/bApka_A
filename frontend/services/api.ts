@@ -50,23 +50,26 @@ function ensureApiBaseNotOnMetroPort(base: string): string {
 
 /**
  * Bazowy URL API — zawsze absolutny (unikamy żądań względnych do Metro :8081).
- * Ustaw EXPO_PUBLIC_API_URL (np. http://192.168.0.10:3000) gdy API nie jest na tym samym hoście co bundler.
+ * Ustaw EXPO_PUBLIC_API_URL (np. http://192.168.0.10:3000) na urządzeniu fizycznym / emulatorze,
+ * gdy API nie jest na tym samym hoście co bundler.
+ *
+ * W przeglądarce najpierw bierzemy host strony (localhost / 127.0.0.1), żeby jedna wartość
+ * EXPO_PUBLIC_API_URL pod telefon nie psuła logowania na komputerze.
  */
 function resolveApiBaseUrl(): string {
+  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+    const h = window.location?.hostname;
+    if (h) {
+      return ensureApiBaseNotOnMetroPort(`http://${h}:3000`);
+    }
+  }
+
   const raw =
     typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL
       ? String(process.env.EXPO_PUBLIC_API_URL).trim()
       : '';
   if (raw) {
     return ensureApiBaseNotOnMetroPort(raw);
-  }
-
-  /** W przeglądarce host strony jest wiarygodniejszy niż hostUri z manifestu. */
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    const h = window.location?.hostname;
-    if (h) {
-      return ensureApiBaseNotOnMetroPort(`http://${h}:3000`);
-    }
   }
 
   const hostUri = Constants.expoConfig?.hostUri;
