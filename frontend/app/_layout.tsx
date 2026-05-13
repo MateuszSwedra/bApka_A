@@ -18,6 +18,10 @@ export default function RootLayout() {
           name="profile-ready"
           options={{ animation: 'slide_from_right' }}
         />
+        <Stack.Screen
+          name="notification"
+          options={{ animation: 'slide_from_right' }}
+        />
         <Stack.Screen name="senior-type" />
         <Stack.Screen name="(caretaker)" />
         <Stack.Screen name="(dependent)" />

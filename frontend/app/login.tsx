@@ -12,6 +12,7 @@ import {
   Image,
   Dimensions,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -169,27 +170,24 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      {(mode === 'register' || mode === 'signIn') && (
-        <View style={styles.formBackdrop} pointerEvents="none">
-          <Image
-            source={
-              mode === 'register'
-                ? require('../assets/images/auth-register-hero.png')
-                : require('../assets/images/auth-login-hero.png')
-            }
-            style={styles.formBackdropImage}
-            resizeMode="contain"
+      {mode === 'register' && (
+        <View style={styles.registerBackdrop} pointerEvents="none">
+          <ExpoImage
+            source={require('../assets/images/auth-register-hero.png')}
+            style={styles.registerBackdropImage}
+            contentFit="contain"
           />
           <LinearGradient
             colors={[
-              'transparent',
-              'rgba(249, 243, 239, 0.55)',
               OnboardingPalette.background,
+              'rgba(249, 243, 239, 0.82)',
+              'rgba(249, 243, 239, 0.35)',
+              'rgba(249, 243, 239, 0)',
             ]}
-            locations={[0, 0.42, 1]}
+            locations={[0, 0.28, 0.52, 1]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
-            style={styles.formBackdropBottomFade}
+            style={styles.registerBackdropGradient}
           />
         </View>
       )}
@@ -214,7 +212,8 @@ export default function LoginScreen() {
         contentContainerStyle={[
           styles.scrollContent,
           mode === 'pick' && styles.scrollPick,
-          (mode === 'register' || mode === 'signIn') && styles.scrollFormCentered,
+          mode === 'register' && styles.scrollRegister,
+          mode === 'signIn' && styles.scrollFormCentered,
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -344,6 +343,13 @@ export default function LoginScreen() {
 
         {mode === 'signIn' && (
           <View style={styles.formColumn}>
+            <View style={styles.formHero}>
+              <ExpoImage
+                source={require('../assets/images/auth-login-hero.png')}
+                style={styles.formHeroImage}
+                contentFit="contain"
+              />
+            </View>
             <Text style={styles.formTitle}>Logowanie</Text>
             <Text style={styles.formHint}>
               Wpisz dane użyte przy rejestracji.
@@ -399,25 +405,31 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: OnboardingPalette.background,
   },
-  formBackdrop: {
+  registerBackdrop: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 0,
     overflow: 'hidden',
   },
-  formBackdropImage: {
+  registerBackdropImage: {
     position: 'absolute',
-    top: SCREEN_H * 0.02,
-    width: SCREEN_W * 1.35,
-    height: SCREEN_H * 0.58,
-    left: (SCREEN_W - SCREEN_W * 1.35) / 2,
-    opacity: 1,
+    bottom: -SCREEN_H * 0.04,
+    width: SCREEN_W * 1.28,
+    height: SCREEN_H * 0.5,
+    left: (SCREEN_W - SCREEN_W * 1.28) / 2,
   },
-  formBackdropBottomFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: SCREEN_H * 0.55,
+  registerBackdropGradient: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  formHero: {
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  formHeroImage: {
+    width: Math.min(SCREEN_W - 48, 400),
+    height: Math.min(SCREEN_H * 0.24, 200),
+    borderRadius: Theme.borderRadius.large,
+    backgroundColor: 'transparent',
   },
   backBtn: {
     position: 'absolute',
@@ -439,21 +451,32 @@ const styles = StyleSheet.create({
   scroll: {
     flex: 1,
     zIndex: 1,
+    backgroundColor: 'transparent',
   },
   scrollContent: {
     flexGrow: 1,
+    width: '100%',
     paddingHorizontal: 24,
     paddingBottom: 40,
+    alignItems: 'center',
   },
   scrollPick: {
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: SCREEN_H - (Platform.OS === 'ios' ? 100 : 72),
-    paddingTop: 8,
-    paddingBottom: 24,
+    minHeight: SCREEN_H,
+    paddingTop: Platform.OS === 'ios' ? 12 : 8,
+    paddingBottom: 32,
+  },
+  scrollRegister: {
+    paddingTop: Platform.OS === 'ios' ? 88 : 76,
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: SCREEN_H - (Platform.OS === 'ios' ? 56 : 40),
+    paddingBottom: Math.max(48, SCREEN_H * 0.14),
   },
   scrollFormCentered: {
-    paddingTop: 92,
+    paddingTop: Platform.OS === 'ios' ? 88 : 76,
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
@@ -467,7 +490,9 @@ const styles = StyleSheet.create({
   },
   pickColumn: {
     width: '100%',
+    maxWidth: 440,
     alignItems: 'center',
+    alignSelf: 'center',
   },
   heroRing: {
     width: 244,

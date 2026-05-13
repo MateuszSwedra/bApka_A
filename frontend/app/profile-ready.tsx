@@ -7,10 +7,11 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Image,
-  Dimensions,
   ActivityIndicator,
+  useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -20,14 +21,13 @@ import {
   OnboardingGradient,
 } from '../constants/onboardingTheme';
 import { usersAPI } from '../services/api';
-import { useAuth } from '../context/AuthContext';
-
-const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
-const HERO_W = Math.min(SCREEN_W * 0.88, 340);
-const HERO_H = Math.min(SCREEN_H * 0.34, 280);
 
 export default function ProfileReadyScreen() {
-  const { userRole } = useAuth();
+  const { width: winW, height: winH } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const scrollMinHeight = Math.max(winH - insets.top - insets.bottom, 320);
+  const heroW = Math.min(winW * 0.88, 340);
+  const heroH = Math.min(winH * 0.32, 280);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -51,13 +51,7 @@ export default function ProfileReadyScreen() {
   }, []);
 
   const handleContinue = () => {
-    if (userRole === 'CARETAKER') {
-      router.replace('/(caretaker)');
-    } else if (userRole === 'DEPENDENT') {
-      router.replace('/senior-type');
-    } else {
-      router.replace('/role-selection');
-    }
+    router.replace('/notification');
   };
 
   const greetingLine =
@@ -72,15 +66,18 @@ export default function ProfileReadyScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, styles.scrollCentered]}
+        contentContainerStyle={[
+          styles.scrollCentered,
+          { minHeight: scrollMinHeight },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.column}>
           <Image
             source={require('../assets/images/profile-ready-hero.png')}
-            style={styles.heroImage}
-            resizeMode="contain"
+            style={[styles.heroImage, { width: heroW, height: heroH }]}
+            contentFit="contain"
             accessibilityIgnoresInvertColors
           />
 
@@ -136,42 +133,40 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    width: '100%',
-    paddingHorizontal: 28,
-    paddingBottom: 40,
+    backgroundColor: OnboardingPalette.background,
   },
   scrollCentered: {
+    flexGrow: 1,
+    width: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: SCREEN_H - (Platform.OS === 'ios' ? 52 : 36),
-    paddingTop: Platform.OS === 'ios' ? 16 : 10,
-    paddingBottom: 8,
+    alignSelf: 'center',
+    paddingHorizontal: 28,
+    paddingVertical: 24,
   },
   column: {
     width: '100%',
-    maxWidth: 460,
-    alignSelf: 'center',
+    maxWidth: 420,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   heroImage: {
-    width: HERO_W,
-    height: HERO_H,
-    marginBottom: 8,
+    marginBottom: 16,
     alignSelf: 'center',
+    backgroundColor: 'transparent',
   },
   textBlock: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 4,
+    marginBottom: 8,
+    minHeight: 120,
+    justifyContent: 'center',
   },
   loader: {
     marginVertical: 28,
   },
   title: {
+    width: '100%',
     fontSize: 30,
     lineHeight: 38,
     fontWeight: '800',
@@ -181,18 +176,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   subtitle: {
+    width: '100%',
     fontSize: 17,
     lineHeight: 26,
     color: OnboardingPalette.textSecondary,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
     paddingHorizontal: 12,
     maxWidth: 400,
   },
   ctaShadowWrap: {
     width: '100%',
     maxWidth: 360,
-    marginTop: 4,
+    alignSelf: 'center',
+    marginTop: 8,
     borderRadius: Theme.borderRadius.round,
     overflow: 'hidden',
     shadowColor: OnboardingPalette.primaryDark,

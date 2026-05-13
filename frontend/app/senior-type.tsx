@@ -13,8 +13,7 @@ export default function SeniorTypeScreen() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleWithCaretaker = () => {
-    // Role is already DEPENDENT from role-selection.tsx
-    router.replace('/enter-pin');
+    router.replace('/profile-ready');
   };
 
   const handleIndependent = async () => {
@@ -34,8 +33,8 @@ export default function SeniorTypeScreen() {
       } else {
         loginFake('HYBRID');
       }
-      
-      router.replace('/(hybrid)');
+
+      router.replace('/profile-ready');
     } catch (e) {
       if (Platform.OS === 'web') {
         window.alert('Błąd: Nie udało się zaktualizować typu konta.');

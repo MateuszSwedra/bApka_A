@@ -30,7 +30,11 @@ export default function RoleSelectionScreen() {
         loginFake(role);
       }
 
-      router.replace('/profile-ready');
+      if (role === 'DEPENDENT') {
+        router.replace('/senior-type');
+      } else {
+        router.replace('/profile-ready');
+      }
     } catch (e) {
       if (Platform.OS === 'web') {
         window.alert('Błąd: Nie udało się zaktualizować roli na serwerze.');

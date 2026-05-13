@@ -9,9 +9,9 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Pressable,
-  Image,
   Dimensions,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -71,35 +71,19 @@ export default function OnboardingNameScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.formBackdrop} pointerEvents="none">
-        <Image
-          source={require('../assets/images/onboarding-name-hero.png')}
-          style={styles.formBackdropImage}
-          resizeMode="contain"
-        />
-        <LinearGradient
-          colors={[
-            'transparent',
-            'rgba(249, 243, 239, 0.55)',
-            OnboardingPalette.background,
-          ]}
-          locations={[0, 0.42, 1]}
-          start={{ x: 0.5, y: 0 }}
-          end={{ x: 0.5, y: 1 }}
-          style={styles.formBackdropBottomFade}
-        />
-      </View>
-
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          styles.scrollNameCentered,
-        ]}
+        contentContainerStyle={[styles.scrollContent, styles.scrollNameCentered]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.nameColumn}>
+          <Image
+            source={require('../assets/images/onboarding-name-hero.png')}
+            style={styles.nameHeroImage}
+            contentFit="contain"
+            accessibilityIgnoresInvertColors
+          />
           <Text style={styles.title}>Jak mamy się do Ciebie zwracać?</Text>
           <Text style={styles.subtitle}>
             To imię lub zwrot zobaczysz Ty oraz osoby połączone z Tobą w aplikacji
@@ -166,47 +150,40 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: OnboardingPalette.background,
   },
-  formBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-    overflow: 'hidden',
-  },
-  formBackdropImage: {
-    position: 'absolute',
-    top: SCREEN_H * 0.02,
-    width: SCREEN_W * 1.35,
-    height: SCREEN_H * 0.58,
-    left: (SCREEN_W - SCREEN_W * 1.35) / 2,
-    opacity: 1,
-  },
-  formBackdropBottomFade: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: SCREEN_H * 0.55,
+  nameHeroImage: {
+    width: Math.min(SCREEN_W - 48, 400),
+    height: Math.min(SCREEN_H * 0.26, 220),
+    alignSelf: 'center',
+    marginBottom: 20,
+    backgroundColor: 'transparent',
   },
   scroll: {
     flex: 1,
-    zIndex: 1,
+    backgroundColor: OnboardingPalette.background,
   },
   scrollContent: {
     flexGrow: 1,
+    width: '100%',
     paddingHorizontal: 24,
     paddingBottom: 40,
+    alignItems: 'center',
   },
   scrollNameCentered: {
+    flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    minHeight: SCREEN_H - (Platform.OS === 'ios' ? 48 : 32),
-    paddingTop: Platform.OS === 'ios' ? 24 : 16,
+    minHeight: SCREEN_H,
+    paddingTop: Platform.OS === 'ios' ? 20 : 12,
+    paddingBottom: 32,
   },
   nameColumn: {
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
+    alignItems: 'center',
   },
   title: {
+    width: '100%',
     fontSize: 26,
     fontWeight: '800',
     color: OnboardingPalette.textPrimary,
@@ -217,6 +194,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 8,
   },
   subtitle: {
+    width: '100%',
     fontSize: 15,
     lineHeight: 22,
     color: OnboardingPalette.textPrimary,
@@ -228,6 +206,7 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   formCard: {
+    width: '100%',
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: Theme.borderRadius.large,
     padding: 18,
@@ -259,6 +238,7 @@ const styles = StyleSheet.create({
     color: OnboardingPalette.textPrimary,
   },
   ctaShadowWrap: {
+    width: '100%',
     borderRadius: Theme.borderRadius.round,
     overflow: 'hidden',
     shadowColor: OnboardingPalette.primaryDark,
