@@ -18,20 +18,30 @@ enum LogStatus {
   PENDING
 }
 
+enum LogSource {
+  APP_SENIOR
+  APP_CARETAKER
+  SYSTEM_AUTO
+}
+
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String?  
   role      Role
   fcmToken  String?
-  name      String?  // Jak się zwracać do użytkownika (para kont / UI)
+  name      String?  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Relacje połączeń (opiekun <-> podopieczny)
   caretakerConnections Connection[] @relation("CaretakerConnections")
   dependentConnections Connection[] @relation("DependentConnections")
 
-  schedules Schedule[]
+  // Relacje do harmonogramów
+  schedules         Schedule[] @relation("OwnedSchedules")   // Harmonogramy przypisane do tego użytkownika (Seniora)
+  createdSchedules  Schedule[] @relation("CreatedSchedules") // Harmonogramy utworzone przez tego użytkownika (Opiekuna)
+  
   inventory Inventory[]
 }
 
@@ -63,17 +73,19 @@ model Inventory {
 
 model Schedule {
   id          String   @id @default(uuid())
-  userId      String
+  userId      String   // ID Seniora (do kogo należy ten lek)
+  createdById String?  // ID Opiekuna (kto dodał/podyktował ten lek)
   inventoryId String?
   medication  String?
   dosage      String
   time        String   // np. "08:30"
-  type        String   @default("DAILY") // e.g., DAILY, ONCE
-  startDate   String?  // format YYYY-MM-DD
+  type        String   @default("DAILY")
+  startDate   String?  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id])
+  user      User       @relation("OwnedSchedules", fields: [userId], references: [id])
+  creator   User?      @relation("CreatedSchedules", fields: [createdById], references: [id])
   inventory Inventory? @relation(fields: [inventoryId], references: [id])
   logs      DoseLog[]
 }
@@ -82,6 +94,7 @@ model DoseLog {
   id          String    @id @default(uuid())
   scheduleId  String
   status      LogStatus @default(PENDING)
+  source      LogSource? 
   scheduledAt DateTime
   takenAt     DateTime?
   createdAt   DateTime  @default(now())

@@ -244,13 +244,40 @@ export const inventoryAPI = {
       console.warn('Error fetching depletion', error);
       return null;
     }
-  }
+  },
+  create: async (userId: string, data: any) => {
+    return fetchApi(`/inventory/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  remove: async (id: string) => {
+    return fetchApi(`/inventory/${id}`, {
+      method: 'DELETE',
+    });
+  },
 };
 
 export const scheduleAPI = {
   getSchedules: async (userId: string) => {
-    // Zostanie podpięte pod dedykowany kontroler Schedules w przyszłości
-    return [];
+    try {
+      const data = await fetchApi(`/schedules/user/${userId}`);
+      return data;
+    } catch (error) {
+      console.warn('Error fetching schedules', error);
+      return [];
+    }
+  },
+  create: async (userId: string, data: any) => {
+    return fetchApi(`/schedules/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  remove: async (id: string) => {
+    return fetchApi(`/schedules/${id}`, {
+      method: 'DELETE',
+    });
   },
   markTaken: async (scheduleId: string) => {
     // Zostanie podpięte pod DoseLog

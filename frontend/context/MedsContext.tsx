@@ -8,7 +8,8 @@ import React, {
   useCallback,
 } from 'react';
 import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
-import { inventoryAPI, scheduleAPI } from '../services/api';
+import { inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
+import { useGlobalSearchParams } from 'expo-router';
 import type { TreatmentType } from '../constants/treatmentVisuals';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
@@ -76,31 +77,27 @@ const MedsContext = createContext<MedsContextType | undefined>(undefined);
 const randomId = () => Math.random().toString(36).substring(2, 10);
 
 export function MedsProvider({ children }: { children: ReactNode }) {
-  const [treatments, setTreatments] = useState<Treatment[]>([
-    {
-      id: 'tr-1',
-      type: 'MEDICATION',
-      name: 'Acard 75mg',
-      totalPills: 14,
-      description: 'Przyjmować po posiłku',
-    },
-  ]);
+  const { id, dependentId } = useGlobalSearchParams<{ id?: string, dependentId?: string }>();
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
-  const [schedules, setSchedules] = useState<ScheduleItem[]>([
-    {
-      id: 'sch-1',
-      treatmentId: 'tr-1',
-      type: 'REGULAR',
-      time: '08:00',
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 7], // codziennie
-      startDate: format(new Date(), 'yyyy-MM-dd')
+  const [treatments, setTreatments] = useState<Treatment[]>([]);
+  const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+
+  useEffect(() => {
+    const currentId = id || dependentId;
+    if (currentId) {
+      setTargetUserId(Array.isArray(currentId) ? currentId[0] : currentId);
+    } else {
+      usersAPI.getMe().then((me: any) => {
+        if (me?.id) setTargetUserId(me.id);
+      }).catch((e: any) => console.error('Failed to fetch user ID', e));
     }
-  ]);
+  }, [id, dependentId]);
 
   const refetchFromServer = useCallback(async () => {
+    if (!targetUserId) return;
     try {
-      const userId = 'mock-id';
-      const fetchedInventory = await inventoryAPI.getInventory(userId);
+      const fetchedInventory = await inventoryAPI.getInventory(targetUserId);
       if (fetchedInventory && fetchedInventory.length > 0) {
         const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
           id: String(it.id),
@@ -110,16 +107,30 @@ export function MedsProvider({ children }: { children: ReactNode }) {
           description: it.description,
         }));
         setTreatments(mapped);
+      } else {
+        setTreatments([]);
       }
 
-      const fetchedSchedules = await scheduleAPI.getSchedules(userId);
+      const fetchedSchedules = await scheduleAPI.getSchedules(targetUserId);
       if (fetchedSchedules && fetchedSchedules.length > 0) {
-        setSchedules(fetchedSchedules);
+        const mappedSchedules: ScheduleItem[] = fetchedSchedules.map((sch: any) => ({
+          id: String(sch.id),
+          treatmentId: sch.inventoryId,
+          customName: sch.medication,
+          type: sch.type as MedScheduleType,
+          time: sch.time,
+          startDate: sch.startDate,
+          endDate: sch.endDate,
+          daysOfWeek: sch.daysOfWeek || [1,2,3,4,5,6,7],
+        }));
+        setSchedules(mappedSchedules);
+      } else {
+        setSchedules([]);
       }
     } catch (e) {
       console.error('Błąd pobierania danych z backendu:', e);
     }
-  }, []);
+  }, [targetUserId]);
 
   useEffect(() => {
     void refetchFromServer();
@@ -139,13 +150,29 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     [treatments]
   );
 
-  const addTreatment = (treatment: Omit<Treatment, 'id'>) => {
-    setTreatments(prev => [...prev, { ...treatment, id: randomId() }]);
+  const addTreatment = async (treatment: Omit<Treatment, 'id'>) => {
+    if (!targetUserId) return;
+    try {
+      const data = await inventoryAPI.create(targetUserId, {
+        name: treatment.name,
+        totalPills: treatment.totalPills ?? 0,
+        currentPills: treatment.totalPills ?? 0,
+        pillsPerDose: 1,
+      });
+      setTreatments(prev => [...prev, { ...treatment, id: String(data.id) }]);
+    } catch (e) {
+      console.error('Error adding treatment:', e);
+      throw e;
+    }
   };
 
-  const removeTreatment = (id: string) => {
-    setTreatments(prev => prev.filter(t => t.id !== id));
-    setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
+  const removeTreatment = async (id: string) => {
+    if (!targetUserId) return;
+    try {
+      await inventoryAPI.remove(id);
+      setTreatments(prev => prev.filter(t => t.id !== id));
+      setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
+    } catch (e) { console.error('Error removing treatment:', e); }
   };
 
   const updateTreatment = (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
@@ -160,8 +187,22 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     removeTreatment(id);
   };
 
-  const addSchedule = (schedule: Omit<ScheduleItem, 'id'>) => {
-    setSchedules(prev => [...prev, { ...schedule, id: randomId() }]);
+  const addSchedule = async (schedule: Omit<ScheduleItem, 'id'>) => {
+    if (!targetUserId) return;
+    try {
+      const data = await scheduleAPI.create(targetUserId, {
+        inventoryId: schedule.treatmentId || schedule.inventoryId,
+        medication: schedule.customName,
+        time: schedule.time,
+        type: schedule.type,
+        dosage: "1",
+        startDate: schedule.startDate,
+      });
+      setSchedules(prev => [...prev, { ...schedule, id: String(data.id) }]);
+    } catch (e) { 
+      console.error('Error adding schedule:', e);
+      throw e;
+    }
   };
 
   // ALGORYTM: Przewidywanie zużycia na podstawie kalendarza

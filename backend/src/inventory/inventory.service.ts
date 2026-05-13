@@ -8,8 +8,11 @@ export class InventoryService {
   async create(userId: string, data: any) {
     return this.prisma.inventory.create({
       data: {
-        ...data,
         userId,
+        name: data.name,
+        totalPills: data.totalPills ?? 0,
+        currentPills: data.currentPills ?? data.totalPills ?? 0,
+        pillsPerDose: data.pillsPerDose ?? 1,
       },
     });
   }
