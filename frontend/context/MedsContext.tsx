@@ -1,4 +1,12 @@
-import React, { createContext, useState, useContext, ReactNode, useMemo, useEffect } from 'react';
+import React, {
+  createContext,
+  useState,
+  useContext,
+  ReactNode,
+  useMemo,
+  useEffect,
+  useCallback,
+} from 'react';
 import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
 import { inventoryAPI, scheduleAPI } from '../services/api';
 import type { TreatmentType } from '../constants/treatmentVisuals';
@@ -59,6 +67,8 @@ interface MedsContextType {
   removeInventoryItem: (id: string) => void;
   addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => void;
   depletionAlerts: DepletionAlert[];
+  /** Reload inventory and schedules from the server (caretaker changes). */
+  refetchFromServer: () => Promise<void>;
 }
 
 const MedsContext = createContext<MedsContextType | undefined>(undefined);
@@ -87,36 +97,33 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     }
   ]);
 
-  // Symulacja pobierania danych z API backendu
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Dla demonstracji - twardo kodowany user. W produkcji brany z AuthContext.
-        const userId = 'mock-id';
-        const fetchedInventory = await inventoryAPI.getInventory(userId);
-        if (fetchedInventory && fetchedInventory.length > 0) {
-          // Mapowanie surowych danych z backendu na uniwersalny model Treatment
-          const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
-            id: String(it.id),
-            type: 'MEDICATION',
-            name: it.name,
-            totalPills: it.totalPills,
-            description: it.description,
-          }));
-          setTreatments(mapped);
-        }
-
-        const fetchedSchedules = await scheduleAPI.getSchedules(userId);
-        if (fetchedSchedules && fetchedSchedules.length > 0) {
-          setSchedules(fetchedSchedules);
-        }
-      } catch (e) {
-        console.error('Błąd pobierania danych z backendu:', e);
+  const refetchFromServer = useCallback(async () => {
+    try {
+      const userId = 'mock-id';
+      const fetchedInventory = await inventoryAPI.getInventory(userId);
+      if (fetchedInventory && fetchedInventory.length > 0) {
+        const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
+          id: String(it.id),
+          type: 'MEDICATION',
+          name: it.name,
+          totalPills: it.totalPills,
+          description: it.description,
+        }));
+        setTreatments(mapped);
       }
-    };
 
-    fetchData();
+      const fetchedSchedules = await scheduleAPI.getSchedules(userId);
+      if (fetchedSchedules && fetchedSchedules.length > 0) {
+        setSchedules(fetchedSchedules);
+      }
+    } catch (e) {
+      console.error('Błąd pobierania danych z backendu:', e);
+    }
   }, []);
+
+  useEffect(() => {
+    void refetchFromServer();
+  }, [refetchFromServer]);
 
   // Widok zgodny ze starym API – tylko leki, używany przez kalendarz i ekran add-med.
   const inventory: InventoryItem[] = useMemo(
@@ -239,6 +246,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         removeInventoryItem,
         addSchedule,
         depletionAlerts,
+        refetchFromServer,
       }}
     >
       {children}
