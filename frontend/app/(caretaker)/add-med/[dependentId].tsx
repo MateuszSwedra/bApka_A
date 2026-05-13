@@ -1,45 +1,59 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, ScrollView, Pressable, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  KeyboardAvoidingView,
+  Platform,
+  TextInput,
+} from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
-import { format } from 'date-fns';
+import { addDays, differenceInDays, format, parseISO } from 'date-fns';
 import { Theme } from '../../../constants/theme';
-import { useMeds, MedScheduleType, InventoryItem } from '../../../context/MedsContext';
+import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
+import { useMeds, MedScheduleType } from '../../../context/MedsContext';
 
 export default function AddMedicationScreen() {
-  const { dependentId } = useLocalSearchParams();
-  const { inventory, addSchedule } = useMeds();
-  
-  const [medType, setMedType] = useState<MedScheduleType>('ONCE');
-  
-  // Stany dla ONCE (Wpisywane ręcznie)
-  const [customName, setCustomName] = useState('');
-  
-  // Stany dla REGULAR i TEMPORARY (Wybierane z Apteczki)
-  const [selectedInventoryId, setSelectedInventoryId] = useState<string | null>(null);
+  const params = useLocalSearchParams<{ dependentId: string }>();
+  const dependentId = Array.isArray(params.dependentId)
+    ? params.dependentId[0]
+    : params.dependentId;
 
-  // Zegar HH:MM
+  const { treatments, addSchedule } = useMeds();
+
+  const [medType, setMedType] = useState<MedScheduleType>('ONCE');
+  const [selectedTreatmentId, setSelectedTreatmentId] = useState<string | null>(null);
+
   const [hour, setHour] = useState('08');
   const [minute, setMinute] = useState('00');
-  
-  // Dni tygodnia
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  
-  // Daty (format rrrr-mm-dd)
+
   const today = format(new Date(), 'yyyy-MM-dd');
-  const [selectedDate, setSelectedDate] = useState(today); // Dla ONCE
-  const [endDate, setEndDate] = useState(today); // Dla TEMPORARY
+  const [selectedDate, setSelectedDate] = useState(today);
+  // Zakres dla aktywności tymczasowych
+  const [tempStart, setTempStart] = useState(today);
+  const [tempEnd, setTempEnd] = useState(today);
+  /** Kolejny tap na kalendarzu Tymczasowo ma ustawić start (true) czy koniec (false). */
+  const [tempSelectingStart, setTempSelectingStart] = useState(true);
 
   const daysOfWeek = [
-    { id: 1, label: 'Pn' }, { id: 2, label: 'Wt' }, { id: 3, label: 'Śr' },
-    { id: 4, label: 'Cz' }, { id: 5, label: 'Pt' }, { id: 6, label: 'Sb' }, { id: 7, label: 'Nd' }
+    { id: 1, label: 'Pn' },
+    { id: 2, label: 'Wt' },
+    { id: 3, label: 'Śr' },
+    { id: 4, label: 'Cz' },
+    { id: 5, label: 'Pt' },
+    { id: 6, label: 'Sb' },
+    { id: 7, label: 'Nd' },
   ];
 
   const handleHourChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '');
     if (cleaned.length <= 2) {
-      const val = parseInt(cleaned);
+      const val = parseInt(cleaned, 10);
       if (!val || val < 24) setHour(cleaned);
       if (val >= 24) setHour('23');
     }
@@ -48,7 +62,7 @@ export default function AddMedicationScreen() {
   const handleMinuteChange = (text: string) => {
     const cleaned = text.replace(/[^0-9]/g, '');
     if (cleaned.length <= 2) {
-      const val = parseInt(cleaned);
+      const val = parseInt(cleaned, 10);
       if (!val || val < 60) setMinute(cleaned);
       if (val >= 60) setMinute('59');
     }
@@ -65,29 +79,96 @@ export default function AddMedicationScreen() {
   };
 
   const toggleDay = (id: number) => {
-    setSelectedDays(prev => 
+    setSelectedDays(prev =>
       prev.includes(id) ? prev.filter(d => d !== id) : [...prev, id]
     );
   };
 
   const canSave = () => {
-    if (medType === 'ONCE') return customName.length > 0;
-    if (medType === 'REGULAR') return selectedInventoryId !== null && selectedDays.length > 0;
-    if (medType === 'TEMPORARY') return selectedInventoryId !== null && selectedDays.length > 0;
+    if (!selectedTreatmentId) return false;
+    if (medType === 'ONCE') return true;
+    if (medType === 'REGULAR' || medType === 'TEMPORARY') return selectedDays.length > 0;
     return false;
   };
 
   const handleSave = () => {
+    if (!canSave() || !selectedTreatmentId) return;
+    let startDate = today;
+    let endDate: string | undefined;
+    if (medType === 'ONCE') startDate = selectedDate;
+    if (medType === 'TEMPORARY') {
+      startDate = tempStart;
+      endDate = tempEnd;
+    }
     addSchedule({
-      inventoryId: (medType === 'REGULAR' || medType === 'TEMPORARY') ? selectedInventoryId! : undefined,
-      customName: medType === 'ONCE' ? customName : undefined,
+      treatmentId: selectedTreatmentId,
       type: medType,
       time: `${hour}:${minute}`,
       daysOfWeek: medType === 'ONCE' ? [] : selectedDays,
-      startDate: medType === 'ONCE' ? selectedDate : today,
-      endDate: medType === 'TEMPORARY' ? endDate : undefined,
+      startDate,
+      endDate,
     });
     router.back();
+  };
+
+  const handleTempDayPress = (dateString: string) => {
+    const d = parseISO(dateString);
+    if (tempSelectingStart) {
+      setTempStart(dateString);
+      setTempEnd(dateString);
+      setTempSelectingStart(false);
+      return;
+    }
+    const start = parseISO(tempStart);
+    if (differenceInDays(d, start) < 0) {
+      setTempStart(dateString);
+      setTempEnd(dateString);
+      setTempSelectingStart(false);
+      return;
+    }
+    setTempEnd(dateString);
+    setTempSelectingStart(true);
+  };
+
+  const resetTempRange = () => {
+    setTempStart(today);
+    setTempEnd(today);
+    setTempSelectingStart(true);
+  };
+
+  const tempRangeMarks = useMemo(() => {
+    const marks: Record<
+      string,
+      {
+        color: string;
+        textColor?: string;
+        startingDay?: boolean;
+        endingDay?: boolean;
+      }
+    > = {};
+    const start = parseISO(tempStart);
+    const end = parseISO(tempEnd);
+    const span = differenceInDays(end, start);
+    if (span < 0) return marks;
+    const middleColor = 'rgba(233, 164, 61, 0.35)';
+    const edgeColor = Theme.colors.accentOrange;
+    for (let i = 0; i <= span; i += 1) {
+      const d = format(addDays(start, i), 'yyyy-MM-dd');
+      const starting = i === 0;
+      const ending = i === span;
+      marks[d] = {
+        color: starting || ending ? edgeColor : middleColor,
+        textColor: starting || ending ? Theme.colors.surfaceWhite : Theme.colors.textDark,
+        startingDay: starting,
+        endingDay: ending,
+      };
+    }
+    return marks;
+  }, [tempStart, tempEnd]);
+
+  const openAddTreatment = () => {
+    if (!dependentId) return;
+    router.push(`/(caretaker)/add-treatment/${dependentId}` as any);
   };
 
   const calendarTheme = {
@@ -106,73 +187,110 @@ export default function AddMedicationScreen() {
     textDayHeaderFontWeight: '600' as const,
   };
 
+  const renderActivityPicker = () => (
+    <View style={styles.section}>
+      <Text style={styles.label}>Aktywności z apteczki</Text>
+      {treatments.length === 0 ? (
+        <Text style={styles.hint}>
+          Brak aktywności. Dotknij „+”, aby dodać pierwszą — po zapisie wrócisz tutaj i wybierzesz ją w
+          kalendarzu.
+        </Text>
+      ) : null}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.activityRow}
+      >
+        {treatments.map(item => {
+          const vis = TREATMENT_VISUAL[item.type];
+          const selected = selectedTreatmentId === item.id;
+          return (
+            <Pressable
+              key={item.id}
+              onPress={() => setSelectedTreatmentId(item.id)}
+              style={[
+                styles.activityPill,
+                { borderColor: vis.accent, backgroundColor: vis.accent + '18' },
+                selected && styles.activityPillSelected,
+                selected && { borderColor: Theme.colors.textDark },
+              ]}
+            >
+              <View style={[styles.activityPillIcon, { backgroundColor: vis.accent + '33' }]}>
+                <MaterialIcons name={vis.icon} size={20} color={vis.accent} />
+              </View>
+              <Text
+                numberOfLines={1}
+                ellipsizeMode="tail"
+                style={[
+                  styles.activityPillText,
+                  selected && { color: Theme.colors.textDark },
+                ]}
+              >
+                {item.name}
+              </Text>
+            </Pressable>
+          );
+        })}
+        <Pressable
+          onPress={openAddTreatment}
+          style={[styles.activityAddPill]}
+          accessibilityLabel="Dodaj aktywność do apteczki"
+        >
+          <MaterialIcons name="add" size={24} color={Theme.colors.primaryLimeDark} />
+        </Pressable>
+      </ScrollView>
+    </View>
+  );
+
   return (
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      
-      {/* Header */}
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
       <View style={styles.header}>
         <Pressable onPress={() => router.back()} style={styles.iconBtn}>
           <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
         </Pressable>
         <Text style={styles.headerTitle}>Dodaj do Kalendarza</Text>
         <Pressable onPress={handleSave} style={styles.saveBtn} disabled={!canSave()}>
-          <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>Zapisz</Text>
+          <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>
+            Zapisz
+          </Text>
         </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        
-        {/* Rodzaj Harmonogramu */}
+        {renderActivityPicker()}
+
         <Text style={styles.label}>Rodzaj podawania</Text>
         <View style={styles.segmentContainer}>
-          <Pressable style={[styles.segmentBtn, medType === 'ONCE' && styles.segmentBtnActive]} onPress={() => setMedType('ONCE')}>
-            <Text style={[styles.segmentText, medType === 'ONCE' && styles.segmentTextActive]}>Jednorazowo</Text>
+          <Pressable
+            style={[styles.segmentBtn, medType === 'ONCE' && styles.segmentBtnActive]}
+            onPress={() => setMedType('ONCE')}
+          >
+            <Text style={[styles.segmentText, medType === 'ONCE' && styles.segmentTextActive]}>
+              Jednorazowo
+            </Text>
           </Pressable>
-          <Pressable style={[styles.segmentBtn, medType === 'REGULAR' && styles.segmentBtnActive]} onPress={() => setMedType('REGULAR')}>
-            <Text style={[styles.segmentText, medType === 'REGULAR' && styles.segmentTextActive]}>Stałe</Text>
+          <Pressable
+            style={[styles.segmentBtn, medType === 'REGULAR' && styles.segmentBtnActive]}
+            onPress={() => setMedType('REGULAR')}
+          >
+            <Text style={[styles.segmentText, medType === 'REGULAR' && styles.segmentTextActive]}>
+              Stałe
+            </Text>
           </Pressable>
-          <Pressable style={[styles.segmentBtn, medType === 'TEMPORARY' && styles.segmentBtnActive]} onPress={() => setMedType('TEMPORARY')}>
-            <Text style={[styles.segmentText, medType === 'TEMPORARY' && styles.segmentTextActive]}>Tymczasowo</Text>
+          <Pressable
+            style={[styles.segmentBtn, medType === 'TEMPORARY' && styles.segmentBtnActive]}
+            onPress={() => setMedType('TEMPORARY')}
+          >
+            <Text style={[styles.segmentText, medType === 'TEMPORARY' && styles.segmentTextActive]}>
+              Tymczasowo
+            </Text>
           </Pressable>
         </View>
 
-        {/* Sekcja Nazwy / Wyboru leku */}
-        {medType === 'ONCE' ? (
-          <View style={styles.section}>
-            <Text style={styles.label}>Nazwa leku (ręcznie)</Text>
-            <TextInput 
-              style={styles.textInput} 
-              placeholder="Wpisz nazwę"
-              value={customName}
-              onChangeText={setCustomName}
-              placeholderTextColor={Theme.colors.border}
-            />
-          </View>
-        ) : (
-          <View style={styles.section}>
-            <Text style={styles.label}>Wybierz z Apteczki</Text>
-            {inventory.length === 0 ? (
-              <Text style={styles.hint}>Brak leków w apteczce! Wróć i najpierw dodaj leki w zakładce Meds.</Text>
-            ) : (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.inventoryRow}>
-                {inventory.map(item => (
-                  <Pressable 
-                    key={item.id} 
-                    style={[styles.inventoryPill, selectedInventoryId === item.id && styles.inventoryPillActive]}
-                    onPress={() => setSelectedInventoryId(item.id)}
-                  >
-                    <Text style={[styles.inventoryPillText, selectedInventoryId === item.id && styles.inventoryPillTextActive]}>
-                      {item.name}
-                    </Text>
-                  </Pressable>
-                ))}
-              </ScrollView>
-            )}
-          </View>
-        )}
-
-        {/* Zegar Modernistyczny */}
-        <Text style={styles.label}>Godzina Podania</Text>
+        <Text style={styles.label}>Godzina</Text>
         <View style={styles.timeContainer}>
           <TextInput
             style={styles.timeInput}
@@ -195,60 +313,78 @@ export default function AddMedicationScreen() {
           />
         </View>
 
-        {/* Kalendarz dla opcji Jednorazowo */}
         {medType === 'ONCE' && (
           <View style={styles.section}>
-            <Text style={styles.label}>Wybierz datę podania</Text>
+            <Text style={styles.label}>Wybierz datę</Text>
             <View style={styles.calendarWrapper}>
               <Calendar
                 current={selectedDate}
-                onDayPress={(day: any) => setSelectedDate(day.dateString)}
+                onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
                 markedDates={{ [selectedDate]: { selected: true } }}
                 theme={calendarTheme}
-                hideExtraDays={true}
+                hideExtraDays
               />
             </View>
           </View>
         )}
 
-        {/* Dni tygodnia dla Stałe / Tymczasowo */}
         {(medType === 'REGULAR' || medType === 'TEMPORARY') && (
           <View style={styles.section}>
-            <Text style={styles.label}>Wybierz dni tygodnia</Text>
+            <Text style={styles.label}>Dni tygodnia</Text>
             <View style={styles.daysRow}>
               {daysOfWeek.map(day => {
                 const isActive = selectedDays.includes(day.id);
                 return (
-                  <Pressable 
-                    key={day.id} 
+                  <Pressable
+                    key={day.id}
                     style={[styles.dayCircle, isActive && styles.dayCircleActive]}
                     onPress={() => toggleDay(day.id)}
                   >
                     <Text style={[styles.dayText, isActive && styles.dayTextActive]}>{day.label}</Text>
                   </Pressable>
-                )
+                );
               })}
             </View>
           </View>
         )}
 
-        {/* Data Końcowa dla Tymczasowo */}
         {medType === 'TEMPORARY' && (
           <View style={styles.section}>
-            <Text style={styles.label}>Zakończ podawanie po dniu</Text>
+            <View style={styles.rangeHeader}>
+              <Text style={[styles.label, { marginTop: 0 }]}>Okres podawania</Text>
+              <Pressable onPress={resetTempRange} style={styles.resetBtn} hitSlop={8}>
+                <MaterialIcons name="refresh" size={16} color={Theme.colors.primaryLimeDark} />
+                <Text style={styles.resetBtnText}>Wyczyść</Text>
+              </Pressable>
+            </View>
+            <View style={styles.rangePreview}>
+              <View style={styles.rangePill}>
+                <Text style={styles.rangePillLabel}>Od</Text>
+                <Text style={styles.rangePillValue}>{tempStart}</Text>
+              </View>
+              <MaterialIcons name="arrow-forward" size={18} color={Theme.colors.textLight} />
+              <View style={styles.rangePill}>
+                <Text style={styles.rangePillLabel}>Do</Text>
+                <Text style={styles.rangePillValue}>{tempEnd}</Text>
+              </View>
+            </View>
+            <Text style={styles.rangeHint}>
+              {tempSelectingStart
+                ? 'Zaznacz datę początkową okresu'
+                : 'Teraz zaznacz datę końcową okresu'}
+            </Text>
             <View style={styles.calendarWrapper}>
               <Calendar
-                current={endDate}
-                onDayPress={(day: any) => setEndDate(day.dateString)}
-                minDate={today}
-                markedDates={{ [endDate]: { selected: true } }}
+                current={tempStart}
+                onDayPress={(day: { dateString: string }) => handleTempDayPress(day.dateString)}
+                markingType="period"
+                markedDates={tempRangeMarks}
                 theme={calendarTheme}
-                hideExtraDays={true}
+                hideExtraDays
               />
             </View>
           </View>
         )}
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -296,14 +432,6 @@ const styles = StyleSheet.create({
     marginTop: Theme.spacing.xl,
     marginBottom: Theme.spacing.s,
   },
-  textInput: {
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
-    paddingVertical: Theme.spacing.m,
-    fontSize: Theme.typography.largeTitle,
-    color: Theme.colors.textDark,
-    fontWeight: '400',
-  },
   segmentContainer: {
     flexDirection: 'row',
     backgroundColor: Theme.colors.surfaceGrey,
@@ -332,33 +460,58 @@ const styles = StyleSheet.create({
   section: {
     marginTop: Theme.spacing.xs,
   },
-  inventoryRow: {
+  activityRow: {
     flexDirection: 'row',
-    paddingVertical: 8,
+    alignItems: 'center',
+    paddingVertical: Theme.spacing.s,
+    paddingRight: Theme.spacing.l,
   },
-  inventoryPill: {
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 24,
-    marginRight: 8,
+  activityPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderRadius: 999,
+    paddingVertical: 8,
+    paddingLeft: 8,
+    paddingRight: 14,
+    marginRight: 10,
+    maxWidth: 220,
+  },
+  activityPillSelected: {
+    borderWidth: 3,
     backgroundColor: Theme.colors.surfaceWhite,
   },
-  inventoryPillActive: {
-    backgroundColor: Theme.colors.textDark,
-    borderColor: Theme.colors.textDark,
+  activityPillIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 8,
   },
-  inventoryPillText: {
-    fontWeight: '600',
+  activityPillText: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
     color: Theme.colors.textDark,
+    maxWidth: 140,
   },
-  inventoryPillTextActive: {
-    color: Theme.colors.surfaceWhite,
+  activityAddPill: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderColor: Theme.colors.primaryLimeDark,
+    backgroundColor: Theme.colors.primaryLime,
+    marginRight: 10,
   },
   hint: {
     color: Theme.colors.accentOrange,
     fontSize: Theme.typography.caption,
+    marginBottom: Theme.spacing.s,
+    lineHeight: 20,
   },
   timeContainer: {
     flexDirection: 'row',
@@ -415,5 +568,58 @@ const styles = StyleSheet.create({
   },
   dayTextActive: {
     color: Theme.colors.surfaceWhite,
-  }
+  },
+  rangeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: Theme.spacing.xl,
+    marginBottom: Theme.spacing.s,
+  },
+  resetBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: Theme.colors.surfaceGrey,
+    borderRadius: 999,
+  },
+  resetBtnText: {
+    marginLeft: 4,
+    color: Theme.colors.primaryLimeDark,
+    fontWeight: '700',
+    fontSize: Theme.typography.small,
+  },
+  rangePreview: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: Theme.spacing.s,
+  },
+  rangePill: {
+    flex: 1,
+    backgroundColor: Theme.colors.surfaceGrey,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  rangePillLabel: {
+    fontSize: Theme.typography.small,
+    color: Theme.colors.textLight,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    fontWeight: '700',
+  },
+  rangePillValue: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textDark,
+    fontWeight: '700',
+  },
+  rangeHint: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.accentOrange,
+    fontWeight: '600',
+    marginBottom: Theme.spacing.s,
+  },
 });
