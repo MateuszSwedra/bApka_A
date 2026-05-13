@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -12,10 +12,20 @@ import {
 import { useLocalSearchParams, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
-import { addDays, differenceInDays, format, parseISO } from 'date-fns';
+import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Theme } from '../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, MedScheduleType } from '../../../context/MedsContext';
+
+/** yyyy-MM-dd → data w lokalnej strefie (unika błędów parseISO / UTC). */
+function parseYmdLocal(ymd: string): Date {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function compareYmd(a: string, b: string): number {
+  return parseYmdLocal(a).getTime() - parseYmdLocal(b).getTime();
+}
 
 export default function AddMedicationScreen() {
   const params = useLocalSearchParams<{ dependentId: string }>();
@@ -37,8 +47,18 @@ export default function AddMedicationScreen() {
   // Zakres dla aktywności tymczasowych
   const [tempStart, setTempStart] = useState(today);
   const [tempEnd, setTempEnd] = useState(today);
-  /** Kolejny tap na kalendarzu Tymczasowo ma ustawić start (true) czy koniec (false). */
+  /** Kolejny tap: początek zakresu (true) albo koniec (false). */
   const [tempSelectingStart, setTempSelectingStart] = useState(true);
+  /** Po drugim tapie mamy kompletny zakres gotowy do zapisu. */
+  const [tempRangeComplete, setTempRangeComplete] = useState(false);
+
+  useEffect(() => {
+    if (medType !== 'TEMPORARY') return;
+    setTempStart(today);
+    setTempEnd(today);
+    setTempSelectingStart(true);
+    setTempRangeComplete(false);
+  }, [medType, today]);
 
   const daysOfWeek = [
     { id: 1, label: 'Pn' },
@@ -87,7 +107,8 @@ export default function AddMedicationScreen() {
   const canSave = () => {
     if (!selectedTreatmentId) return false;
     if (medType === 'ONCE') return true;
-    if (medType === 'REGULAR' || medType === 'TEMPORARY') return selectedDays.length > 0;
+    if (medType === 'REGULAR') return selectedDays.length > 0;
+    if (medType === 'TEMPORARY') return tempRangeComplete;
     return false;
   };
 
@@ -95,16 +116,20 @@ export default function AddMedicationScreen() {
     if (!canSave() || !selectedTreatmentId) return;
     let startDate = today;
     let endDate: string | undefined;
+    let daysOfWeek: number[] = [];
     if (medType === 'ONCE') startDate = selectedDate;
+    if (medType === 'REGULAR') daysOfWeek = selectedDays;
     if (medType === 'TEMPORARY') {
       startDate = tempStart;
       endDate = tempEnd;
+      // Brak zaznaczonych dni = codziennie w okresie
+      daysOfWeek = selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5, 6, 7];
     }
     addSchedule({
       treatmentId: selectedTreatmentId,
       type: medType,
       time: `${hour}:${minute}`,
-      daysOfWeek: medType === 'ONCE' ? [] : selectedDays,
+      daysOfWeek,
       startDate,
       endDate,
     });
@@ -112,56 +137,59 @@ export default function AddMedicationScreen() {
   };
 
   const handleTempDayPress = (dateString: string) => {
-    const d = parseISO(dateString);
+    if (compareYmd(dateString, today) < 0) return;
+
     if (tempSelectingStart) {
       setTempStart(dateString);
       setTempEnd(dateString);
       setTempSelectingStart(false);
+      setTempRangeComplete(false);
       return;
     }
-    const start = parseISO(tempStart);
-    if (differenceInDays(d, start) < 0) {
-      setTempStart(dateString);
+    setTempStart(prevStart => {
+      if (compareYmd(dateString, prevStart) < 0) {
+        setTempEnd(prevStart);
+        return dateString;
+      }
       setTempEnd(dateString);
-      setTempSelectingStart(false);
-      return;
-    }
-    setTempEnd(dateString);
+      return prevStart;
+    });
     setTempSelectingStart(true);
+    setTempRangeComplete(true);
   };
 
   const resetTempRange = () => {
     setTempStart(today);
     setTempEnd(today);
     setTempSelectingStart(true);
+    setTempRangeComplete(false);
   };
 
   const tempRangeMarks = useMemo(() => {
-    const marks: Record<
-      string,
-      {
-        color: string;
-        textColor?: string;
-        startingDay?: boolean;
-        endingDay?: boolean;
-      }
-    > = {};
-    const start = parseISO(tempStart);
-    const end = parseISO(tempEnd);
-    const span = differenceInDays(end, start);
+    const marks: Record<string, Record<string, unknown>> = {};
+    const start = parseYmdLocal(tempStart);
+    const end = parseYmdLocal(tempEnd);
+    if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return marks;
+
+    const span = differenceInCalendarDays(end, start);
     if (span < 0) return marks;
+
     const middleColor = 'rgba(233, 164, 61, 0.35)';
     const edgeColor = Theme.colors.accentOrange;
+
     for (let i = 0; i <= span; i += 1) {
       const d = format(addDays(start, i), 'yyyy-MM-dd');
-      const starting = i === 0;
-      const ending = i === span;
-      marks[d] = {
-        color: starting || ending ? edgeColor : middleColor,
-        textColor: starting || ending ? Theme.colors.surfaceWhite : Theme.colors.textDark,
-        startingDay: starting,
-        endingDay: ending,
+      const isFirst = i === 0;
+      const isLast = i === span;
+      const mark: Record<string, unknown> = {
+        color: isFirst || isLast ? edgeColor : middleColor,
       };
+      if (isFirst) mark.startingDay = true;
+      if (isLast) mark.endingDay = true;
+      if (isFirst || isLast) {
+        mark.textColor = Theme.colors.surfaceWhite;
+      }
+      marks[d] = mark;
     }
     return marks;
   }, [tempStart, tempEnd]);
@@ -259,7 +287,12 @@ export default function AddMedicationScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+        removeClippedSubviews={false}
+      >
         {renderActivityPicker()}
 
         <Text style={styles.label}>Rodzaj podawania</Text>
@@ -330,7 +363,14 @@ export default function AddMedicationScreen() {
 
         {(medType === 'REGULAR' || medType === 'TEMPORARY') && (
           <View style={styles.section}>
-            <Text style={styles.label}>Dni tygodnia</Text>
+            <Text style={styles.label}>
+              Dni tygodnia{medType === 'TEMPORARY' ? ' (opcjonalne)' : ''}
+            </Text>
+            {medType === 'TEMPORARY' && (
+              <Text style={styles.weekdaysHint}>
+                Pozostaw puste, by aktywność była każdego dnia w wybranym okresie.
+              </Text>
+            )}
             <View style={styles.daysRow}>
               {daysOfWeek.map(day => {
                 const isActive = selectedDays.includes(day.id);
@@ -369,18 +409,21 @@ export default function AddMedicationScreen() {
               </View>
             </View>
             <Text style={styles.rangeHint}>
-              {tempSelectingStart
-                ? 'Zaznacz datę początkową okresu'
-                : 'Teraz zaznacz datę końcową okresu'}
+              {tempRangeComplete
+                ? 'Zakres ustawiony. Dotknij innego dnia, aby zacząć od nowa.'
+                : tempSelectingStart
+                  ? 'Zaznacz datę początkową okresu'
+                  : 'Teraz zaznacz datę końcową okresu'}
             </Text>
-            <View style={styles.calendarWrapper}>
+            <View style={styles.calendarPeriodWrapper}>
               <Calendar
                 current={tempStart}
+                minDate={today}
+                enableSwipeMonths
                 onDayPress={(day: { dateString: string }) => handleTempDayPress(day.dateString)}
                 markingType="period"
                 markedDates={tempRangeMarks}
                 theme={calendarTheme}
-                hideExtraDays
               />
             </View>
           </View>
@@ -543,6 +586,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     paddingBottom: 10,
   },
+  /** Kalendarz okresu — bez overflow:hidden, żeby paski „period” i dotyk działały poprawnie. */
+  calendarPeriodWrapper: {
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    borderRadius: 16,
+    overflow: 'visible',
+    paddingBottom: 10,
+  },
   daysRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -621,5 +672,11 @@ const styles = StyleSheet.create({
     color: Theme.colors.accentOrange,
     fontWeight: '600',
     marginBottom: Theme.spacing.s,
+  },
+  weekdaysHint: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textLight,
+    marginBottom: Theme.spacing.s,
+    lineHeight: 18,
   },
 });

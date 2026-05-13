@@ -47,7 +47,9 @@ function scheduleAppliesToDate(s: ScheduleItem, dateStr: string): boolean {
   const afterStart = !isBefore(day, start) || isSameDay(day, start);
   if (!afterStart) return false;
   const dow = isoWeekdayFromDateString(dateStr);
-  if (!s.daysOfWeek.includes(dow)) return false;
+  // Puste daysOfWeek w TEMPORARY znaczy „codziennie w okresie”.
+  const everyDay = s.type === 'TEMPORARY' && (!s.daysOfWeek || s.daysOfWeek.length === 0);
+  if (!everyDay && !s.daysOfWeek.includes(dow)) return false;
   if (s.type === 'TEMPORARY' && s.endDate) {
     const end = parseISO(s.endDate);
     return !isBefore(end, day) || isSameDay(day, end);
