@@ -13,7 +13,7 @@ export class UsersService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true },
+      select: { id: true, email: true, name: true, role: true, moodEnabled: true },
     });
     if (!user) {
       throw new NotFoundException('Użytkownik nie istnieje');
@@ -94,6 +94,7 @@ export class UsersService {
             role: true,
             lastMood: true,
             lastMoodAt: true,
+            moodEnabled: true,
           }
         }
       }
@@ -134,6 +135,14 @@ export class UsersService {
       where: { id: userId },
       data: { name: trimmed },
       select: { id: true, email: true, name: true, role: true },
+    });
+  }
+
+  async updateSettings(userId: string, settings: { moodEnabled?: boolean }) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: settings,
+      select: { id: true, moodEnabled: true },
     });
   }
 }

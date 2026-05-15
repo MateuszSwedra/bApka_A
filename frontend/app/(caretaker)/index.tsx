@@ -80,9 +80,22 @@ export default function CaretakerDashboard() {
     const date = new Date(dependent.lastMoodAt);
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-        <Text style={{ fontSize: 16 }}>{moodEmoji}</Text>
-        <Text style={{ fontSize: 12, color: Theme.colors.textLight, marginLeft: 4 }}>o {timeStr}</Text>
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: Theme.colors.surfaceGrey, 
+        paddingHorizontal: 8, 
+        paddingVertical: 4, 
+        borderRadius: 16, 
+        alignSelf: 'flex-start', 
+        marginTop: 6,
+        borderWidth: 1,
+        borderColor: Theme.colors.border
+      }}>
+        <Text style={{ fontSize: 18 }}>{moodEmoji}</Text>
+        <Text style={{ fontSize: 12, color: Theme.colors.textDark, marginLeft: 6, fontWeight: '700' }}>
+          Humor z {timeStr}
+        </Text>
       </View>
     );
   };

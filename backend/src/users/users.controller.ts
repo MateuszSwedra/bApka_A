@@ -59,6 +59,12 @@ export class UsersController {
     return this.usersService.updateDisplayName(req.user.userId, name);
   }
 
+  @Patch('me/settings')
+  @ApiOperation({ summary: 'Update user settings (e.g. moodEnabled)' })
+  updateSettings(@Request() req: any, @Body() body: any) {
+    return this.usersService.updateSettings(req.user.userId, body);
+  }
+
   /** POST na tę samą ścieżkę co PATCH — niektóre wdrożenia / cache miały tylko PATCH. */
   @Post('me/name')
   @HttpCode(200)

@@ -16,6 +16,8 @@ export class SchedulesService {
         time: data.time,
         type: data.type || "DAILY",
         startDate: data.startDate || null,
+        endDate: data.endDate || null,
+        daysOfWeek: data.daysOfWeek || [],
       },
     });
   }

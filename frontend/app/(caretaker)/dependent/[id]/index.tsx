@@ -95,9 +95,22 @@ export default function DependentTodayDashboard() {
     const date = new Date(dependent.lastMoodAt);
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     return (
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: Theme.spacing.m }}>
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: Theme.colors.surfaceGrey, 
+        paddingHorizontal: 12, 
+        paddingVertical: 6, 
+        borderRadius: 20, 
+        alignSelf: 'flex-start', 
+        marginBottom: Theme.spacing.l,
+        borderWidth: 1,
+        borderColor: Theme.colors.border
+      }}>
         <Text style={{ fontSize: 24 }}>{moodEmoji}</Text>
-        <Text style={{ fontSize: 16, color: Theme.colors.textLight, marginLeft: 8 }}>o {timeStr}</Text>
+        <Text style={{ fontSize: 14, color: Theme.colors.textDark, marginLeft: 8, fontWeight: '700' }}>
+          Humor z {timeStr}
+        </Text>
       </View>
     );
   };
@@ -113,9 +126,10 @@ export default function DependentTodayDashboard() {
       if (log.status === 'TAKEN') return { label: 'Odebrane', color: Theme.colors.success, pill: styles.statusPillSuccess };
       if (log.status === 'MISSED') return { label: 'Pominięte', color: Theme.colors.surfaceWhite, pill: styles.statusPillMissed };
     }
-    const isPast = minutes < currentMinutes;
-    if (isPast) return { label: 'Minęło', color: Theme.colors.textLight, pill: styles.statusPillPast };
-    if (isNext) return { label: 'Teraz', color: Theme.colors.surfaceWhite, pill: styles.statusPillNext };
+    const diff = minutes - currentMinutes;
+    if (Math.abs(diff) <= 5) return { label: 'Teraz', color: Theme.colors.surfaceWhite, pill: styles.statusPillNext };
+    if (diff < -5) return { label: 'Minęło', color: Theme.colors.textLight, pill: styles.statusPillPast };
+    if (isNext) return { label: 'Następny', color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
     return { label: 'Zaplanowane', color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
   };
 

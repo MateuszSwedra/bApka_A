@@ -40,6 +40,7 @@ export default function AddMedicationScreen() {
 
   const [hour, setHour] = useState('08');
   const [minute, setMinute] = useState('00');
+  const [dosage, setDosage] = useState('1');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -129,6 +130,7 @@ export default function AddMedicationScreen() {
       treatmentId: selectedTreatmentId,
       type: medType,
       time: `${hour}:${minute}`,
+      dosage,
       daysOfWeek,
       startDate,
       endDate,
@@ -345,6 +347,15 @@ export default function AddMedicationScreen() {
             selectTextOnFocus
           />
         </View>
+
+        <Text style={styles.label}>Ilość sztuk / Dawka</Text>
+        <TextInput
+          style={[styles.timeInput, { width: 120, height: 60, fontSize: 32, alignSelf: 'center' }]}
+          value={dosage}
+          onChangeText={setDosage}
+          keyboardType="number-pad"
+          selectTextOnFocus
+        />
 
         {medType === 'ONCE' && (
           <View style={styles.section}>

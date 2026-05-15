@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useMemo, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../../../components/Card';
@@ -38,7 +38,48 @@ export default function DependentCalendarScreen() {
   const dependentId = Array.isArray(id) ? id[0] : id;
 
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const { depletionAlerts, schedules, treatments } = useMeds();
+  const { depletionAlerts, schedules, treatments, updateSchedule, removeSchedule } = useMeds();
+
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleItem | null>(null);
+  const [editTime, setEditTime] = useState('');
+  const [editDosage, setEditDosage] = useState('');
+
+  useEffect(() => {
+    if (editingSchedule) {
+      setEditTime(editingSchedule.time);
+      setEditDosage(editingSchedule.dosage || '1');
+    }
+  }, [editingSchedule]);
+
+  const handleSaveEdit = async () => {
+    if (!editingSchedule) return;
+    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
+    if (!timeRegex.test(editTime)) {
+      Alert.alert('Błąd', 'Podaj poprawny czas w formacie HH:MM');
+      return;
+    }
+    try {
+      await updateSchedule(editingSchedule.id, { time: editTime, dosage: editDosage });
+      setEditingSchedule(null);
+    } catch (e) {
+      Alert.alert('Błąd', 'Nie udało się zaktualizować harmonogramu');
+    }
+  };
+
+  const handleDelete = () => {
+    if (!editingSchedule) return;
+    Alert.alert('Usuwanie cyklu', 'Czy na pewno chcesz usunąć ten harmonogram?', [
+      { text: 'Anuluj', style: 'cancel' },
+      { text: 'Usuń', style: 'destructive', onPress: async () => {
+        try {
+          await removeSchedule(editingSchedule.id);
+          setEditingSchedule(null);
+        } catch (e) {
+          Alert.alert('Błąd', 'Nie udało się usunąć harmonogramu');
+        }
+      }},
+    ]);
+  };
 
   const dynamicMarks = depletionAlerts.reduce(
     (acc, alert) => {
@@ -130,15 +171,28 @@ export default function DependentCalendarScreen() {
                   ? 'Stałe'
                   : 'Tymczasowo';
             return (
-              <Card key={sch.id} variant="grey" style={styles.scheduleCard}>
-                <Text style={styles.scheduleTime}>
-                  {sch.time} · {typeLabel}
-                </Text>
-                <View style={styles.scheduleRow}>
-                  <MaterialIcons name={icon} size={20} color={Theme.colors.success} />
-                  <Text style={styles.scheduleItemDone}>{name}</Text>
-                </View>
-              </Card>
+              <Pressable
+                key={sch.id}
+                onPress={() => setEditingSchedule(sch)}
+              >
+                <Card variant="grey" style={styles.scheduleCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <Text style={styles.scheduleTime}>
+                        {sch.time} · {typeLabel}
+                        {sch.dosage && sch.dosage !== "1" ? ` · ${sch.dosage} szt.` : ''}
+                      </Text>
+                      <View style={styles.scheduleRow}>
+                        <MaterialIcons name={icon} size={20} color={Theme.colors.success} />
+                        <Text style={styles.scheduleItemDone}>{name}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 16 }}>
+                      <MaterialIcons name="edit" size={24} color={Theme.colors.primaryLimeDark} />
+                    </View>
+                  </View>
+                </Card>
+              </Pressable>
             );
           })}
 
@@ -147,6 +201,45 @@ export default function DependentCalendarScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* MODAL EDYCJI */}
+      <Modal visible={!!editingSchedule} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Edytuj harmonogram</Text>
+            
+            <Text style={styles.label}>Godzina (HH:MM)</Text>
+            <TextInput
+              style={styles.textInput}
+              value={editTime}
+              onChangeText={setEditTime}
+              keyboardType="numbers-and-punctuation"
+            />
+            
+            <Text style={styles.label}>Ilość / Dawka (np. 2)</Text>
+            <TextInput
+              style={styles.textInput}
+              value={editDosage}
+              onChangeText={setEditDosage}
+              keyboardType="number-pad"
+            />
+            
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalBtnGhost} onPress={() => setEditingSchedule(null)}>
+                <Text style={styles.modalBtnGhostText}>Anuluj</Text>
+              </Pressable>
+              
+              <Pressable style={[styles.modalBtnGhost, { borderColor: Theme.colors.accentOrange }]} onPress={handleDelete}>
+                <Text style={[styles.modalBtnGhostText, { color: Theme.colors.accentOrange }]}>Usuń cykl</Text>
+              </Pressable>
+
+              <Pressable style={styles.modalBtnPrimary} onPress={handleSaveEdit}>
+                <Text style={styles.modalBtnPrimaryText}>Zapisz</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       <Pressable
         style={styles.fab}
@@ -240,5 +333,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Theme.colors.primaryLimeDark,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: Theme.spacing.l,
+  },
+  modalCard: {
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    padding: Theme.spacing.l,
+  },
+  modalTitle: {
+    fontSize: Theme.typography.title,
+    fontWeight: 'bold',
+    marginBottom: Theme.spacing.m,
+  },
+  label: {
+    fontSize: Theme.typography.caption,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    marginTop: Theme.spacing.m,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.borderRadius.medium,
+    padding: Theme.spacing.m,
+    fontSize: Theme.typography.body,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: Theme.spacing.xl,
+    gap: Theme.spacing.m,
+  },
+  modalBtnGhost: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Theme.borderRadius.round,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  modalBtnGhostText: {
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+  },
+  modalBtnPrimary: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Theme.borderRadius.round,
+    backgroundColor: Theme.colors.primaryLimeDark,
+  },
+  modalBtnPrimaryText: {
+    fontSize: Theme.typography.body,
+    fontWeight: 'bold',
+    color: Theme.colors.surfaceWhite,
   },
 });

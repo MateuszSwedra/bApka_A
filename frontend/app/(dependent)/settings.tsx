@@ -24,6 +24,7 @@ import {
 } from '../../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../../services/notificationSoundPreview';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
+import { usersAPI } from '../../services/api';
 
 const SOUND_LABELS_EN: Record<NotificationSoundChoiceId, { title: string; hint: string }> = {
   default: { title: 'System default', hint: 'Uses the device notification sound.' },
@@ -45,6 +46,7 @@ export default function DependentSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmPayload | null>(null);
+  const [moodEnabled, setMoodEnabled] = useState(true);
 
   const goHome = useCallback(() => {
     router.replace('/(dependent)' as any);
@@ -59,6 +61,15 @@ export default function DependentSettingsScreen() {
         try {
           const m = await getMedicationSoundChoice();
           setMedSound(m);
+          
+          try {
+            const me = await usersAPI.getMe();
+            if (me && typeof me.moodEnabled === 'boolean') {
+              setMoodEnabled(me.moodEnabled);
+            }
+          } catch (e) {
+            console.warn('Failed to fetch user settings in settings screen', e);
+          }
         } finally {
           setLoading(false);
         }
@@ -199,6 +210,54 @@ export default function DependentSettingsScreen() {
                 </Text>
                 <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
                   Extra bold text and backgrounds.
+                </Text>
+              </View>
+            </Pressable>
+
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.textDark, fontSize: titleSize, marginTop: Theme.spacing.xl },
+              ]}
+            >
+              Other settings
+            </Text>
+
+            <Pressable
+              onPress={() =>
+                openConfirm({
+                  title: moodEnabled ? 'Turn off mood picker?' : 'Turn on mood picker?',
+                  message: moodEnabled
+                    ? 'The mood picking screen will no longer appear after taking medications.'
+                    : 'The mood picking screen will appear after you take medications.',
+                  onConfirm: async () => {
+                    await usersAPI.updateSettings({ moodEnabled: !moodEnabled });
+                    setMoodEnabled(!moodEnabled);
+                  },
+                })
+              }
+              style={({ pressed }) => [
+                styles.rowCard,
+                {
+                  backgroundColor: colors.surfaceWhite,
+                  borderColor: colors.border,
+                  borderWidth: colors.mainButtonBorderWidth ?? 1,
+                  marginTop: Theme.spacing.m,
+                },
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <MaterialIcons
+                name={moodEnabled ? 'check-box' : 'check-box-outline-blank'}
+                size={36}
+                color={colors.primaryLimeDark}
+              />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
+                  Mood picker
+                </Text>
+                <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
+                  Ask how you feel after activities.
                 </Text>
               </View>
             </Pressable>

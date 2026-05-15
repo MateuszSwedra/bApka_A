@@ -12,10 +12,17 @@ export type DependentMainScheduleState =
   | { kind: 'due'; scheduleId: string; name: string };
 
 function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]): string {
-  if (sch.customName) return sch.customName;
-  const tid = getScheduleTreatmentId(sch);
-  if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Activity';
-  return 'Activity';
+  let name = 'Activity';
+  if (sch.customName) {
+    name = sch.customName;
+  } else {
+    const tid = getScheduleTreatmentId(sch);
+    if (tid) name = treatments.find(t => t.id === tid)?.name ?? 'Activity';
+  }
+  if (sch.dosage && sch.dosage !== '1') {
+    name += ` (${sch.dosage} szt.)`;
+  }
+  return name;
 }
 
 /** Today’s calendar entries sorted by time. */

@@ -50,10 +50,17 @@ export default function DependentDashboard() {
     void loadCompleted();
   }, [loadCompleted]);
 
+  const [moodEnabled, setMoodEnabled] = useState(true);
+
   useFocusEffect(
     useCallback(() => {
       void refetchFromServer();
       void loadCompleted();
+      usersAPI.getMe().then(me => {
+        if (me && typeof me.moodEnabled === 'boolean') {
+          setMoodEnabled(me.moodEnabled);
+        }
+      }).catch(() => {});
     }, [refetchFromServer, loadCompleted]),
   );
 
@@ -137,7 +144,7 @@ export default function DependentDashboard() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {moodPhase !== 'hidden' && (
+        {moodEnabled && moodPhase !== 'hidden' && (
           <View
             style={[
               styles.moodWrap,
@@ -302,7 +309,16 @@ export default function DependentDashboard() {
                   <Text style={[styles.activityTime, { color: colors.textDark }]}>{sch.time}</Text>
                 </View>
                 <MaterialIcons name={icon} size={28} color={colors.primaryLimeDark} />
-                <Text style={[styles.activityName, { color: colors.textDark }]}>{name}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.activityName, { color: colors.textDark }]}>
+                    {name}
+                  </Text>
+                  {t?.description ? (
+                    <Text style={{ fontSize: 16, color: colors.textDark, marginTop: 4 }}>
+                      {t.description}
+                    </Text>
+                  ) : null}
+                </View>
                 <MaterialIcons
                   name={done ? 'check-circle' : 'radio-button-unchecked'}
                   size={32}

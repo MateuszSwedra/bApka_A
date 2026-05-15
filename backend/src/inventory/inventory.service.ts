@@ -53,14 +53,17 @@ export class InventoryService {
     
     // Prosta logika: zakładamy codziennie po 1 dawce na każdy schedule typu DAILY
     const dailyDoses = inventory.schedules.filter((s: any) => s.type === 'DAILY').length;
-    if (dailyDoses === 0) return { daysLeft: 999, pillsLeft: inventory.currentPills };
+    const currentPills = inventory.currentPills ?? 0;
+    const pillsPerDose = inventory.pillsPerDose ?? 1;
+
+    if (dailyDoses === 0) return { daysLeft: 999, pillsLeft: currentPills };
     
-    const pillsPerDay = dailyDoses * inventory.pillsPerDose;
-    const daysLeft = Math.floor(inventory.currentPills / pillsPerDay);
+    const pillsPerDay = dailyDoses * pillsPerDose;
+    const daysLeft = pillsPerDay > 0 ? Math.floor(currentPills / pillsPerDay) : 999;
     
     return {
       daysLeft,
-      pillsLeft: inventory.currentPills,
+      pillsLeft: currentPills,
     };
   }
 }

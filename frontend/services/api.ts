@@ -230,6 +230,12 @@ export const usersAPI = {
       body: JSON.stringify({ mood }),
     });
   },
+  updateSettings: async (settings: any) => {
+    return fetchApi('/users/me/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  },
 };
 
 export const inventoryAPI = {
@@ -289,6 +295,12 @@ export const scheduleAPI = {
   remove: async (id: string) => {
     return fetchApi(`/schedules/${id}`, {
       method: 'DELETE',
+    });
+  },
+  update: async (id: string, data: any) => {
+    return fetchApi(`/schedules/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
     });
   },
   markTaken: async (scheduleId: string) => {

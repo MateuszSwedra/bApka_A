@@ -41,6 +41,7 @@ export interface ScheduleItem {
   customName?: string;
   type: MedScheduleType;
   time: string;
+  dosage?: string;
   daysOfWeek: number[]; // 1(Pn) - 7(Nd)
   startDate: string; // yyyy-MM-dd
   endDate?: string; // yyyy-MM-dd (dla TEMPORARY)
@@ -67,6 +68,8 @@ interface MedsContextType {
   addInventoryItem: (name: string, totalPills: number, description?: string) => void;
   removeInventoryItem: (id: string) => void;
   addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => void;
+  removeSchedule: (id: string) => Promise<void>;
+  updateSchedule: (id: string, patch: Partial<ScheduleItem>) => Promise<void>;
   depletionAlerts: DepletionAlert[];
   /** Reload inventory and schedules from the server (caretaker changes). */
   refetchFromServer: () => Promise<void>;
@@ -119,6 +122,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
           customName: sch.medication,
           type: sch.type as MedScheduleType,
           time: sch.time,
+          dosage: sch.dosage || "1",
           startDate: sch.startDate,
           endDate: sch.endDate,
           daysOfWeek: sch.daysOfWeek || [1,2,3,4,5,6,7],
@@ -202,12 +206,32 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         medication: schedule.customName,
         time: schedule.time,
         type: schedule.type,
-        dosage: "1",
+        dosage: schedule.dosage || "1",
         startDate: schedule.startDate,
       });
-      setSchedules(prev => [...prev, { ...schedule, id: String(data.id) }]);
+      setSchedules(prev => [...prev, { ...schedule, id: String(data.id), dosage: schedule.dosage || "1" }]);
     } catch (e) { 
       console.error('Error adding schedule:', e);
+      throw e;
+    }
+  };
+
+  const removeSchedule = async (id: string) => {
+    try {
+      await scheduleAPI.remove(id);
+      setSchedules(prev => prev.filter(s => s.id !== id));
+    } catch (e) {
+      console.error('Error removing schedule:', e);
+      throw e;
+    }
+  };
+
+  const updateSchedule = async (id: string, patch: Partial<ScheduleItem>) => {
+    try {
+      await scheduleAPI.update(id, patch);
+      setSchedules(prev => prev.map(s => (s.id === id ? { ...s, ...patch } : s)));
+    } catch (e) {
+      console.error('Error updating schedule:', e);
       throw e;
     }
   };
@@ -293,6 +317,8 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         addInventoryItem,
         removeInventoryItem,
         addSchedule,
+        removeSchedule,
+        updateSchedule,
         depletionAlerts,
         refetchFromServer,
       }}
