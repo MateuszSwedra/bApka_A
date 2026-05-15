@@ -1,8 +1,14 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../constants/theme';
 
 export default function HybridLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarBottom =
+    Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
+
   return (
     <Tabs
       screenOptions={{
@@ -12,8 +18,8 @@ export default function HybridLayout() {
         tabBarStyle: {
           borderTopWidth: 1,
           borderTopColor: Theme.colors.border,
-          height: 60,
-          paddingBottom: 8,
+          height: 56 + tabBarBottom,
+          paddingBottom: tabBarBottom,
           paddingTop: 8,
           backgroundColor: Theme.colors.background,
           elevation: 0,

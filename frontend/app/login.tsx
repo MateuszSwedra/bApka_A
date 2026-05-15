@@ -42,6 +42,8 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [passwordRepeat, setPasswordRepeat] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showPasswordRepeat, setShowPasswordRepeat] = useState(false);
   const [loading, setLoading] = useState<'idle' | 'login' | 'register'>('idle');
   const { setUserSession, userRole, isReady } = useAuth();
   const isBusy = loading !== 'idle';
@@ -164,7 +166,12 @@ export default function LoginScreen() {
     placeholder: string,
     value: string,
     onChangeText: (t: string) => void,
-    options?: { secure?: boolean; keyboard?: 'default' | 'email-address' },
+    options?: {
+      secure?: boolean;
+      keyboard?: 'default' | 'email-address';
+      visible?: boolean;
+      onToggleVisible?: () => void;
+    },
   ) => (
     <View style={styles.field}>
       <MaterialCommunityIcons
@@ -178,12 +185,26 @@ export default function LoginScreen() {
         placeholder={placeholder}
         value={value}
         onChangeText={onChangeText}
-        secureTextEntry={options?.secure}
+        secureTextEntry={options?.secure && !options?.visible}
         keyboardType={options?.keyboard ?? 'default'}
         autoCapitalize="none"
         autoCorrect={false}
         placeholderTextColor={OnboardingPalette.textSecondary}
       />
+      {options?.secure && options.onToggleVisible ? (
+        <Pressable
+          onPress={options.onToggleVisible}
+          style={styles.passwordToggle}
+          accessibilityRole="button"
+          accessibilityLabel={options.visible ? 'Ukryj hasło' : 'Pokaż hasło'}
+        >
+          <MaterialCommunityIcons
+            name={options.visible ? 'eye-off-outline' : 'eye-outline'}
+            size={22}
+            color={OnboardingPalette.textSecondary}
+          />
+        </Pressable>
+      ) : null}
     </View>
   );
 
@@ -321,13 +342,19 @@ export default function LoginScreen() {
               })}
               {renderField('lock-outline', 'Hasło', password, setPassword, {
                 secure: true,
+                visible: showPassword,
+                onToggleVisible: () => setShowPassword(v => !v),
               })}
               {renderField(
                 'lock-check-outline',
                 'Powtórz hasło',
                 passwordRepeat,
                 setPasswordRepeat,
-                { secure: true },
+                {
+                  secure: true,
+                  visible: showPasswordRepeat,
+                  onToggleVisible: () => setShowPasswordRepeat(v => !v),
+                },
               )}
             </View>
 
@@ -383,6 +410,8 @@ export default function LoginScreen() {
               })}
               {renderField('lock-outline', 'Hasło', password, setPassword, {
                 secure: true,
+                visible: showPassword,
+                onToggleVisible: () => setShowPassword(v => !v),
               })}
             </View>
 
@@ -633,6 +662,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     fontSize: 16,
     color: OnboardingPalette.textPrimary,
+  },
+  passwordToggle: {
+    padding: 6,
+    marginLeft: 4,
   },
   ctaShadowWrap: {
     borderRadius: Theme.borderRadius.round,

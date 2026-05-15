@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,15 @@ import {
   Platform,
   TextInput,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Theme } from '../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, MedScheduleType } from '../../../context/MedsContext';
+import { pickDependentUserId } from '../../../utils/resolveMedsTargetUserId';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
 
 /** yyyy-MM-dd → data w lokalnej strefie (unika błędów parseISO / UTC). */
 function parseYmdLocal(ymd: string): Date {
@@ -28,12 +30,36 @@ function compareYmd(a: string, b: string): number {
 }
 
 export default function AddMedicationScreen() {
-  const params = useLocalSearchParams<{ dependentId: string }>();
-  const dependentId = Array.isArray(params.dependentId)
-    ? params.dependentId[0]
-    : params.dependentId;
+  const localParams = useLocalSearchParams<{ dependentId?: string; id?: string }>();
+  const globalParams = useGlobalSearchParams<{ dependentId?: string; id?: string }>();
+  const segments = useSegments();
+  const { treatments, addSchedule, refetchFromServer, targetUserId } = useMeds();
 
-  const { treatments, addSchedule } = useMeds();
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localDependentId: localParams.dependentId,
+        localId: localParams.id,
+        globalDependentId: globalParams.dependentId,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [
+      localParams.dependentId,
+      localParams.id,
+      globalParams.dependentId,
+      globalParams.id,
+      segments,
+      targetUserId,
+    ],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (dependentId) void refetchFromServer(dependentId);
+    }, [dependentId, refetchFromServer]),
+  );
 
   const [medType, setMedType] = useState<MedScheduleType>('ONCE');
   const [selectedTreatmentId, setSelectedTreatmentId] = useState<string | null>(null);
@@ -113,8 +139,8 @@ export default function AddMedicationScreen() {
     return false;
   };
 
-  const handleSave = () => {
-    if (!canSave() || !selectedTreatmentId) return;
+  const handleSave = async () => {
+    if (!canSave() || !selectedTreatmentId || !dependentId) return;
     let startDate = today;
     let endDate: string | undefined;
     let daysOfWeek: number[] = [];
@@ -123,19 +149,25 @@ export default function AddMedicationScreen() {
     if (medType === 'TEMPORARY') {
       startDate = tempStart;
       endDate = tempEnd;
-      // Brak zaznaczonych dni = codziennie w okresie
       daysOfWeek = selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5, 6, 7];
     }
-    addSchedule({
-      treatmentId: selectedTreatmentId,
-      type: medType,
-      time: `${hour}:${minute}`,
-      dosage,
-      daysOfWeek,
-      startDate,
-      endDate,
-    });
-    router.back();
+    try {
+      await addSchedule(
+        {
+          treatmentId: selectedTreatmentId,
+          type: medType,
+          time: `${hour}:${minute}`,
+          dosage,
+          daysOfWeek,
+          startDate,
+          endDate,
+        },
+        dependentId,
+      );
+      router.back();
+    } catch {
+      // zalogowane w MedsContext
+    }
   };
 
   const handleTempDayPress = (dateString: string) => {

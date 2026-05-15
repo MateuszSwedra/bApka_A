@@ -36,13 +36,13 @@ export function resolveMedicationSoundAsset(
 ): number | null {
   if (id === 'default') return null;
   if (id === 'gentle') return medSoft;
-  return medBright;
+  return sosAlert;
 }
 
 export function resolveSosSoundAsset(id: NotificationSoundChoiceId): number | null {
   if (id === 'default') return null;
   if (id === 'gentle') return medSoft;
-  return sosAlert;
+  return medBright;
 }
 
 export function parseSoundChoiceId(raw: string | null): NotificationSoundChoiceId {

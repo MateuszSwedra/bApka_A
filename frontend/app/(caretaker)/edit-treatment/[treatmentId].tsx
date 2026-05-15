@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,27 +8,73 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
-import { useMeds } from '../../../context/MedsContext';
+import { useMeds, Treatment } from '../../../context/MedsContext';
+import { inventoryAPI } from '../../../services/api';
+import type { TreatmentType } from '../../../constants/treatmentVisuals';
 
 export default function EditTreatmentScreen() {
   const params = useLocalSearchParams<{ treatmentId: string }>();
   const treatmentId = Array.isArray(params.treatmentId) ? params.treatmentId[0] : params.treatmentId;
 
-  const { treatments, updateTreatment } = useMeds();
+  const { treatments, updateTreatment, refetchFromServer } = useMeds();
+  const [loaded, setLoaded] = useState<Treatment | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const existing = useMemo(
-    () => treatments.find(t => t.id === treatmentId),
-    [treatments, treatmentId]
+    () => treatments.find(t => t.id === treatmentId) ?? loaded,
+    [treatments, treatmentId, loaded],
   );
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [pillsStr, setPillsStr] = useState('');
+
+  useFocusEffect(
+    useCallback(() => {
+      void refetchFromServer();
+    }, [refetchFromServer]),
+  );
+
+  useEffect(() => {
+    if (!treatmentId) {
+      setLoading(false);
+      return;
+    }
+    const fromList = treatments.find(t => t.id === treatmentId);
+    if (fromList) {
+      setLoaded(fromList);
+      setLoading(false);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const item = await inventoryAPI.getById(treatmentId);
+        if (cancelled || !item) return;
+        setLoaded({
+          id: String(item.id),
+          type: (item.type as TreatmentType) || 'MEDICATION',
+          name: item.name,
+          totalPills: item.totalPills,
+          description: item.description,
+        });
+      } catch {
+        if (!cancelled) setLoaded(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [treatmentId, treatments]);
 
   useEffect(() => {
     if (!existing) return;
@@ -37,7 +83,7 @@ export default function EditTreatmentScreen() {
     setPillsStr(
       existing.type === 'MEDICATION' && typeof existing.totalPills === 'number'
         ? String(existing.totalPills)
-        : ''
+        : '',
     );
   }, [existing]);
 
@@ -53,19 +99,31 @@ export default function EditTreatmentScreen() {
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!existing || !canSave()) return;
     const pills = parseInt(pillsStr.replace(/[^0-9]/g, ''), 10);
-    updateTreatment(existing.id, {
-      name: name.trim(),
-      description: description.trim() || undefined,
-      totalPills: existing.type === 'MEDICATION' ? pills : undefined,
-    });
-    router.back();
+    try {
+      await updateTreatment(existing.id, {
+        name: name.trim(),
+        description: description.trim() || undefined,
+        totalPills: existing.type === 'MEDICATION' ? pills : undefined,
+      });
+      router.back();
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zapisać zmian.');
+    }
   };
 
   if (!treatmentId) {
     return null;
+  }
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.centered]}>
+        <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} />
+      </View>
+    );
   }
 
   if (!existing || !vis) {
@@ -89,7 +147,7 @@ export default function EditTreatmentScreen() {
           <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
         </Pressable>
         <Text style={styles.headerTitle}>Edytuj</Text>
-        <Pressable onPress={handleSave} style={styles.saveBtn} disabled={!canSave()}>
+        <Pressable onPress={() => void handleSave()} style={styles.saveBtn} disabled={!canSave()}>
           <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>
             Zapisz
           </Text>
@@ -148,17 +206,17 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
   },
   centered: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Theme.colors.background,
+    padding: Theme.spacing.l,
   },
   muted: {
+    fontSize: Theme.typography.body,
     color: Theme.colors.textLight,
+    marginBottom: Theme.spacing.m,
   },
   backLink: {
-    marginTop: Theme.spacing.m,
-    padding: Theme.spacing.s,
+    padding: Theme.spacing.m,
   },
   header: {
     flexDirection: 'row',
@@ -198,10 +256,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     alignSelf: 'flex-start',
     backgroundColor: Theme.colors.surfaceGrey,
-    paddingHorizontal: Theme.spacing.m,
-    paddingVertical: 8,
+    paddingHorizontal: Theme.spacing.s,
+    paddingVertical: 6,
     borderRadius: Theme.borderRadius.round,
-    marginBottom: Theme.spacing.l,
+    marginBottom: Theme.spacing.m,
   },
   typeIconCircle: {
     width: 36,
@@ -213,8 +271,9 @@ const styles = StyleSheet.create({
   },
   typePillText: {
     fontSize: Theme.typography.caption,
-    fontWeight: '700',
     color: Theme.colors.textDark,
+    fontWeight: '700',
+    paddingRight: Theme.spacing.s,
   },
   label: {
     fontSize: 13,

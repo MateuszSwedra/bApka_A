@@ -1,11 +1,13 @@
 import React, { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
+import { useFabBottomOffset } from '../../utils/useFabBottomOffset';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { Theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
+import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
 
 interface Dependent {
   id: string;
@@ -18,6 +20,7 @@ interface Dependent {
 
 export default function CaretakerDashboard() {
   const { logout } = useAuth();
+  const fabBottom = useFabBottomOffset();
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -39,7 +42,13 @@ export default function CaretakerDashboard() {
         return;
       }
       const data = await usersAPI.getDependents();
-      setDependents(data);
+      const list = Array.isArray(data) ? data : [];
+      setDependents(
+        list.filter(
+          (d): d is Dependent =>
+            !!d?.id && isUserUuid(String(d.id)),
+        ),
+      );
     } catch (e) {
       console.error('Failed to fetch dependents', e);
     } finally {
@@ -168,8 +177,12 @@ export default function CaretakerDashboard() {
       </ScrollView>
 
       {/* FAB */}
-      <Pressable 
-        style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]} 
+      <Pressable
+        style={({ pressed }) => [
+          styles.fab,
+          { bottom: fabBottom },
+          pressed && styles.fabPressed,
+        ]}
         onPress={handleAddDependent}
       >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
@@ -223,7 +236,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: Theme.spacing.l,
-    paddingBottom: Theme.spacing.xxl * 2,
+    paddingBottom: 120,
   },
   emptyState: {
     alignItems: 'center',
@@ -345,7 +358,6 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
     right: Theme.spacing.xl,
     backgroundColor: Theme.colors.primaryLime,
     width: 64,

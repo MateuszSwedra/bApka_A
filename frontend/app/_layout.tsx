@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { MedsProvider } from '../context/MedsContext';
 import { Theme } from '../constants/theme';
@@ -16,6 +17,7 @@ Notifications.setNotificationHandler({
 
 export default function RootLayout() {
   return (
+    <SafeAreaProvider>
     <AuthProvider>
       <MedsProvider>
       <Stack screenOptions={{ headerShown: false }}>
@@ -53,5 +55,6 @@ export default function RootLayout() {
       </Stack>
       </MedsProvider>
     </AuthProvider>
+    </SafeAreaProvider>
   );
 }

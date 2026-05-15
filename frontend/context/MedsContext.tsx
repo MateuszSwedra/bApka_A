@@ -8,8 +8,12 @@ import React, {
   useCallback,
 } from 'react';
 import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
-import { inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
-import { useGlobalSearchParams } from 'expo-router';
+import { getStoredAuthToken, inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
+import { assertCaretakerDependent } from '../utils/assertCaretakerDependent';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
+import { resolveMedsTargetUserId, isUserUuid } from '../utils/resolveMedsTargetUserId';
+import { debugLog } from '../utils/debugLog';
+import { useAuth } from './AuthContext';
 import type { TreatmentType } from '../constants/treatmentVisuals';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
@@ -62,45 +66,108 @@ interface MedsContextType {
   treatments: Treatment[];
   inventory: InventoryItem[];
   schedules: ScheduleItem[];
-  addTreatment: (treatment: Omit<Treatment, 'id'>) => void;
+  addTreatment: (treatment: Omit<Treatment, 'id'>, forUserId?: string) => Promise<void>;
+  addSchedule: (schedule: Omit<ScheduleItem, 'id'>, forUserId?: string) => Promise<void>;
   removeTreatment: (id: string) => void;
-  updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => void;
+  updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => Promise<void>;
   addInventoryItem: (name: string, totalPills: number, description?: string) => void;
   removeInventoryItem: (id: string) => void;
-  addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => void;
   removeSchedule: (id: string) => Promise<void>;
   updateSchedule: (id: string, patch: Partial<ScheduleItem>) => Promise<void>;
   depletionAlerts: DepletionAlert[];
+  /** Aktualny userId podopiecznego (profil / add-treatment / add-med). */
+  targetUserId: string | null;
   /** Reload inventory and schedules from the server (caretaker changes). */
-  refetchFromServer: () => Promise<void>;
+  refetchFromServer: (userId?: string) => Promise<void>;
 }
 
 const MedsContext = createContext<MedsContextType | undefined>(undefined);
 
 const randomId = () => Math.random().toString(36).substring(2, 10);
 
+function isUnauthorizedError(e: unknown): boolean {
+  return e instanceof Error && /unauthorized/i.test(e.message);
+}
+
+const DEPENDENT_FLOW_MARKERS = [
+  'dependent',
+  'add-treatment',
+  'add-med',
+  'edit-treatment',
+] as const;
+
+function isInDependentCaretakerFlow(segments: string[]): boolean {
+  return DEPENDENT_FLOW_MARKERS.some(m => segments.includes(m));
+}
+
 export function MedsProvider({ children }: { children: ReactNode }) {
-  const { id, dependentId } = useGlobalSearchParams<{ id?: string, dependentId?: string }>();
+  const { userRole, isReady } = useAuth();
+  const { id, dependentId } = useGlobalSearchParams<{ id?: string; dependentId?: string }>();
+  const segments = useSegments();
+  const segList = segments as string[];
+  const [scopedDependentUserId, setScopedDependentUserId] = useState<string | null>(null);
   const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
 
   useEffect(() => {
-    const currentId = id || dependentId;
-    if (currentId) {
-      setTargetUserId(Array.isArray(currentId) ? currentId[0] : currentId);
-    } else {
-      usersAPI.getMe().then((me: any) => {
-        if (me?.id) setTargetUserId(me.id);
-      }).catch((e: any) => console.error('Failed to fetch user ID', e));
-    }
-  }, [id, dependentId]);
+    const fromRoute = resolveMedsTargetUserId({ id, dependentId }, segList);
+    const inDependentFlow = isInDependentCaretakerFlow(segList);
 
-  const refetchFromServer = useCallback(async () => {
-    if (!targetUserId) return;
+    if (fromRoute) {
+      debugLog(
+        'MedsContext:resolveUser',
+        'fromRoute',
+        { fromRoute, segList },
+        'H-E',
+      );
+      setScopedDependentUserId(fromRoute);
+      setTargetUserId(fromRoute);
+      return;
+    }
+
+    if (scopedDependentUserId && inDependentFlow) {
+      setTargetUserId(scopedDependentUserId);
+      return;
+    }
+
+    if (!inDependentFlow) {
+      setScopedDependentUserId(null);
+    }
+
+    if (!isReady) return;
+    if (!userRole) {
+      setTargetUserId(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const token = await getStoredAuthToken();
+      if (!token || cancelled) return;
+      try {
+        const me = await usersAPI.getMe();
+        if (!cancelled && me?.id) setTargetUserId(me.id);
+      } catch (e: unknown) {
+        if (!cancelled && !isUnauthorizedError(e)) {
+          console.warn('Failed to fetch user ID', e);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id, dependentId, segList, isReady, userRole, scopedDependentUserId]);
+
+  const refetchFromServer = useCallback(async (userId?: string) => {
+    const uid = userId ?? targetUserId;
+    if (!uid) return;
+    const token = await getStoredAuthToken();
+    if (!token) return;
     try {
-      const fetchedInventory = await inventoryAPI.getInventory(targetUserId);
+      const fetchedInventory = await inventoryAPI.getInventory(uid);
       if (fetchedInventory && fetchedInventory.length > 0) {
         const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
           id: String(it.id),
@@ -114,7 +181,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         setTreatments([]);
       }
 
-      const fetchedSchedules = await scheduleAPI.getSchedules(targetUserId);
+      const fetchedSchedules = await scheduleAPI.getSchedules(uid);
       if (fetchedSchedules && fetchedSchedules.length > 0) {
         const mappedSchedules: ScheduleItem[] = fetchedSchedules.map((sch: any) => ({
           id: String(sch.id),
@@ -154,10 +221,30 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     [treatments]
   );
 
-  const addTreatment = async (treatment: Omit<Treatment, 'id'>) => {
-    if (!targetUserId) return;
+  const addTreatment = async (
+    treatment: Omit<Treatment, 'id'>,
+    forUserId?: string,
+  ) => {
+    const uid = forUserId ?? targetUserId;
+    debugLog(
+      'MedsContext:addTreatment',
+      'create inventory',
+      {
+        uid,
+        forUserId: forUserId ?? null,
+        targetUserId,
+        scopedDependentUserId,
+        uidIsUuid: uid ? isUserUuid(uid) : false,
+      },
+      'H-C',
+    );
+    if (!uid) return;
+    if (!isUserUuid(uid)) {
+      throw new Error('Nieprawidłowy identyfikator podopiecznego.');
+    }
     try {
-      const data = await inventoryAPI.create(targetUserId, {
+      await assertCaretakerDependent(uid);
+      await inventoryAPI.create(uid, {
         name: treatment.name,
         type: treatment.type,
         description: treatment.description,
@@ -165,7 +252,11 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         currentPills: treatment.totalPills,
         pillsPerDose: 1,
       });
-      setTreatments(prev => [...prev, { ...treatment, id: String(data.id) }]);
+      if (forUserId) {
+        setScopedDependentUserId(forUserId);
+        setTargetUserId(forUserId);
+      }
+      await refetchFromServer(uid);
     } catch (e) {
       console.error('Error adding treatment:', e);
       throw e;
@@ -187,6 +278,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       setTreatments(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
     } catch (e) {
       console.error('Error updating treatment:', e);
+      throw e;
     }
   };
 
@@ -198,19 +290,40 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     removeTreatment(id);
   };
 
-  const addSchedule = async (schedule: Omit<ScheduleItem, 'id'>) => {
-    if (!targetUserId) return;
+  const addSchedule = async (
+    schedule: Omit<ScheduleItem, 'id'>,
+    forUserId?: string,
+  ) => {
+    const uid = forUserId ?? targetUserId;
+    if (!uid) return;
+    if (!isUserUuid(uid)) {
+      throw new Error('Nieprawidłowy identyfikator podopiecznego.');
+    }
     try {
-      const data = await scheduleAPI.create(targetUserId, {
+      await assertCaretakerDependent(uid);
+      const data = await scheduleAPI.create(uid, {
         inventoryId: schedule.treatmentId || schedule.inventoryId,
         medication: schedule.customName,
         time: schedule.time,
         type: schedule.type,
-        dosage: schedule.dosage || "1",
+        dosage: schedule.dosage || '1',
         startDate: schedule.startDate,
+        endDate: schedule.endDate,
+        daysOfWeek: schedule.daysOfWeek ?? [],
       });
-      setSchedules(prev => [...prev, { ...schedule, id: String(data.id), dosage: schedule.dosage || "1" }]);
-    } catch (e) { 
+      const created: ScheduleItem = {
+        ...schedule,
+        id: String(data.id),
+        dosage: schedule.dosage || '1',
+        daysOfWeek: schedule.daysOfWeek ?? [],
+      };
+      setSchedules(prev => [...prev, created]);
+      if (forUserId) {
+        setScopedDependentUserId(forUserId);
+        setTargetUserId(forUserId);
+      }
+      await refetchFromServer(uid);
+    } catch (e) {
       console.error('Error adding schedule:', e);
       throw e;
     }
@@ -320,6 +433,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         removeSchedule,
         updateSchedule,
         depletionAlerts,
+        targetUserId,
         refetchFromServer,
       }}
     >

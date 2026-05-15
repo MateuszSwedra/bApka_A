@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -6,10 +6,14 @@ import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { format } from 'date-fns';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useGlobalSearchParams, useLocalSearchParams, useFocusEffect, useSegments } from 'expo-router';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
+import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../../../utils/scheduleHelpers';
+import { buildScheduleMarkedDates } from '../../../../utils/buildScheduleMarkedDates';
 
 LocaleConfig.locales['pl'] = {
   monthNames: [
@@ -34,11 +38,31 @@ LocaleConfig.locales['pl'] = {
 LocaleConfig.defaultLocale = 'pl';
 
 export default function DependentCalendarScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const dependentId = Array.isArray(id) ? id[0] : id;
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
+  const fabBottom = useFabBottomOffset();
 
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const { depletionAlerts, schedules, treatments, updateSchedule, removeSchedule } = useMeds();
+  const { depletionAlerts, schedules, treatments, updateSchedule, removeSchedule, refetchFromServer, targetUserId } =
+    useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (dependentId) void refetchFromServer(dependentId);
+    }, [dependentId, refetchFromServer]),
+  );
 
   const [editingSchedule, setEditingSchedule] = useState<ScheduleItem | null>(null);
   const [editTime, setEditTime] = useState('');
@@ -81,13 +105,18 @@ export default function DependentCalendarScreen() {
     ]);
   };
 
-  const dynamicMarks = depletionAlerts.reduce(
-    (acc, alert) => {
-      acc[alert.date] = { marked: true, dotColor: Theme.colors.accentOrange };
-      return acc;
-    },
-    {} as Record<string, { marked: boolean; dotColor: string }>
+  const scheduleMarks = useMemo(
+    () => buildScheduleMarkedDates(schedules, Theme.colors.primaryLimeDark),
+    [schedules],
   );
+
+  const dynamicMarks = useMemo(() => {
+    const acc = { ...scheduleMarks };
+    depletionAlerts.forEach(alert => {
+      acc[alert.date] = { marked: true, dotColor: Theme.colors.accentOrange };
+    });
+    return acc;
+  }, [scheduleMarks, depletionAlerts]);
 
   const todayAlerts = depletionAlerts.filter(a => a.date === selectedDate);
 
@@ -242,12 +271,17 @@ export default function DependentCalendarScreen() {
       </Modal>
 
       <Pressable
-        style={styles.fab}
-        onPress={() =>
-          dependentId
-            ? router.push(`/(caretaker)/add-med/${dependentId}` as any)
-            : router.push('/(caretaker)/add-med/1' as any)
-        }
+        style={[styles.fab, { bottom: fabBottom }]}
+        onPress={() => {
+          if (!dependentId) {
+            Alert.alert(
+              'Błąd',
+              'Nie udało się ustalić profilu podopiecznego. Wróć do listy i otwórz profil ponownie.',
+            );
+            return;
+          }
+          openAddMedForDependent(dependentId);
+        }}
       >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
       </Pressable>
@@ -323,8 +357,9 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
     right: Theme.spacing.xl,
+    zIndex: 10,
+    elevation: 8,
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
     height: 64,

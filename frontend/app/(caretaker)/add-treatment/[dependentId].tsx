@@ -8,8 +8,11 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useGlobalSearchParams, useLocalSearchParams, useSegments } from 'expo-router';
+import { pickDependentUserId } from '../../../utils/resolveMedsTargetUserId';
+import { debugLog } from '../../../utils/debugLog';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { useMeds } from '../../../context/MedsContext';
@@ -70,7 +73,36 @@ const TYPE_OPTIONS: TypeOption[] = [
 ];
 
 export default function AddTreatmentScreen() {
-  const { addTreatment } = useMeds();
+  const localParams = useLocalSearchParams<{
+    dependentId?: string;
+    id?: string;
+  }>();
+  const globalParams = useGlobalSearchParams<{
+    dependentId?: string;
+    id?: string;
+  }>();
+  const segments = useSegments();
+  const { addTreatment, targetUserId } = useMeds();
+
+  const dependentUserId = useMemo(
+    () =>
+      pickDependentUserId({
+        localDependentId: localParams.dependentId,
+        localId: localParams.id,
+        globalDependentId: globalParams.dependentId,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [
+      localParams.dependentId,
+      localParams.id,
+      globalParams.dependentId,
+      globalParams.id,
+      segments,
+      targetUserId,
+    ],
+  );
   const [selectedType, setSelectedType] = useState<TreatmentType | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -105,16 +137,44 @@ export default function AddTreatmentScreen() {
     return true;
   };
 
-  const handleSave = () => {
-    if (!currentOption || !canSave()) return;
+  const handleSave = async () => {
+    if (!currentOption || !canSave() || !dependentUserId) return;
+    debugLog(
+      'add-treatment:handleSave',
+      'before addTreatment',
+      {
+        dependentUserId,
+        localDependentId: localParams.dependentId,
+        globalDependentId: globalParams.dependentId,
+        targetUserId,
+        segments: segments as string[],
+      },
+      'H-A',
+    );
+    if (!dependentUserId) {
+      Alert.alert(
+        'Błąd',
+        'Nie udało się ustalić profilu podopiecznego. Wróć do listy podopiecznych i otwórz profil ponownie.',
+      );
+      return;
+    }
     const pills = parseInt(pillsStr.replace(/[^0-9]/g, ''));
-    addTreatment({
-      type: currentOption.type,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      totalPills: currentOption.type === 'MEDICATION' ? pills : undefined,
-    });
-    router.back();
+    try {
+      await addTreatment(
+        {
+          type: currentOption.type,
+          name: name.trim(),
+          description: description.trim() || undefined,
+          totalPills: currentOption.type === 'MEDICATION' ? pills : undefined,
+        },
+        dependentUserId,
+      );
+      router.back();
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : 'Nie udało się dodać aktywności. Sprawdź połączenie z serwerem.';
+      Alert.alert('Błąd', msg);
+    }
   };
 
   return (

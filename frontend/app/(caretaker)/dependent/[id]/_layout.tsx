@@ -1,9 +1,14 @@
 import { Tabs, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
-import { View, Pressable, Text } from 'react-native';
+import { View, Pressable, Text, Platform } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function DependentTabsLayout() {
+  const insets = useSafeAreaInsets();
+  const tabBarBottom =
+    Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
+
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
       {/* Header wspólny dla wszystkich zakładek */}
@@ -35,8 +40,8 @@ export default function DependentTabsLayout() {
           tabBarStyle: {
             borderTopWidth: 1,
             borderTopColor: Theme.colors.border,
-            height: 60,
-            paddingBottom: 8,
+            height: 56 + tabBarBottom,
+            paddingBottom: tabBarBottom,
             paddingTop: 8,
             backgroundColor: Theme.colors.background,
             elevation: 0,

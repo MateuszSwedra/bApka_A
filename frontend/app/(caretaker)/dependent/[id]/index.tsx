@@ -4,7 +4,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
-import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
 import { format } from 'date-fns';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
 import type { ScheduleItem } from '../../../../context/MedsContext';
@@ -18,10 +20,22 @@ interface DependentInfo {
 }
 
 export default function DependentTodayDashboard() {
-  const params = useLocalSearchParams<{ id: string }>();
-  const dependentId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
 
-  const { schedules, treatments, depletionAlerts } = useMeds();
+  const { schedules, treatments, depletionAlerts, targetUserId } = useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
+  );
   const [dependent, setDependent] = useState<DependentInfo | null>(null);
   const [now, setNow] = useState(new Date());
 
@@ -117,7 +131,7 @@ export default function DependentTodayDashboard() {
 
   const handleAdd = () => {
     if (!dependentId) return;
-    router.push(`/(caretaker)/add-med/${dependentId}` as any);
+    openAddMedForDependent(dependentId);
   };
 
   const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {

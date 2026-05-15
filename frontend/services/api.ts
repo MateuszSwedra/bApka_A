@@ -89,6 +89,17 @@ function resolveApiBaseUrl(): string {
 
 const API_URL = resolveApiBaseUrl();
 
+export async function getStoredAuthToken(): Promise<string | null> {
+  try {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem('userToken');
+    }
+    return await SecureStore.getItemAsync('userToken');
+  } catch {
+    return null;
+  }
+}
+
 const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_URL.replace(/\/$/, '')}${path}`;
@@ -97,16 +108,7 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
     throw new Error(`Nieprawidłowy adres API: ${url}`);
   }
 
-  let token = null;
-  try {
-    if (Platform.OS === 'web') {
-      token = localStorage.getItem('userToken');
-    } else {
-      token = await SecureStore.getItemAsync('userToken');
-    }
-  } catch (e) {
-    // secure store not available on web sometimes
-  }
+  const token = await getStoredAuthToken();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -126,6 +128,22 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const text = await response.text();
 
   if (!response.ok) {
+    // #region agent log
+    if (path.includes('/inventory/')) {
+      fetch('http://127.0.0.1:7440/ingest/0d678d3a-7dc4-4153-b52b-ba4140534c07', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9e4a7a' },
+        body: JSON.stringify({
+          sessionId: '9e4a7a',
+          location: 'api.ts:fetchApi',
+          message: 'inventory API error',
+          data: { url, status: response.status, bodyPreview: text.slice(0, 300) },
+          hypothesisId: 'H-D',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
     let detail = `Serwer zwrócił błąd ${response.status}.`;
     if (text) {
       try {
@@ -247,6 +265,9 @@ export const inventoryAPI = {
       console.warn('Error fetching inventory', error);
       return [];
     }
+  },
+  getById: async (id: string) => {
+    return fetchApi(`/inventory/${id}`);
   },
   getDepletion: async (inventoryId: string) => {
     try {

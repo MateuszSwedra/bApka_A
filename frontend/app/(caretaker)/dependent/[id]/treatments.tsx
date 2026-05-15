@@ -1,15 +1,23 @@
-import React from 'react';
+import React, { useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useMeds, Treatment } from '../../../../context/MedsContext';
 import { Card } from '../../../../components/Card';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
 
 export default function DependentTreatmentsScreen() {
   const { id } = useLocalSearchParams();
-  const { treatments, removeTreatment } = useMeds();
+  const dependentId = Array.isArray(id) ? id[0] : id;
+  const { treatments, removeTreatment, refetchFromServer } = useMeds();
+
+  useFocusEffect(
+    useCallback(() => {
+      if (dependentId) void refetchFromServer(dependentId);
+    }, [dependentId, refetchFromServer]),
+  );
 
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
     type,
@@ -56,7 +64,11 @@ export default function DependentTreatmentsScreen() {
 
       <Pressable
         style={styles.fab}
-        onPress={() => router.push(`/(caretaker)/add-treatment/${id}` as any)}
+        onPress={() => {
+          const depId = Array.isArray(id) ? id[0] : id;
+          if (!depId) return;
+          openAddTreatmentForDependent(String(depId));
+        }}
       >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
       </Pressable>
