@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState, useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert } from 'react-native';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -14,6 +14,12 @@ import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../../../utils/scheduleHelpers';
 import { buildScheduleMarkedDates } from '../../../../utils/buildScheduleMarkedDates';
+import {
+  TimeScrollPicker,
+  formatTimeParts,
+  parseTimeParts,
+  type TimeScrollPickerRef,
+} from '../../../../components/TimeScrollPicker';
 
 LocaleConfig.locales['pl'] = {
   monthNames: [
@@ -64,26 +70,38 @@ export default function DependentCalendarScreen() {
     }, [dependentId, refetchFromServer]),
   );
 
+  const editTimePickerRef = useRef<TimeScrollPickerRef>(null);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleItem | null>(null);
-  const [editTime, setEditTime] = useState('');
+  const [editHour, setEditHour] = useState(8);
+  const [editMinute, setEditMinute] = useState(0);
   const [editDosage, setEditDosage] = useState('');
+
+  const editingTreatmentType = useMemo(() => {
+    if (!editingSchedule) return undefined;
+    const tid = getScheduleTreatmentId(editingSchedule);
+    return treatments.find(t => t.id === tid)?.type;
+  }, [editingSchedule, treatments]);
+
+  const editingIsMedication = editingTreatmentType === 'MEDICATION';
 
   useEffect(() => {
     if (editingSchedule) {
-      setEditTime(editingSchedule.time);
+      const parts = parseTimeParts(editingSchedule.time);
+      setEditHour(parts.hour);
+      setEditMinute(parts.minute);
       setEditDosage(editingSchedule.dosage || '1');
     }
   }, [editingSchedule]);
 
   const handleSaveEdit = async () => {
     if (!editingSchedule) return;
-    const timeRegex = /^([01]\d|2[0-3]):([0-5]\d)$/;
-    if (!timeRegex.test(editTime)) {
-      Alert.alert('Błąd', 'Podaj poprawny czas w formacie HH:MM');
-      return;
-    }
+    const picked = editTimePickerRef.current?.getTime() ?? { hour: editHour, minute: editMinute };
+    const editTime = formatTimeParts(picked.hour, picked.minute);
     try {
-      await updateSchedule(editingSchedule.id, { time: editTime, dosage: editDosage });
+      await updateSchedule(editingSchedule.id, {
+        time: editTime,
+        dosage: editingIsMedication ? editDosage : '1',
+      });
       setEditingSchedule(null);
     } catch (e) {
       Alert.alert('Błąd', 'Nie udało się zaktualizować harmonogramu');
@@ -237,21 +255,26 @@ export default function DependentCalendarScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Edytuj harmonogram</Text>
             
-            <Text style={styles.label}>Godzina (HH:MM)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={editTime}
-              onChangeText={setEditTime}
-              keyboardType="numbers-and-punctuation"
+            <Text style={styles.label}>Godzina</Text>
+            <TimeScrollPicker
+              ref={editTimePickerRef}
+              hour={editHour}
+              minute={editMinute}
+              onHourChange={setEditHour}
+              onMinuteChange={setEditMinute}
             />
-            
-            <Text style={styles.label}>Ilość / Dawka (np. 2)</Text>
-            <TextInput
-              style={styles.textInput}
-              value={editDosage}
-              onChangeText={setEditDosage}
-              keyboardType="number-pad"
-            />
+
+            {editingIsMedication && (
+              <>
+                <Text style={styles.label}>Ilość / Dawka (np. 2)</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editDosage}
+                  onChangeText={setEditDosage}
+                  keyboardType="number-pad"
+                />
+              </>
+            )}
             
             <View style={styles.modalActions}>
               <Pressable style={styles.modalBtnGhost} onPress={() => setEditingSchedule(null)}>

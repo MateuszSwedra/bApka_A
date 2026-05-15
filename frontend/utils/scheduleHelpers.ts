@@ -37,3 +37,11 @@ export function timeToMinutes(time: string): number {
   const [h, m] = time.split(':').map(n => parseInt(n, 10) || 0);
   return h * 60 + m;
 }
+
+/** Liczba tabletek z pola dawki harmonogramu (np. „2” → 2). */
+export function parseDosagePills(dosage?: string): number {
+  if (!dosage?.trim()) return 1;
+  const n = parseInt(dosage.replace(/[^0-9]/g, ''), 10);
+  if (!n || n <= 0) return 1;
+  return n;
+}

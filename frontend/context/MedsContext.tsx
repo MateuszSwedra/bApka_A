@@ -6,8 +6,10 @@ import React, {
   useMemo,
   useEffect,
   useCallback,
+  useRef,
 } from 'react';
-import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
+import { addDays, format } from 'date-fns';
+import { parseDosagePills, scheduleAppliesToDate } from '../utils/scheduleHelpers';
 import { getStoredAuthToken, inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
 import { assertCaretakerDependent } from '../utils/assertCaretakerDependent';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
@@ -68,7 +70,7 @@ interface MedsContextType {
   schedules: ScheduleItem[];
   addTreatment: (treatment: Omit<Treatment, 'id'>, forUserId?: string) => Promise<void>;
   addSchedule: (schedule: Omit<ScheduleItem, 'id'>, forUserId?: string) => Promise<void>;
-  removeTreatment: (id: string) => void;
+  removeTreatment: (id: string, forUserId?: string) => Promise<void>;
   updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => Promise<void>;
   addInventoryItem: (name: string, totalPills: number, description?: string) => void;
   removeInventoryItem: (id: string) => void;
@@ -110,6 +112,16 @@ export function MedsProvider({ children }: { children: ReactNode }) {
 
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
+  const treatmentsRef = useRef(treatments);
+  const schedulesRef = useRef(schedules);
+
+  useEffect(() => {
+    treatmentsRef.current = treatments;
+  }, [treatments]);
+
+  useEffect(() => {
+    schedulesRef.current = schedules;
+  }, [schedules]);
 
   useEffect(() => {
     const fromRoute = resolveMedsTargetUserId({ id, dependentId }, segList);
@@ -168,32 +180,41 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     if (!token) return;
     try {
       const fetchedInventory = await inventoryAPI.getInventory(uid);
-      if (fetchedInventory && fetchedInventory.length > 0) {
-        const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
-          id: String(it.id),
-          type: it.type as TreatmentType || 'MEDICATION',
-          name: it.name,
-          totalPills: it.totalPills,
-          description: it.description,
-        }));
-        setTreatments(mapped);
-      } else {
-        setTreatments([]);
-      }
+      const mappedTreatments: Treatment[] =
+        fetchedInventory && fetchedInventory.length > 0
+          ? fetchedInventory.map((it: any) => ({
+              id: String(it.id),
+              type: (it.type as TreatmentType) || 'MEDICATION',
+              name: it.name,
+              totalPills: it.totalPills,
+              description: it.description,
+            }))
+          : [];
+      setTreatments(mappedTreatments);
+
+      const treatmentIds = new Set(mappedTreatments.map(t => t.id));
+      const treatmentNames = new Set(mappedTreatments.map(t => t.name));
 
       const fetchedSchedules = await scheduleAPI.getSchedules(uid);
       if (fetchedSchedules && fetchedSchedules.length > 0) {
-        const mappedSchedules: ScheduleItem[] = fetchedSchedules.map((sch: any) => ({
-          id: String(sch.id),
-          treatmentId: sch.inventoryId,
-          customName: sch.medication,
-          type: sch.type as MedScheduleType,
-          time: sch.time,
-          dosage: sch.dosage || "1",
-          startDate: sch.startDate,
-          endDate: sch.endDate,
-          daysOfWeek: sch.daysOfWeek || [1,2,3,4,5,6,7],
-        }));
+        const mappedSchedules: ScheduleItem[] = fetchedSchedules
+          .map((sch: any) => ({
+            id: String(sch.id),
+            treatmentId: sch.inventoryId ? String(sch.inventoryId) : undefined,
+            customName: sch.medication,
+            type: sch.type as MedScheduleType,
+            time: sch.time,
+            dosage: sch.dosage || '1',
+            startDate: sch.startDate,
+            endDate: sch.endDate,
+            daysOfWeek: sch.daysOfWeek || [1, 2, 3, 4, 5, 6, 7],
+          }))
+          .filter(sch => {
+            const tid = getScheduleTreatmentId(sch);
+            if (tid) return treatmentIds.has(tid);
+            if (sch.customName) return treatmentNames.has(sch.customName);
+            return false;
+          });
         setSchedules(mappedSchedules);
       } else {
         setSchedules([]);
@@ -263,13 +284,39 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeTreatment = async (id: string) => {
-    if (!targetUserId) return;
+  const removeTreatment = async (id: string, forUserId?: string) => {
+    const uid = forUserId ?? targetUserId ?? scopedDependentUserId;
+    const treatment = treatmentsRef.current.find(t => t.id === id);
+    const relatedSchedules = schedulesRef.current.filter(sch => {
+      const tid = getScheduleTreatmentId(sch);
+      if (tid === id) return true;
+      if (!tid && treatment?.name && sch.customName === treatment.name) return true;
+      return false;
+    });
+
     try {
+      await Promise.all(
+        relatedSchedules.map(sch =>
+          scheduleAPI.remove(sch.id).catch(err => {
+            console.warn('Nie udało się usunąć harmonogramu', sch.id, err);
+          }),
+        ),
+      );
       await inventoryAPI.remove(id);
       setTreatments(prev => prev.filter(t => t.id !== id));
-      setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
-    } catch (e) { console.error('Error removing treatment:', e); }
+      setSchedules(prev =>
+        prev.filter(sch => {
+          const tid = getScheduleTreatmentId(sch);
+          if (tid === id) return false;
+          if (!tid && treatment?.name && sch.customName === treatment.name) return false;
+          return true;
+        }),
+      );
+      if (uid) await refetchFromServer(uid);
+    } catch (e) {
+      console.error('Error removing treatment:', e);
+      throw e;
+    }
   };
 
   const updateTreatment = async (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
@@ -353,12 +400,6 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   const depletionAlerts = useMemo(() => {
     const alerts: DepletionAlert[] = [];
     
-    // JS date-fns getDay(): 0 to Nd, 1 to Pn. Zmieniamy na 1=Pn, 7=Nd
-    const getIsoDay = (date: Date) => {
-      const d = getDay(date);
-      return d === 0 ? 7 : d;
-    };
-
     // Tylko leki (MEDICATION) — zużycie tabletek i alerty końca zapasu
     treatments
       .filter(t => t.type === 'MEDICATION')
@@ -376,28 +417,13 @@ export function MedsProvider({ children }: { children: ReactNode }) {
 
       while (remainingPills > 0 && emergencyBreak < 1000) {
         const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-        const currentIsoDay = getIsoDay(currentDate);
 
         let pillsTakenToday = 0;
 
         for (const sch of relatedSchedules) {
-          // ONCE ignorujemy w zasobach Apteczki z założenia (zrobiłeś wyjątek wpisywania nazwy ręcznie)
-          if (sch.type === 'ONCE') continue; 
-
-          // Sprawdzamy czy harmonogram obowiązuje w tym dniu (startDate)
-          const isAfterOrOnStart = !isBefore(currentDate, new Date(sch.startDate)) || isSameDay(currentDate, new Date(sch.startDate));
-          
-          // Sprawdzamy zakończenie (dla TEMPORARY)
-          let isBeforeOrOnEnd = true;
-          if (sch.type === 'TEMPORARY' && sch.endDate) {
-            isBeforeOrOnEnd = !isBefore(new Date(sch.endDate), currentDate) || isSameDay(currentDate, new Date(sch.endDate));
-          }
-
-          if (isAfterOrOnStart && isBeforeOrOnEnd) {
-            if (sch.daysOfWeek.includes(currentIsoDay)) {
-              pillsTakenToday += 1; // Jedna porcja z tego harmonogramu
-            }
-          }
+          if (sch.type === 'ONCE') continue;
+          if (!scheduleAppliesToDate(sch, currentDateStr)) continue;
+          pillsTakenToday += parseDosagePills(sch.dosage);
         }
 
         remainingPills -= pillsTakenToday;

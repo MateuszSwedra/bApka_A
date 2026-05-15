@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,6 +19,12 @@ import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, MedScheduleType } from '../../../context/MedsContext';
 import { pickDependentUserId } from '../../../utils/resolveMedsTargetUserId';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
+import { openAddTreatmentForDependent } from '../../../utils/caretakerNavigation';
+import {
+  TimeScrollPicker,
+  formatTimeParts,
+  type TimeScrollPickerRef,
+} from '../../../components/TimeScrollPicker';
 
 /** yyyy-MM-dd → data w lokalnej strefie (unika błędów parseISO / UTC). */
 function parseYmdLocal(ymd: string): Date {
@@ -64,8 +71,9 @@ export default function AddMedicationScreen() {
   const [medType, setMedType] = useState<MedScheduleType>('ONCE');
   const [selectedTreatmentId, setSelectedTreatmentId] = useState<string | null>(null);
 
-  const [hour, setHour] = useState('08');
-  const [minute, setMinute] = useState('00');
+  const timePickerRef = useRef<TimeScrollPickerRef>(null);
+  const [hour, setHour] = useState(8);
+  const [minute, setMinute] = useState(0);
   const [dosage, setDosage] = useState('1');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
@@ -97,33 +105,11 @@ export default function AddMedicationScreen() {
     { id: 7, label: 'Nd' },
   ];
 
-  const handleHourChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '');
-    if (cleaned.length <= 2) {
-      const val = parseInt(cleaned, 10);
-      if (!val || val < 24) setHour(cleaned);
-      if (val >= 24) setHour('23');
-    }
-  };
-
-  const handleMinuteChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '');
-    if (cleaned.length <= 2) {
-      const val = parseInt(cleaned, 10);
-      if (!val || val < 60) setMinute(cleaned);
-      if (val >= 60) setMinute('59');
-    }
-  };
-
-  const handleHourBlur = () => {
-    if (hour.length === 1) setHour('0' + hour);
-    if (hour.length === 0) setHour('00');
-  };
-
-  const handleMinuteBlur = () => {
-    if (minute.length === 1) setMinute('0' + minute);
-    if (minute.length === 0) setMinute('00');
-  };
+  const selectedTreatment = useMemo(
+    () => treatments.find(t => t.id === selectedTreatmentId) ?? null,
+    [treatments, selectedTreatmentId],
+  );
+  const isMedication = selectedTreatment?.type === 'MEDICATION';
 
   const toggleDay = (id: number) => {
     setSelectedDays(prev =>
@@ -151,13 +137,15 @@ export default function AddMedicationScreen() {
       endDate = tempEnd;
       daysOfWeek = selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5, 6, 7];
     }
+    const picked = timePickerRef.current?.getTime() ?? { hour, minute };
+    const timeStr = formatTimeParts(picked.hour, picked.minute);
     try {
       await addSchedule(
         {
           treatmentId: selectedTreatmentId,
           type: medType,
-          time: `${hour}:${minute}`,
-          dosage,
+          time: timeStr,
+          dosage: isMedication ? dosage : '1',
           daysOfWeek,
           startDate,
           endDate,
@@ -229,8 +217,14 @@ export default function AddMedicationScreen() {
   }, [tempStart, tempEnd]);
 
   const openAddTreatment = () => {
-    if (!dependentId) return;
-    router.push(`/(caretaker)/add-treatment/${dependentId}` as any);
+    if (!dependentId) {
+      Alert.alert(
+        'Błąd',
+        'Nie udało się ustalić profilu podopiecznego. Wróć do listy i otwórz profil ponownie.',
+      );
+      return;
+    }
+    openAddTreatmentForDependent(dependentId);
   };
 
   const calendarTheme = {
@@ -295,8 +289,9 @@ export default function AddMedicationScreen() {
         })}
         <Pressable
           onPress={openAddTreatment}
-          style={[styles.activityAddPill]}
+          style={styles.activityAddPill}
           accessibilityLabel="Dodaj aktywność do apteczki"
+          hitSlop={8}
         >
           <MaterialIcons name="add" size={24} color={Theme.colors.primaryLimeDark} />
         </Pressable>
@@ -358,36 +353,26 @@ export default function AddMedicationScreen() {
         </View>
 
         <Text style={styles.label}>Godzina</Text>
-        <View style={styles.timeContainer}>
-          <TextInput
-            style={styles.timeInput}
-            value={hour}
-            onChangeText={handleHourChange}
-            onBlur={handleHourBlur}
-            keyboardType="number-pad"
-            maxLength={2}
-            selectTextOnFocus
-          />
-          <Text style={styles.timeSeparator}>:</Text>
-          <TextInput
-            style={styles.timeInput}
-            value={minute}
-            onChangeText={handleMinuteChange}
-            onBlur={handleMinuteBlur}
-            keyboardType="number-pad"
-            maxLength={2}
-            selectTextOnFocus
-          />
-        </View>
-
-        <Text style={styles.label}>Ilość sztuk / Dawka</Text>
-        <TextInput
-          style={[styles.timeInput, { width: 120, height: 60, fontSize: 32, alignSelf: 'center' }]}
-          value={dosage}
-          onChangeText={setDosage}
-          keyboardType="number-pad"
-          selectTextOnFocus
+        <TimeScrollPicker
+          ref={timePickerRef}
+          hour={hour}
+          minute={minute}
+          onHourChange={setHour}
+          onMinuteChange={setMinute}
         />
+
+        {isMedication && (
+          <>
+            <Text style={styles.label}>Ilość sztuk / Dawka</Text>
+            <TextInput
+              style={[styles.dosageInput, { alignSelf: 'center' }]}
+              value={dosage}
+              onChangeText={setDosage}
+              keyboardType="number-pad"
+              selectTextOnFocus
+            />
+          </>
+        )}
 
         {medType === 'ONCE' && (
           <View style={styles.section}>
@@ -599,28 +584,16 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.s,
     lineHeight: 20,
   },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Theme.spacing.s,
-  },
-  timeInput: {
+  dosageInput: {
     backgroundColor: Theme.colors.surfaceGrey,
     borderRadius: 16,
-    width: 80,
-    height: 90,
+    width: 120,
+    height: 60,
     textAlign: 'center',
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: '300',
     color: Theme.colors.textDark,
-  },
-  timeSeparator: {
-    fontSize: 48,
-    fontWeight: '300',
-    color: Theme.colors.textLight,
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginTop: Theme.spacing.s,
   },
   calendarWrapper: {
     borderWidth: 1,

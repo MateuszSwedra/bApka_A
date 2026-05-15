@@ -1,17 +1,38 @@
-import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useMeds, Treatment } from '../../../../context/MedsContext';
 import { Card } from '../../../../components/Card';
-import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import {
+  useLocalSearchParams,
+  router,
+  useFocusEffect,
+  useGlobalSearchParams,
+  useSegments,
+} from 'expo-router';
 import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 
 export default function DependentTreatmentsScreen() {
-  const { id } = useLocalSearchParams();
-  const dependentId = Array.isArray(id) ? id[0] : id;
-  const { treatments, removeTreatment, refetchFromServer } = useMeds();
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
+  const fabBottom = useFabBottomOffset();
+  const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -55,7 +76,7 @@ export default function DependentTreatmentsScreen() {
                 item={item}
                 accent={group.meta.accent}
                 onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
-                onRemove={() => removeTreatment(item.id)}
+                onRemove={() => void removeTreatment(item.id, dependentId ?? undefined)}
               />
             ))}
           </View>
@@ -63,11 +84,16 @@ export default function DependentTreatmentsScreen() {
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
+        style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => {
-          const depId = Array.isArray(id) ? id[0] : id;
-          if (!depId) return;
-          openAddTreatmentForDependent(String(depId));
+          if (!dependentId) {
+            Alert.alert(
+              'Błąd',
+              'Nie udało się ustalić profilu podopiecznego. Wróć do listy i otwórz profil ponownie.',
+            );
+            return;
+          }
+          openAddTreatmentForDependent(dependentId);
         }}
       >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
@@ -211,8 +237,9 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
     right: Theme.spacing.xl,
+    zIndex: 10,
+    elevation: 8,
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
     height: 64,
