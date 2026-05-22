@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Theme } from '../../../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function DependentInsightsScreen() {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Insights</Text>
+      <Text style={styles.title}>{t('placeholder.insights')}</Text>
     </View>
   );
 }

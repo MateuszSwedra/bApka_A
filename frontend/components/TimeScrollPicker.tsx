@@ -17,6 +17,7 @@ import {
   Platform,
 } from 'react-native';
 import { Theme } from '../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 const ITEM_HEIGHT = 44;
 const VISIBLE_ROWS = 5;
@@ -166,6 +167,7 @@ export interface TimeScrollPickerProps {
 
 export const TimeScrollPicker = forwardRef<TimeScrollPickerRef, TimeScrollPickerProps>(
   function TimeScrollPicker({ hour, minute, onHourChange, onMinuteChange }, ref) {
+    const { t } = useTranslation();
     const [activeColumn, setActiveColumn] = useState<ActiveColumn>('hour');
     const hourRef = useRef(clampIndex(hour, 23));
     const minuteRef = useRef(clampIndex(minute, 59));
@@ -206,11 +208,11 @@ export const TimeScrollPicker = forwardRef<TimeScrollPickerRef, TimeScrollPicker
       <View style={styles.wrapper}>
         <View style={styles.columnLabels}>
           <Text style={[styles.columnLabel, activeColumn === 'hour' && styles.columnLabelActive]}>
-            Godzina
+            {t('common.hour')}
           </Text>
           <View style={styles.colonLabelGap} />
           <Text style={[styles.columnLabel, activeColumn === 'minute' && styles.columnLabelActive]}>
-            Minuta
+            {t('common.minute')}
           </Text>
         </View>
 

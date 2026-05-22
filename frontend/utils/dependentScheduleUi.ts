@@ -4,6 +4,7 @@ import { getScheduleTreatmentId } from '../context/MedsContext';
 import type { Treatment } from '../context/MedsContext';
 import { scheduleAppliesToDate } from './scheduleHelpers';
 import { timeToMinutes } from './scheduleHelpers';
+import i18n from '../i18n';
 
 export type DependentMainScheduleState =
   | { kind: 'empty' }
@@ -12,15 +13,15 @@ export type DependentMainScheduleState =
   | { kind: 'due'; scheduleId: string; name: string };
 
 function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]): string {
-  let name = 'Activity';
+  let name = i18n.t('schedule.activityFallback');
   if (sch.customName) {
     name = sch.customName;
   } else {
     const tid = getScheduleTreatmentId(sch);
-    if (tid) name = treatments.find(t => t.id === tid)?.name ?? 'Activity';
+    if (tid) name = treatments.find(t => t.id === tid)?.name ?? i18n.t('schedule.activityFallback');
   }
   if (sch.dosage && sch.dosage !== '1') {
-    name += ` (${sch.dosage} szt.)`;
+    name += i18n.t('schedule.dosagePieces', { count: sch.dosage });
   }
   return name;
 }

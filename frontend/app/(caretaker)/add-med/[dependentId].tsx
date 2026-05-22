@@ -25,6 +25,7 @@ import {
   formatTimeParts,
   type TimeScrollPickerRef,
 } from '../../../components/TimeScrollPicker';
+import { useTranslation } from 'react-i18next';
 
 /** yyyy-MM-dd → data w lokalnej strefie (unika błędów parseISO / UTC). */
 function parseYmdLocal(ymd: string): Date {
@@ -36,7 +37,10 @@ function compareYmd(a: string, b: string): number {
   return parseYmdLocal(a).getTime() - parseYmdLocal(b).getTime();
 }
 
+const WEEKDAY_IDS = [1, 2, 3, 4, 5, 6, 7] as const;
+
 export default function AddMedicationScreen() {
+  const { t } = useTranslation();
   const localParams = useLocalSearchParams<{ dependentId?: string; id?: string }>();
   const globalParams = useGlobalSearchParams<{ dependentId?: string; id?: string }>();
   const segments = useSegments();
@@ -94,16 +98,6 @@ export default function AddMedicationScreen() {
     setTempSelectingStart(true);
     setTempRangeComplete(false);
   }, [medType, today]);
-
-  const daysOfWeek = [
-    { id: 1, label: 'Pn' },
-    { id: 2, label: 'Wt' },
-    { id: 3, label: 'Śr' },
-    { id: 4, label: 'Cz' },
-    { id: 5, label: 'Pt' },
-    { id: 6, label: 'Sb' },
-    { id: 7, label: 'Nd' },
-  ];
 
   const selectedTreatment = useMemo(
     () => treatments.find(t => t.id === selectedTreatmentId) ?? null,
@@ -218,10 +212,7 @@ export default function AddMedicationScreen() {
 
   const openAddTreatment = () => {
     if (!dependentId) {
-      Alert.alert(
-        'Błąd',
-        'Nie udało się ustalić profilu podopiecznego. Wróć do listy i otwórz profil ponownie.',
-      );
+      Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
       return;
     }
     openAddTreatmentForDependent(dependentId);
@@ -245,12 +236,9 @@ export default function AddMedicationScreen() {
 
   const renderActivityPicker = () => (
     <View style={styles.section}>
-      <Text style={styles.label}>Aktywności z apteczki</Text>
+      <Text style={styles.label}>{t('schedule.add.activities')}</Text>
       {treatments.length === 0 ? (
-        <Text style={styles.hint}>
-          Brak aktywności. Dotknij „+”, aby dodać pierwszą — po zapisie wrócisz tutaj i wybierzesz ją w
-          kalendarzu.
-        </Text>
+        <Text style={styles.hint}>{t('schedule.add.activitiesEmpty')}</Text>
       ) : null}
       <ScrollView
         horizontal
@@ -290,7 +278,7 @@ export default function AddMedicationScreen() {
         <Pressable
           onPress={openAddTreatment}
           style={styles.activityAddPill}
-          accessibilityLabel="Dodaj aktywność do apteczki"
+          accessibilityLabel={t('schedule.add.a11yAddActivity')}
           hitSlop={8}
         >
           <MaterialIcons name="add" size={24} color={Theme.colors.primaryLimeDark} />
@@ -308,10 +296,10 @@ export default function AddMedicationScreen() {
         <Pressable onPress={() => router.back()} style={styles.iconBtn}>
           <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
         </Pressable>
-        <Text style={styles.headerTitle}>Dodaj do Kalendarza</Text>
+        <Text style={styles.headerTitle}>{t('schedule.add.title')}</Text>
         <Pressable onPress={handleSave} style={styles.saveBtn} disabled={!canSave()}>
           <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>
-            Zapisz
+            {t('common.save')}
           </Text>
         </Pressable>
       </View>
@@ -324,14 +312,14 @@ export default function AddMedicationScreen() {
       >
         {renderActivityPicker()}
 
-        <Text style={styles.label}>Rodzaj podawania</Text>
+        <Text style={styles.label}>{t('schedule.add.medType')}</Text>
         <View style={styles.segmentContainer}>
           <Pressable
             style={[styles.segmentBtn, medType === 'ONCE' && styles.segmentBtnActive]}
             onPress={() => setMedType('ONCE')}
           >
             <Text style={[styles.segmentText, medType === 'ONCE' && styles.segmentTextActive]}>
-              Jednorazowo
+              {t('schedule.type.once')}
             </Text>
           </Pressable>
           <Pressable
@@ -339,7 +327,7 @@ export default function AddMedicationScreen() {
             onPress={() => setMedType('REGULAR')}
           >
             <Text style={[styles.segmentText, medType === 'REGULAR' && styles.segmentTextActive]}>
-              Stałe
+              {t('schedule.type.regular')}
             </Text>
           </Pressable>
           <Pressable
@@ -347,12 +335,12 @@ export default function AddMedicationScreen() {
             onPress={() => setMedType('TEMPORARY')}
           >
             <Text style={[styles.segmentText, medType === 'TEMPORARY' && styles.segmentTextActive]}>
-              Tymczasowo
+              {t('schedule.type.temporary')}
             </Text>
           </Pressable>
         </View>
 
-        <Text style={styles.label}>Godzina</Text>
+        <Text style={styles.label}>{t('common.hour')}</Text>
         <TimeScrollPicker
           ref={timePickerRef}
           hour={hour}
@@ -363,7 +351,7 @@ export default function AddMedicationScreen() {
 
         {isMedication && (
           <>
-            <Text style={styles.label}>Ilość sztuk / Dawka</Text>
+            <Text style={styles.label}>{t('schedule.add.dosagePills')}</Text>
             <TextInput
               style={[styles.dosageInput, { alignSelf: 'center' }]}
               value={dosage}
@@ -376,7 +364,7 @@ export default function AddMedicationScreen() {
 
         {medType === 'ONCE' && (
           <View style={styles.section}>
-            <Text style={styles.label}>Wybierz datę</Text>
+            <Text style={styles.label}>{t('schedule.add.pickDate')}</Text>
             <View style={styles.calendarWrapper}>
               <Calendar
                 current={selectedDate}
@@ -392,23 +380,23 @@ export default function AddMedicationScreen() {
         {(medType === 'REGULAR' || medType === 'TEMPORARY') && (
           <View style={styles.section}>
             <Text style={styles.label}>
-              Dni tygodnia{medType === 'TEMPORARY' ? ' (opcjonalne)' : ''}
+              {medType === 'TEMPORARY' ? t('schedule.add.weekdaysOptional') : t('schedule.add.weekdays')}
             </Text>
             {medType === 'TEMPORARY' && (
-              <Text style={styles.weekdaysHint}>
-                Pozostaw puste, by aktywność była każdego dnia w wybranym okresie.
-              </Text>
+              <Text style={styles.weekdaysHint}>{t('schedule.add.weekdaysHint')}</Text>
             )}
             <View style={styles.daysRow}>
-              {daysOfWeek.map(day => {
-                const isActive = selectedDays.includes(day.id);
+              {WEEKDAY_IDS.map(dayNum => {
+                const isActive = selectedDays.includes(dayNum);
                 return (
                   <Pressable
-                    key={day.id}
+                    key={dayNum}
                     style={[styles.dayCircle, isActive && styles.dayCircleActive]}
-                    onPress={() => toggleDay(day.id)}
+                    onPress={() => toggleDay(dayNum)}
                   >
-                    <Text style={[styles.dayText, isActive && styles.dayTextActive]}>{day.label}</Text>
+                    <Text style={[styles.dayText, isActive && styles.dayTextActive]}>
+                      {t(`calendar.weekdayShort.${dayNum}`)}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -419,29 +407,29 @@ export default function AddMedicationScreen() {
         {medType === 'TEMPORARY' && (
           <View style={styles.section}>
             <View style={styles.rangeHeader}>
-              <Text style={[styles.label, { marginTop: 0 }]}>Okres podawania</Text>
+              <Text style={[styles.label, { marginTop: 0 }]}>{t('schedule.add.periodTitle')}</Text>
               <Pressable onPress={resetTempRange} style={styles.resetBtn} hitSlop={8}>
                 <MaterialIcons name="refresh" size={16} color={Theme.colors.primaryLimeDark} />
-                <Text style={styles.resetBtnText}>Wyczyść</Text>
+                <Text style={styles.resetBtnText}>{t('schedule.add.clear')}</Text>
               </Pressable>
             </View>
             <View style={styles.rangePreview}>
               <View style={styles.rangePill}>
-                <Text style={styles.rangePillLabel}>Od</Text>
+                <Text style={styles.rangePillLabel}>{t('schedule.add.from')}</Text>
                 <Text style={styles.rangePillValue}>{tempStart}</Text>
               </View>
               <MaterialIcons name="arrow-forward" size={18} color={Theme.colors.textLight} />
               <View style={styles.rangePill}>
-                <Text style={styles.rangePillLabel}>Do</Text>
+                <Text style={styles.rangePillLabel}>{t('schedule.add.to')}</Text>
                 <Text style={styles.rangePillValue}>{tempEnd}</Text>
               </View>
             </View>
             <Text style={styles.rangeHint}>
               {tempRangeComplete
-                ? 'Zakres ustawiony. Dotknij innego dnia, aby zacząć od nowa.'
+                ? t('schedule.add.rangeSet')
                 : tempSelectingStart
-                  ? 'Zaznacz datę początkową okresu'
-                  : 'Teraz zaznacz datę końcową okresu'}
+                  ? t('schedule.add.rangeStart')
+                  : t('schedule.add.rangeEnd')}
             </Text>
             <View style={styles.calendarPeriodWrapper}>
               <Calendar

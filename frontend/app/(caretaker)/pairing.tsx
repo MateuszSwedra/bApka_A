@@ -15,6 +15,7 @@ import { HugeButton } from '../../components/HugeButton';
 import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
 import { usersAPI } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -29,6 +30,7 @@ function formatPinDisplay(pin: string): string {
 }
 
 export default function CaretakerPairingScreen() {
+  const { t } = useTranslation();
   const [pinCode, setPinCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -39,7 +41,7 @@ export default function CaretakerPairingScreen() {
         const data = await usersAPI.generatePin();
         setPinCode(data.pin);
       } catch {
-        showAlert('Błąd', 'Nie udało się wygenerować kodu parowania.');
+        showAlert(t('common.error'), t('caretaker.pairing.alertGenerateError'));
         router.back();
       } finally {
         setIsLoading(false);
@@ -52,7 +54,7 @@ export default function CaretakerPairingScreen() {
     if (!pinCode) return;
     await Clipboard.setStringAsync(pinCode);
     setCopied(true);
-    showAlert('Skopiowano', 'Kod został skopiowany do schowka.');
+    showAlert(t('caretaker.pairing.alertCopiedTitle'), t('caretaker.pairing.alertCopiedMessage'));
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -63,29 +65,27 @@ export default function CaretakerPairingScreen() {
   return (
     <View style={styles.container}>
       <MaterialIcons name="link" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
-      <Text style={styles.title}>Dodaj Podopiecznego</Text>
+      <Text style={styles.title}>{t('caretaker.pairing.title')}</Text>
 
       {isLoading ? (
         <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
       ) : (
         <>
           <Card style={styles.card}>
-            <Text style={styles.subtitle}>
-              Poproś podopiecznego o wybranie opcji „Mam Opiekuna” i wpisanie poniższego kodu:
-            </Text>
+            <Text style={styles.subtitle}>{t('caretaker.pairing.instructions')}</Text>
             <View style={styles.pinRow}>
               <Text
                 selectable
                 style={styles.pin}
-                accessibilityLabel={`Kod parowania ${pinCode ?? ''}`}
+                accessibilityLabel={t('caretaker.pairing.a11yCode', { code: pinCode ?? '' })}
               >
-                {pinCode ? formatPinDisplay(pinCode) : '------'}
+                {pinCode ? formatPinDisplay(pinCode) : t('pairing.pinPlaceholder')}
               </Text>
               <Pressable
                 onPress={() => void handleCopy()}
                 style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.75 }]}
                 accessibilityRole="button"
-                accessibilityLabel="Kopiuj kod do schowka"
+                accessibilityLabel={t('caretaker.pairing.a11yCopy')}
                 disabled={!pinCode}
               >
                 <MaterialIcons
@@ -95,12 +95,12 @@ export default function CaretakerPairingScreen() {
                 />
               </Pressable>
             </View>
-            <Text style={styles.pinHint}>Możesz zaznaczyć kod palcem lub skopiować przyciskiem obok.</Text>
+            <Text style={styles.pinHint}>{t('caretaker.pairing.hint')}</Text>
           </Card>
 
           <View style={styles.actions}>
-            <HugeButton title="Gotowe" onPress={handleDone} style={styles.button} />
-            <HugeButton title="Anuluj" variant="outline" onPress={() => router.back()} style={styles.button} />
+            <HugeButton title={t('common.done')} onPress={handleDone} style={styles.button} />
+            <HugeButton title={t('common.cancel')} variant="outline" onPress={() => router.back()} style={styles.button} />
           </View>
         </>
       )}

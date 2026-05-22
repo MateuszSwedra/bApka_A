@@ -15,8 +15,11 @@ import {
 import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
+import { useTranslation } from 'react-i18next';
+import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 
 export default function DependentTreatmentsScreen() {
+  const { t } = useTranslation();
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -49,15 +52,11 @@ export default function DependentTreatmentsScreen() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>Aktywności medyczne</Text>
-        <Text style={styles.sectionSubtitle}>
-          Lista aktywności podopiecznego. Każda może zawierać opis (np. „przyjmować z jedzeniem").
-        </Text>
+        <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
         {grouped.length === 0 && (
-          <Text style={styles.emptyText}>
-            Brak aktywności. Dodaj pierwszą za pomocą przycisku „+".
-          </Text>
+          <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
         )}
 
         {grouped.map(group => (
@@ -66,7 +65,7 @@ export default function DependentTreatmentsScreen() {
               <View style={[styles.groupIconCircle, { backgroundColor: group.meta.accent + '22' }]}>
                 <MaterialIcons name={group.meta.icon} size={20} color={group.meta.accent} />
               </View>
-              <Text style={styles.groupTitle}>{group.meta.groupLabel}</Text>
+              <Text style={styles.groupTitle}>{getTreatmentGroupLabel(group.type)}</Text>
               <Text style={styles.groupCount}>{group.items.length}</Text>
             </View>
 
@@ -87,10 +86,7 @@ export default function DependentTreatmentsScreen() {
         style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => {
           if (!dependentId) {
-            Alert.alert(
-              'Błąd',
-              'Nie udało się ustalić profilu podopiecznego. Wróć do listy i otwórz profil ponownie.',
-            );
+            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
             return;
           }
           openAddTreatmentForDependent(dependentId);
@@ -113,6 +109,7 @@ function TreatmentCard({
   onEdit: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card variant="white" style={styles.itemCard}>
       <View style={styles.itemHeader}>
@@ -120,13 +117,13 @@ function TreatmentCard({
           <Text style={styles.itemName}>{item.name}</Text>
           {item.type === 'MEDICATION' && typeof item.totalPills === 'number' && (
             <Text style={[styles.itemMeta, { color: accent }]}>
-              Zapas: {item.totalPills} szt.
+              {t('treatment.list.stock', { count: item.totalPills })}
             </Text>
           )}
           {item.description ? (
             <Text style={styles.itemDescription}>{item.description}</Text>
           ) : (
-            <Text style={styles.itemDescriptionMuted}>Brak opisu</Text>
+            <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
           )}
         </View>
         <View style={styles.actions}>

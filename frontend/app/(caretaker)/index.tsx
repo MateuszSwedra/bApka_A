@@ -8,6 +8,7 @@ import { Theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
 import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
+import { useTranslation } from 'react-i18next';
 
 interface Dependent {
   id: string;
@@ -19,6 +20,7 @@ interface Dependent {
 }
 
 export default function CaretakerDashboard() {
+  const { t } = useTranslation();
   const { logout } = useAuth();
   const fabBottom = useFabBottomOffset();
   const [dependents, setDependents] = useState<Dependent[]>([]);
@@ -103,7 +105,7 @@ export default function CaretakerDashboard() {
       }}>
         <Text style={{ fontSize: 18 }}>{moodEmoji}</Text>
         <Text style={{ fontSize: 12, color: Theme.colors.textDark, marginLeft: 6, fontWeight: '700' }}>
-          Humor z {timeStr}
+          {t('caretaker.moodAt', { time: timeStr })}
         </Text>
       </View>
     );
@@ -113,8 +115,8 @@ export default function CaretakerDashboard() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.greeting}>
-          <Text style={styles.greetingText}>Panel Opiekuna</Text>
-          <Text style={styles.nameText}>Twoi podopieczni</Text>
+          <Text style={styles.greetingText}>{t('caretaker.dashboard.badge')}</Text>
+          <Text style={styles.nameText}>{t('caretaker.dashboard.title')}</Text>
         </View>
         <View style={styles.headerActions}>
           <Pressable onPress={() => router.push('/notification-sound-settings' as any)} style={styles.iconBtn}>
@@ -134,8 +136,8 @@ export default function CaretakerDashboard() {
             <View style={styles.emptyIconCircle}>
               <MaterialIcons name="people-outline" size={48} color={Theme.colors.primaryLimeDark} />
             </View>
-            <Text style={styles.emptyStateText}>Brak podopiecznych</Text>
-            <Text style={styles.emptyStateSubText}>Kliknij przycisk + poniżej, aby połączyć się z kontem seniora i śledzić jego leki.</Text>
+            <Text style={styles.emptyStateText}>{t('caretaker.dashboard.emptyTitle')}</Text>
+            <Text style={styles.emptyStateSubText}>{t('caretaker.dashboard.emptySubtitle')}</Text>
           </View>
         ) : (
           dependents.map((dependent, index) => (
@@ -160,12 +162,12 @@ export default function CaretakerDashboard() {
                   {index % 2 !== 0 ? (
                     <View style={[styles.statusBadgeWarning, { marginTop: 4 }]}>
                       <MaterialIcons name="error-outline" size={14} color={Theme.colors.accentOrange} />
-                      <Text style={styles.statusWarningText}>Wymaga uwagi</Text>
+                      <Text style={styles.statusWarningText}>{t('caretaker.dashboard.statusAttention')}</Text>
                     </View>
                   ) : (
                     <View style={[styles.statusBadgeSuccess, { marginTop: 4 }]}>
                       <MaterialIcons name="check-circle-outline" size={14} color={Theme.colors.success} />
-                      <Text style={styles.statusSuccessText}>Wszystko ok</Text>
+                      <Text style={styles.statusSuccessText}>{t('caretaker.dashboard.statusOk')}</Text>
                     </View>
                   )}
                 </View>

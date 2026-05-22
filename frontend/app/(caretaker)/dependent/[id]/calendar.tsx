@@ -1,6 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert } from 'react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
@@ -20,30 +20,10 @@ import {
   parseTimeParts,
   type TimeScrollPickerRef,
 } from '../../../../components/TimeScrollPicker';
-
-LocaleConfig.locales['pl'] = {
-  monthNames: [
-    'Styczeń',
-    'Luty',
-    'Marzec',
-    'Kwiecień',
-    'Maj',
-    'Czerwiec',
-    'Lipiec',
-    'Sierpień',
-    'Wrzesień',
-    'Październik',
-    'Listopad',
-    'Grudzień',
-  ],
-  monthNamesShort: ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'],
-  dayNames: ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'],
-  dayNamesShort: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'],
-  today: 'Dzisiaj',
-};
-LocaleConfig.defaultLocale = 'pl';
+import { useTranslation } from 'react-i18next';
 
 export default function DependentCalendarScreen() {
+  const { t } = useTranslation();
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -104,20 +84,20 @@ export default function DependentCalendarScreen() {
       });
       setEditingSchedule(null);
     } catch (e) {
-      Alert.alert('Błąd', 'Nie udało się zaktualizować harmonogramu');
+      Alert.alert(t('common.error'), t('calendar.errorUpdate'));
     }
   };
 
   const handleDelete = () => {
     if (!editingSchedule) return;
-    Alert.alert('Usuwanie cyklu', 'Czy na pewno chcesz usunąć ten harmonogram?', [
-      { text: 'Anuluj', style: 'cancel' },
-      { text: 'Usuń', style: 'destructive', onPress: async () => {
+    Alert.alert(t('calendar.deleteConfirmTitle'), t('calendar.deleteConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
         try {
           await removeSchedule(editingSchedule.id);
           setEditingSchedule(null);
         } catch (e) {
-          Alert.alert('Błąd', 'Nie udało się usunąć harmonogramu');
+          Alert.alert(t('common.error'), t('calendar.errorDelete'));
         }
       }},
     ]);
@@ -146,8 +126,8 @@ export default function DependentCalendarScreen() {
   const labelForSchedule = (sch: ScheduleItem) => {
     if (sch.customName) return sch.customName;
     const tid = getScheduleTreatmentId(sch);
-    if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Aktywność';
-    return 'Aktywność';
+    if (tid) return treatments.find(tr => tr.id === tid)?.name ?? t('schedule.activityFallback');
+    return t('schedule.activityFallback');
   };
 
   const typeForSchedule = (sch: ScheduleItem) => {
@@ -192,14 +172,16 @@ export default function DependentCalendarScreen() {
         </View>
 
         <View style={styles.scheduleSection}>
-          <Text style={styles.sectionTitle}>Dzień: {selectedDate}</Text>
+          <Text style={styles.sectionTitle}>{t('calendar.daySection', { date: selectedDate })}</Text>
 
           {todayAlerts.map((alert, idx) => (
             <Card key={`warn-${idx}`} variant="white" style={styles.scheduleCardWarning}>
-              <Text style={styles.scheduleTimeWarning}>Koniec zapasu leku</Text>
+              <Text style={styles.scheduleTimeWarning}>{t('caretaker.alerts.depletion')}</Text>
               <View style={styles.scheduleRow}>
                 <MaterialIcons name="shopping-cart" size={24} color={Theme.colors.accentOrange} />
-                <Text style={styles.scheduleItemWarning}>Kup nową paczkę: {alert.inventoryItemName}</Text>
+                <Text style={styles.scheduleItemWarning}>
+                  {t('caretaker.alerts.buyPack', { name: alert.inventoryItemName })}
+                </Text>
               </View>
             </Card>
           ))}
@@ -211,12 +193,12 @@ export default function DependentCalendarScreen() {
               tType && TREATMENT_VISUAL[tType]
                 ? TREATMENT_VISUAL[tType].icon
                 : ('event' as const);
-            const typeLabel =
+            const scheduleTypeLabel =
               sch.type === 'ONCE'
-                ? 'Jednorazowo'
+                ? t('schedule.type.once')
                 : sch.type === 'REGULAR'
-                  ? 'Stałe'
-                  : 'Tymczasowo';
+                  ? t('schedule.type.regular')
+                  : t('schedule.type.temporary');
             return (
               <Pressable
                 key={sch.id}
@@ -226,8 +208,10 @@ export default function DependentCalendarScreen() {
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                     <View>
                       <Text style={styles.scheduleTime}>
-                        {sch.time} · {typeLabel}
-                        {sch.dosage && sch.dosage !== "1" ? ` · ${sch.dosage} szt.` : ''}
+                        {sch.time} · {scheduleTypeLabel}
+                        {sch.dosage && sch.dosage !== '1'
+                          ? t('schedule.dosagePieces', { count: sch.dosage })
+                          : ''}
                       </Text>
                       <View style={styles.scheduleRow}>
                         <MaterialIcons name={icon} size={20} color={Theme.colors.success} />
@@ -244,7 +228,7 @@ export default function DependentCalendarScreen() {
           })}
 
           {scheduledForToday.length === 0 && todayAlerts.length === 0 && (
-            <Text style={styles.emptyDay}>Brak aktywności na ten dzień.</Text>
+            <Text style={styles.emptyDay}>{t('calendar.emptyDay')}</Text>
           )}
         </View>
       </ScrollView>
@@ -253,9 +237,9 @@ export default function DependentCalendarScreen() {
       <Modal visible={!!editingSchedule} transparent animationType="fade">
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Edytuj harmonogram</Text>
+            <Text style={styles.modalTitle}>{t('calendar.editTitle')}</Text>
             
-            <Text style={styles.label}>Godzina</Text>
+            <Text style={styles.label}>{t('calendarEdit.hour')}</Text>
             <TimeScrollPicker
               ref={editTimePickerRef}
               hour={editHour}
@@ -266,7 +250,7 @@ export default function DependentCalendarScreen() {
 
             {editingIsMedication && (
               <>
-                <Text style={styles.label}>Ilość / Dawka (np. 2)</Text>
+                <Text style={styles.label}>{t('calendarEdit.dosageExample')}</Text>
                 <TextInput
                   style={styles.textInput}
                   value={editDosage}
@@ -278,15 +262,17 @@ export default function DependentCalendarScreen() {
             
             <View style={styles.modalActions}>
               <Pressable style={styles.modalBtnGhost} onPress={() => setEditingSchedule(null)}>
-                <Text style={styles.modalBtnGhostText}>Anuluj</Text>
+                <Text style={styles.modalBtnGhostText}>{t('common.cancel')}</Text>
               </Pressable>
               
               <Pressable style={[styles.modalBtnGhost, { borderColor: Theme.colors.accentOrange }]} onPress={handleDelete}>
-                <Text style={[styles.modalBtnGhostText, { color: Theme.colors.accentOrange }]}>Usuń cykl</Text>
+                <Text style={[styles.modalBtnGhostText, { color: Theme.colors.accentOrange }]}>
+                  {t('calendar.deleteCycle')}
+                </Text>
               </Pressable>
 
               <Pressable style={styles.modalBtnPrimary} onPress={handleSaveEdit}>
-                <Text style={styles.modalBtnPrimaryText}>Zapisz</Text>
+                <Text style={styles.modalBtnPrimaryText}>{t('common.save')}</Text>
               </Pressable>
             </View>
           </View>
@@ -297,10 +283,7 @@ export default function DependentCalendarScreen() {
         style={[styles.fab, { bottom: fabBottom }]}
         onPress={() => {
           if (!dependentId) {
-            Alert.alert(
-              'Błąd',
-              'Nie udało się ustalić profilu podopiecznego. Wróć do listy i otwórz profil ponownie.',
-            );
+            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
             return;
           }
           openAddMedForDependent(dependentId);

@@ -16,6 +16,7 @@ import { useGlobalSearchParams, useSegments } from 'expo-router';
 import { resolveMedsTargetUserId, isUserUuid } from '../utils/resolveMedsTargetUserId';
 import { debugLog } from '../utils/debugLog';
 import { useAuth } from './AuthContext';
+import i18n from '../i18n';
 import type { TreatmentType } from '../constants/treatmentVisuals';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
@@ -209,7 +210,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
             endDate: sch.endDate,
             daysOfWeek: sch.daysOfWeek || [1, 2, 3, 4, 5, 6, 7],
           }))
-          .filter(sch => {
+          .filter((sch: ScheduleItem) => {
             const tid = getScheduleTreatmentId(sch);
             if (tid) return treatmentIds.has(tid);
             if (sch.customName) return treatmentNames.has(sch.customName);
@@ -261,7 +262,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     );
     if (!uid) return;
     if (!isUserUuid(uid)) {
-      throw new Error('Nieprawidłowy identyfikator podopiecznego.');
+      throw new Error(i18n.t('errors.invalidDependentId'));
     }
     try {
       await assertCaretakerDependent(uid);
@@ -344,7 +345,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     const uid = forUserId ?? targetUserId;
     if (!uid) return;
     if (!isUserUuid(uid)) {
-      throw new Error('Nieprawidłowy identyfikator podopiecznego.');
+      throw new Error(i18n.t('errors.invalidDependentId'));
     }
     try {
       await assertCaretakerDependent(uid);

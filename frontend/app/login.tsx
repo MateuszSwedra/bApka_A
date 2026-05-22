@@ -24,6 +24,7 @@ import {
 import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as SecureStore from 'expo-secure-store';
+import { useTranslation } from 'react-i18next';
 
 type AuthMode = 'pick' | 'register' | 'signIn';
 
@@ -38,6 +39,7 @@ const showAlert = (title: string, message: string) => {
 };
 
 export default function LoginScreen() {
+  const { t } = useTranslation();
   const [mode, setMode] = useState<AuthMode>('pick');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -100,7 +102,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      showAlert('Błąd', 'Wpisz e-mail i hasło');
+      showAlert(t('common.error'), t('auth.validationEmailPassword'));
       return;
     }
 
@@ -115,8 +117,8 @@ export default function LoginScreen() {
       const msg =
         e instanceof Error
           ? e.message
-          : 'Nieprawidłowy e-mail lub hasło albo brak połączenia z serwerem.';
-      showAlert('Błąd logowania', msg);
+          : t('auth.errorLoginFallback');
+      showAlert(t('auth.errorLoginTitle'), msg);
     } finally {
       setLoading('idle');
     }
@@ -125,15 +127,15 @@ export default function LoginScreen() {
   const handleRegister = async () => {
     const em = email.trim();
     if (!em || !password || !passwordRepeat) {
-      showAlert('Błąd', 'Uzupełnij wszystkie pola');
+      showAlert(t('common.error'), t('auth.validationAllFields'));
       return;
     }
     if (password !== passwordRepeat) {
-      showAlert('Błąd', 'Hasła muszą być takie same');
+      showAlert(t('common.error'), t('auth.validationPasswordMatch'));
       return;
     }
     if (password.length < 6) {
-      showAlert('Błąd', 'Hasło powinno mieć co najmniej 6 znaków');
+      showAlert(t('common.error'), t('auth.validationPasswordLength'));
       return;
     }
 
@@ -154,8 +156,8 @@ export default function LoginScreen() {
       const msg =
         e instanceof Error
           ? e.message
-          : 'Sprawdź dane lub połączenie z serwerem.';
-      showAlert('Błąd rejestracji', msg);
+          : t('auth.errorRegisterFallback');
+      showAlert(t('auth.errorRegisterTitle'), msg);
     } finally {
       setLoading('idle');
     }
@@ -196,7 +198,9 @@ export default function LoginScreen() {
           onPress={options.onToggleVisible}
           style={styles.passwordToggle}
           accessibilityRole="button"
-          accessibilityLabel={options.visible ? 'Ukryj hasło' : 'Pokaż hasło'}
+          accessibilityLabel={
+            options.visible ? t('auth.a11yHidePassword') : t('auth.a11yShowPassword')
+          }
         >
           <MaterialCommunityIcons
             name={options.visible ? 'eye-off-outline' : 'eye-outline'}
@@ -240,7 +244,7 @@ export default function LoginScreen() {
           onPress={goPick}
           style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.85 }]}
           accessibilityRole="button"
-          accessibilityLabel="Wróć"
+          accessibilityLabel={t('common.back')}
         >
           <MaterialCommunityIcons
             name="chevron-left"
@@ -284,11 +288,9 @@ export default function LoginScreen() {
               </LinearGradient>
             </View>
 
-            <Text style={styles.brand}>bApka</Text>
-            <Text style={styles.titlePick}>Witaj</Text>
-            <Text style={styles.subtitlePick}>
-              Wybierz, czy zakładasz nowe konto, czy wracasz do aplikacji.
-            </Text>
+            <Text style={styles.brand}>{t('brand.name')}</Text>
+            <Text style={styles.titlePick}>{t('auth.pick.title')}</Text>
+            <Text style={styles.subtitlePick}>{t('auth.pick.subtitle')}</Text>
 
             <View style={styles.pickActions}>
               <View style={styles.ctaShadowWrap}>
@@ -305,7 +307,7 @@ export default function LoginScreen() {
                     end={OnboardingGradient.end}
                     style={styles.primaryCta}
                   >
-                    <Text style={styles.primaryCtaText}>Załóż konto</Text>
+                    <Text style={styles.primaryCtaText}>{t('auth.pick.register')}</Text>
                     <MaterialCommunityIcons
                       name="account-plus-outline"
                       size={22}
@@ -323,7 +325,7 @@ export default function LoginScreen() {
                   pressed && { opacity: 0.88 },
                 ]}
               >
-                <Text style={styles.outlineCtaText}>Zaloguj się</Text>
+                <Text style={styles.outlineCtaText}>{t('auth.pick.signIn')}</Text>
               </Pressable>
             </View>
           </View>
@@ -331,23 +333,21 @@ export default function LoginScreen() {
 
         {mode === 'register' && (
           <View style={styles.formColumn}>
-            <Text style={styles.formTitle}>Rejestracja</Text>
-            <Text style={styles.formHint}>
-              Podaj e-mail i hasło. Na kolejnym kroku wybierzesz rolę w aplikacji.
-            </Text>
+            <Text style={styles.formTitle}>{t('auth.register.title')}</Text>
+            <Text style={styles.formHint}>{t('auth.register.hint')}</Text>
 
             <View style={styles.formCard}>
-              {renderField('email-outline', 'E-mail', email, setEmail, {
+              {renderField('email-outline', t('auth.fieldEmail'), email, setEmail, {
                 keyboard: 'email-address',
               })}
-              {renderField('lock-outline', 'Hasło', password, setPassword, {
+              {renderField('lock-outline', t('auth.fieldPassword'), password, setPassword, {
                 secure: true,
                 visible: showPassword,
                 onToggleVisible: () => setShowPassword(v => !v),
               })}
               {renderField(
                 'lock-check-outline',
-                'Powtórz hasło',
+                t('auth.fieldPasswordRepeat'),
                 passwordRepeat,
                 setPasswordRepeat,
                 {
@@ -375,7 +375,7 @@ export default function LoginScreen() {
                   style={styles.primaryCta}
                 >
                   <Text style={styles.primaryCtaText}>
-                    {loading === 'register' ? 'Chwileczkę…' : 'Utwórz konto'}
+                    {loading === 'register' ? t('auth.loadingRegister') : t('auth.ctaRegister')}
                   </Text>
                 </LinearGradient>
               </Pressable>
@@ -383,8 +383,8 @@ export default function LoginScreen() {
 
             <Pressable onPress={goSignIn} style={styles.switchModeLink}>
               <Text style={styles.switchModeText}>
-                Masz już konto?{' '}
-                <Text style={styles.switchModeBold}>Zaloguj się</Text>
+                {t('auth.hasAccount')}{' '}
+                <Text style={styles.switchModeBold}>{t('auth.pick.signIn')}</Text>
               </Text>
             </Pressable>
           </View>
@@ -399,16 +399,14 @@ export default function LoginScreen() {
                 contentFit="contain"
               />
             </View>
-            <Text style={styles.formTitle}>Logowanie</Text>
-            <Text style={styles.formHint}>
-              Wpisz dane użyte przy rejestracji.
-            </Text>
+            <Text style={styles.formTitle}>{t('auth.signIn.title')}</Text>
+            <Text style={styles.formHint}>{t('auth.signIn.hint')}</Text>
 
             <View style={styles.formCard}>
-              {renderField('email-outline', 'E-mail', email, setEmail, {
+              {renderField('email-outline', t('auth.fieldEmail'), email, setEmail, {
                 keyboard: 'email-address',
               })}
-              {renderField('lock-outline', 'Hasło', password, setPassword, {
+              {renderField('lock-outline', t('auth.fieldPassword'), password, setPassword, {
                 secure: true,
                 visible: showPassword,
                 onToggleVisible: () => setShowPassword(v => !v),
@@ -432,7 +430,7 @@ export default function LoginScreen() {
                   style={styles.primaryCta}
                 >
                   <Text style={styles.primaryCtaText}>
-                    {loading === 'login' ? 'Logowanie…' : 'Zaloguj się'}
+                    {loading === 'login' ? t('auth.loadingLogin') : t('auth.ctaLogin')}
                   </Text>
                 </LinearGradient>
               </Pressable>
@@ -440,8 +438,8 @@ export default function LoginScreen() {
 
             <Pressable onPress={goRegister} style={styles.switchModeLink}>
               <Text style={styles.switchModeText}>
-                Nie masz konta?{' '}
-                <Text style={styles.switchModeBold}>Załóż konto</Text>
+                {t('auth.noAccount')}{' '}
+                <Text style={styles.switchModeBold}>{t('auth.pick.register')}</Text>
               </Text>
             </Pressable>
           </View>

@@ -4,27 +4,14 @@
  */
 export type NotificationSoundChoiceId = 'default' | 'gentle' | 'strong';
 
-export const NOTIFICATION_SOUND_CHOICES: {
-  id: NotificationSoundChoiceId;
-  label: string;
-  description: string;
-}[] = [
-  {
-    id: 'default',
-    label: 'Domyślny systemowy',
-    description: 'Standardowy dźwięk systemu przy powiadomieniu.',
-  },
-  {
-    id: 'gentle',
-    label: 'Łagodny',
-    description: 'Krótki, dyskretny sygnał.',
-  },
-  {
-    id: 'strong',
-    label: 'Wyraźny',
-    description: 'Bardziej zauważalny sygnał.',
-  },
+export const NOTIFICATION_SOUND_CHOICE_IDS: NotificationSoundChoiceId[] = [
+  'default',
+  'gentle',
+  'strong',
 ];
+
+/** @deprecated use NOTIFICATION_SOUND_CHOICE_IDS + i18n keys sounds.{id}.label */
+export const NOTIFICATION_SOUND_CHOICES = NOTIFICATION_SOUND_CHOICE_IDS.map(id => ({ id }));
 
 const medSoft = require('../assets/sounds/med_soft.ogg');
 const medBright = require('../assets/sounds/med_bright.ogg');

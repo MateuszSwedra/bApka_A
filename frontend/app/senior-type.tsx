@@ -7,8 +7,10 @@ import { OnboardingPalette } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
+import { useTranslation } from 'react-i18next';
 
 export default function SeniorTypeScreen() {
+  const { t } = useTranslation();
   const { loginFake, setUserSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,9 +39,9 @@ export default function SeniorTypeScreen() {
       router.replace('/profile-ready');
     } catch (e) {
       if (Platform.OS === 'web') {
-        window.alert('Błąd: Nie udało się zaktualizować typu konta.');
+        window.alert(`${t('common.error')}: ${t('seniorType.errorUpdate')}`);
       } else {
-        Alert.alert('Błąd', 'Nie udało się zaktualizować typu konta.');
+        Alert.alert(t('common.error'), t('seniorType.errorUpdate'));
       }
     } finally {
       setIsLoading(false);
@@ -50,8 +52,8 @@ export default function SeniorTypeScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <MaterialIcons name="settings-accessibility" size={64} color={OnboardingPalette.orange} />
-        <Text style={styles.title}>Jak chcesz korzystać?</Text>
-        <Text style={styles.subtitle}>Wybierz tryb dopasowany do Twoich potrzeb</Text>
+        <Text style={styles.title}>{t('seniorType.title')}</Text>
+        <Text style={styles.subtitle}>{t('seniorType.subtitle')}</Text>
       </View>
       
       {isLoading ? (
@@ -66,10 +68,8 @@ export default function SeniorTypeScreen() {
               <MaterialIcons name="group" size={40} color={OnboardingPalette.navy} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Z Opiekunem</Text>
-              <Text style={styles.cardDescription}>
-                Mój opiekun skonfiguruje mi harmonogram i będzie czuwał nad moimi lekami.
-              </Text>
+              <Text style={styles.cardTitle}>{t('seniorType.withCaretaker.title')}</Text>
+              <Text style={styles.cardDescription}>{t('seniorType.withCaretaker.desc')}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>
@@ -82,10 +82,8 @@ export default function SeniorTypeScreen() {
               <MaterialIcons name="person" size={40} color={OnboardingPalette.orange} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Samodzielnie</Text>
-              <Text style={styles.cardDescription}>
-                Chcę samodzielnie zarządzać swoimi lekami oraz korzystać ze wszystkich zaawansowanych opcji aplikacji.
-              </Text>
+              <Text style={styles.cardTitle}>{t('seniorType.independent.title')}</Text>
+              <Text style={styles.cardDescription}>{t('seniorType.independent.desc')}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>

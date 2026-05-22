@@ -18,8 +18,11 @@ import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, Treatment } from '../../../context/MedsContext';
 import { inventoryAPI } from '../../../services/api';
 import type { TreatmentType } from '../../../constants/treatmentVisuals';
+import { useTranslation } from 'react-i18next';
+import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 
 export default function EditTreatmentScreen() {
+  const { t } = useTranslation();
   const params = useLocalSearchParams<{ treatmentId: string }>();
   const treatmentId = Array.isArray(params.treatmentId) ? params.treatmentId[0] : params.treatmentId;
 
@@ -110,7 +113,7 @@ export default function EditTreatmentScreen() {
       });
       router.back();
     } catch {
-      Alert.alert('Błąd', 'Nie udało się zapisać zmian.');
+      Alert.alert(t('common.error'), t('treatment.edit.errorSave'));
     }
   };
 
@@ -129,9 +132,9 @@ export default function EditTreatmentScreen() {
   if (!existing || !vis) {
     return (
       <View style={[styles.container, styles.centered]}>
-        <Text style={styles.muted}>Nie znaleziono aktywności.</Text>
+        <Text style={styles.muted}>{t('treatment.edit.notFound')}</Text>
         <Pressable onPress={() => router.back()} style={styles.backLink}>
-          <Text style={styles.saveBtnText}>Wróć</Text>
+          <Text style={styles.saveBtnText}>{t('common.back')}</Text>
         </Pressable>
       </View>
     );
@@ -146,10 +149,10 @@ export default function EditTreatmentScreen() {
         <Pressable onPress={() => router.back()} style={styles.iconBtn}>
           <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
         </Pressable>
-        <Text style={styles.headerTitle}>Edytuj</Text>
+        <Text style={styles.headerTitle}>{t('treatment.edit.title')}</Text>
         <Pressable onPress={() => void handleSave()} style={styles.saveBtn} disabled={!canSave()}>
           <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>
-            Zapisz
+            {t('common.save')}
           </Text>
         </Pressable>
       </View>
@@ -159,10 +162,10 @@ export default function EditTreatmentScreen() {
           <View style={[styles.typeIconCircle, { backgroundColor: vis.accent + '22' }]}>
             <MaterialIcons name={vis.icon} size={22} color={vis.accent} />
           </View>
-          <Text style={styles.typePillText}>{vis.groupLabel}</Text>
+          <Text style={styles.typePillText}>{getTreatmentGroupLabel(existing.type)}</Text>
         </View>
 
-        <Text style={styles.label}>Nazwa</Text>
+        <Text style={styles.label}>{t('treatment.add.name')}</Text>
         <TextInput
           style={styles.textInput}
           value={name}
@@ -172,10 +175,10 @@ export default function EditTreatmentScreen() {
 
         {existing.type === 'MEDICATION' && (
           <>
-            <Text style={styles.label}>Ilość tabletek w paczce</Text>
+            <Text style={styles.label}>{t('treatment.add.pillsInPack')}</Text>
             <TextInput
               style={styles.textInput}
-              placeholder="np. 60"
+              placeholder={t('treatment.edit.placeholderPills')}
               value={pillsStr}
               onChangeText={setPillsStr}
               keyboardType="number-pad"
@@ -184,10 +187,10 @@ export default function EditTreatmentScreen() {
           </>
         )}
 
-        <Text style={styles.label}>Opis (opcjonalny)</Text>
+        <Text style={styles.label}>{t('treatment.add.description')}</Text>
         <TextInput
           style={[styles.textInput, styles.textArea]}
-          placeholder="np. wskazówki dla seniora"
+          placeholder={t('treatment.edit.placeholderHints')}
           value={description}
           onChangeText={setDescription}
           placeholderTextColor={Theme.colors.border}

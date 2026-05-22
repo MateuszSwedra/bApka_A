@@ -5,8 +5,10 @@ import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 
 export default function HybridDashboard() {
+  const { t } = useTranslation();
   const { logout } = useAuth();
 
   const handleLogout = async () => {
@@ -23,8 +25,8 @@ export default function HybridDashboard() {
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greetingText}>Dzień dobry,</Text>
-          <Text style={styles.greeting}>Użytkowniku</Text>
+          <Text style={styles.greetingText}>{t('hybrid.greeting')}</Text>
+          <Text style={styles.greeting}>{t('hybrid.nameFallback')}</Text>
         </View>
         <View style={styles.headerIcons}>
           <Pressable
@@ -41,14 +43,14 @@ export default function HybridDashboard() {
 
       {/* Główny kafelek - Lime Green */}
       <Pressable 
-        onPress={() => alert('Wzięto lek!')}
+        onPress={() => alert(t('hybrid.medTakenAlert'))}
         style={({ pressed }) => pressed && styles.pressedCard}
       >
         <Card variant="lime" style={styles.mainCard}>
           <MaterialIcons name="notifications-active" size={24} color={Theme.colors.textDark} style={styles.bellIcon} />
-          <Text style={styles.mainCardSubtitle}>Pora na leki:</Text>
+          <Text style={styles.mainCardSubtitle}>{t('hybrid.medsDue')}</Text>
           <Text style={styles.mainCardTime}>11:00</Text>
-          <Text style={styles.mainCardDetails}>6 leków (6 tabletek)</Text>
+          <Text style={styles.mainCardDetails}>{t('hybrid.mockMedsDetail')}</Text>
         </Card>
       </Pressable>
 
@@ -56,18 +58,18 @@ export default function HybridDashboard() {
       <Card variant="white" style={styles.infoCard}>
         <View style={styles.infoCardTop}>
           <View style={styles.infoTextContainer}>
-            <Text style={styles.infoCardText}>Zabezpiecz aplikację 4-cyfrowym kodem PIN.</Text>
+            <Text style={styles.infoCardText}>{t('hybrid.pinBanner')}</Text>
           </View>
           <MaterialIcons name="close" size={24} color={Theme.colors.textLight} />
         </View>
         <View style={styles.infoCardBottom}>
-          <Text style={styles.setupText}>Skonfiguruj teraz</Text>
+          <Text style={styles.setupText}>{t('hybrid.pinBannerCta')}</Text>
           <MaterialIcons name="security" size={40} color={Theme.colors.accentOrange} />
         </View>
       </Card>
 
       {/* Sekcja Harmonogramu */}
-      <Text style={styles.sectionTitle}>Dzisiejszy harmonogram</Text>
+      <Text style={styles.sectionTitle}>{t('hybrid.scheduleTitle')}</Text>
 
       {/* Szara karta (przeszłość) */}
       <Card variant="grey" style={styles.scheduleCard}>
@@ -75,12 +77,12 @@ export default function HybridDashboard() {
         
         <View style={styles.scheduleRow}>
           <MaterialIcons name="check-circle" size={24} color={Theme.colors.success} />
-          <Text style={styles.scheduleItemDone}>6 leków: Przyjęto o 10:02</Text>
+          <Text style={styles.scheduleItemDone}>{t('hybrid.mockTaken', { time: '10:02' })}</Text>
         </View>
 
         <View style={styles.scheduleRow}>
           <MaterialIcons name="error" size={24} color={Theme.colors.accentOrange} />
-          <Text style={styles.scheduleItemWarning}>Niepełna dawka: 3/4 przyjęte</Text>
+          <Text style={styles.scheduleItemWarning}>{t('hybrid.mockPartial')}</Text>
         </View>
 
         <View style={styles.divider} />
@@ -88,7 +90,7 @@ export default function HybridDashboard() {
         <View style={styles.scheduleRow}>
           <Text style={styles.scheduleTimeInner}>10:30</Text>
           <MaterialIcons name="check-circle" size={24} color={Theme.colors.success} />
-          <Text style={styles.scheduleItemDone}>3 leki: Przyjęto</Text>
+          <Text style={styles.scheduleItemDone}>{t('hybrid.mockTakenShort')}</Text>
           <View style={{ flex: 1 }} />
           <MaterialIcons name="medication" size={24} color={Theme.colors.textLight} />
         </View>
@@ -101,7 +103,7 @@ export default function HybridDashboard() {
           <Text style={styles.scheduleTimeDark}>11:00</Text>
         </View>
         <Pressable style={styles.nowBtn}>
-          <Text style={styles.nowBtnText}>TERAZ</Text>
+          <Text style={styles.nowBtnText}>{t('hybrid.now')}</Text>
         </Pressable>
       </Card>
 
