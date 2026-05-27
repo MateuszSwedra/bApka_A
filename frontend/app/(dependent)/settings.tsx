@@ -136,6 +136,33 @@ export default function DependentSettingsScreen() {
         ) : (
           <>
             <Text style={[styles.sectionTitle, { color: colors.textDark, fontSize: titleSize }]}>
+              {t('dependent.settings.otherSettings')}
+            </Text>
+
+            <Pressable
+              onPress={() => router.push('/(dependent)/metrics' as any)}
+              style={({ pressed }) => [
+                styles.rowCard,
+                {
+                  backgroundColor: colors.surfaceWhite,
+                  borderColor: colors.border,
+                  borderWidth: colors.mainButtonBorderWidth ?? 1,
+                },
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <MaterialIcons name="monitor-heart" size={36} color={colors.primaryLimeDark} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
+                  {t('dependent.metrics.title')}
+                </Text>
+                <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
+                  {t('dependent.metrics.hint')}
+                </Text>
+              </View>
+            </Pressable>
+
+            <Text style={[styles.sectionTitle, { color: colors.textDark, fontSize: titleSize }]}>
               {t('dependent.settings.accessibility')}
             </Text>
 

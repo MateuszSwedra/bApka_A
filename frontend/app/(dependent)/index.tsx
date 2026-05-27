@@ -122,10 +122,7 @@ export default function DependentDashboard() {
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
-        <View style={styles.greeting}>
-          <Text style={[styles.greetingText, { color: colors.textLight }]}>{t('dependent.greeting')}</Text>
-          <Text style={[styles.nameText, { color: colors.textDark }]}>{t('dependent.nameFallback')}</Text>
-        </View>
+        <Text style={[styles.headerClock, { color: colors.textDark }]}>{clockText}</Text>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/(dependent)/settings' as any)}
@@ -385,15 +382,11 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.round,
   },
-  greeting: {
+  headerClock: {
     flex: 1,
-  },
-  greetingText: {
-    fontSize: 22,
-  },
-  nameText: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -1,
   },
   logoutBtn: {
     padding: Theme.spacing.s,

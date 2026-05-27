@@ -14,6 +14,7 @@ enum Role {
 
 enum LogStatus {
   TAKEN
+  LATE
   MISSED
   PENDING
 }
@@ -46,6 +47,9 @@ model User {
   createdSchedules  Schedule[] @relation("CreatedSchedules") // Harmonogramy utworzone przez tego użytkownika (Opiekuna)
   
   inventory Inventory[]
+  moodLogs  MoodLog[]
+  sosLogs   SosLog[]
+  healthMetricLogs HealthMetricLog[]
 }
 
 model Connection {
@@ -107,4 +111,40 @@ model DoseLog {
   createdAt   DateTime  @default(now())
 
   schedule Schedule @relation(fields: [scheduleId], references: [id])
+}
+
+model MoodLog {
+  id        String   @id @default(uuid())
+  userId    String
+  mood      String
+  source    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model SosLog {
+  id        String   @id @default(uuid())
+  userId    String
+  source    String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model HealthMetricLog {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  value      Float?
+  systolic   Int?
+  diastolic  Int?
+  pulse      Int?
+  unit       String?
+  measuredAt DateTime
+  source     String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

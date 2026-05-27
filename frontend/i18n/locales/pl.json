@@ -188,6 +188,26 @@
       "statusAttention": "Wymaga uwagi",
       "statusOk": "Wszystko ok"
     },
+    "insights": {
+      "title": "Statystyki",
+      "range": {
+        "today": "Dziś",
+        "week": "7 dni",
+        "month": "30 dni"
+      },
+      "rangeLabel": "Okres: {{range}}",
+      "loading": "Ładowanie statystyk…",
+      "errorGeneric": "Nie udało się pobrać statystyk.",
+      "sectionDoses": "Dawki leków",
+      "sectionMood": "Humor seniora",
+      "dosesTaken": "Przyjęte dawki",
+      "dosesLate": "Spóźnione dawki",
+      "dosesMissed": "Pominięte dawki",
+      "dosesPlanned": "Zaplanowane dawki",
+      "dosesOnTime": "Na czas (±{{window}} min)",
+      "dosesEmpty": "Brak danych o dawkach w tym okresie.",
+      "moodEmpty": "Brak zapisanych humorów w tym okresie."
+    },
     "moodAt": "Humor z {{time}}",
     "dependentHeader": "Profil Podopiecznego",
     "dependentFallbackName": "Podopieczny",
@@ -270,6 +290,18 @@
       "confirmMoodOffMsg": "Ekran nastroju nie będzie się już pojawiał po przyjęciu leków.",
       "confirmMoodOnMsg": "Ekran nastroju będzie się pojawiał po przyjęciu leków."
     },
+    "metrics": {
+      "title": "Pomiary zdrowotne",
+      "hint": "Wpisz swoje pomiary (np. ciśnienie lub cukier).",
+      "bp": "Ciśnienie",
+      "glucose": "Cukier",
+      "systolic": "Skurczowe (SYS)",
+      "diastolic": "Rozkurczowe (DIA)",
+      "pulseOptional": "Puls (opcjonalnie)",
+      "glucoseValue": "Wartość (mg/dL)",
+      "saving": "Zapisuję…",
+      "saved": "Zapisano pomiar."
+    },
     "calendar": {
       "alertDepletion": "Kończy się zapas leku",
       "alertBuyPack": "Kup nową paczkę: {{name}}"
@@ -299,6 +331,7 @@
     },
     "status": {
       "taken": "Odebrane",
+      "late": "Spóźnione",
       "skipped": "Pominięte",
       "now": "Teraz",
       "past": "Minęło",

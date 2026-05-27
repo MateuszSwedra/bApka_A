@@ -36,6 +36,18 @@ export type PrismaMock = {
     updateMany: jest.Mock;
     deleteMany: jest.Mock;
   };
+  moodLog: {
+    findMany: jest.Mock;
+    create: jest.Mock;
+  };
+  sosLog: {
+    findMany: jest.Mock;
+    create: jest.Mock;
+  };
+  healthMetricLog: {
+    findMany: jest.Mock;
+    create: jest.Mock;
+  };
 };
 
 export function createPrismaMock(): PrismaMock {
@@ -75,6 +87,18 @@ export function createPrismaMock(): PrismaMock {
       update: jest.fn(),
       updateMany: jest.fn().mockResolvedValue({ count: 0 }),
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    moodLog: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    sosLog: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    healthMetricLog: {
+      findMany: jest.fn(),
+      create: jest.fn(),
     },
   };
 }

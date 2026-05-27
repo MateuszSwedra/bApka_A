@@ -254,6 +254,30 @@ export const usersAPI = {
       body: JSON.stringify(settings),
     });
   },
+  getMoodHistory: async (userId: string, from: string, to: string) => {
+    const params = new URLSearchParams({ from, to }).toString();
+    return fetchApi(`/users/${userId}/moods?${params}`);
+  },
+  createSos: async (note?: string) => {
+    return fetchApi('/users/me/sos', {
+      method: 'POST',
+      body: JSON.stringify({ note: note ?? '' }),
+    });
+  },
+  listSos: async (userId: string, from: string, to: string) => {
+    const params = new URLSearchParams({ from, to }).toString();
+    return fetchApi(`/users/${userId}/sos?${params}`);
+  },
+  createMetric: async (body: any) => {
+    return fetchApi('/users/me/metrics', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+  listMetrics: async (userId: string, from: string, to: string, type?: string) => {
+    const params = new URLSearchParams({ from, to, ...(type ? { type } : {}) }).toString();
+    return fetchApi(`/users/${userId}/metrics?${params}`);
+  },
 };
 
 export const inventoryAPI = {
@@ -341,6 +365,15 @@ export const scheduleAPI = {
       return await fetchApi(`/schedules/user/${userId}/logs`);
     } catch {
       return [];
+    }
+  },
+  getStats: async (userId: string, from: string, to: string) => {
+    const params = new URLSearchParams({ from, to }).toString();
+    try {
+      return await fetchApi(`/schedules/user/${userId}/stats?${params}`);
+    } catch (error) {
+      console.warn('Error fetching schedule stats', error);
+      return null;
     }
   }
 };

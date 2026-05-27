@@ -188,6 +188,26 @@
       "statusAttention": "Needs attention",
       "statusOk": "All good"
     },
+    "insights": {
+      "title": "Insights",
+      "range": {
+        "today": "Today",
+        "week": "7 days",
+        "month": "30 days"
+      },
+      "rangeLabel": "Range: {{range}}",
+      "loading": "Loading insights…",
+      "errorGeneric": "Could not load insights.",
+      "sectionDoses": "Medication doses",
+      "sectionMood": "Senior's mood",
+      "dosesTaken": "Taken doses",
+      "dosesLate": "Late doses",
+      "dosesMissed": "Missed doses",
+      "dosesPlanned": "Planned doses",
+      "dosesOnTime": "On time (±{{window}} min)",
+      "dosesEmpty": "No dose data in this range.",
+      "moodEmpty": "No mood entries in this range."
+    },
     "moodAt": "Mood at {{time}}",
     "dependentHeader": "Dependent profile",
     "dependentFallbackName": "Dependent",
@@ -270,6 +290,18 @@
       "confirmMoodOffMsg": "The mood picking screen will no longer appear after taking medications.",
       "confirmMoodOnMsg": "The mood picking screen will appear after you take medications."
     },
+    "metrics": {
+      "title": "Health measurements",
+      "hint": "Enter your measurements (e.g. blood pressure or glucose).",
+      "bp": "Blood pressure",
+      "glucose": "Glucose",
+      "systolic": "Systolic (SYS)",
+      "diastolic": "Diastolic (DIA)",
+      "pulseOptional": "Pulse (optional)",
+      "glucoseValue": "Value (mg/dL)",
+      "saving": "Saving…",
+      "saved": "Measurement saved."
+    },
     "calendar": {
       "alertDepletion": "Medicine running low",
       "alertBuyPack": "Buy a new pack: {{name}}"
@@ -299,6 +331,7 @@
     },
     "status": {
       "taken": "Taken",
+      "late": "Late",
       "skipped": "Skipped",
       "now": "Now",
       "past": "Past",

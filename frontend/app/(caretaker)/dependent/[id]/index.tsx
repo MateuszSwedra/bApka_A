@@ -140,6 +140,7 @@ export default function DependentTodayDashboard() {
     const log = logs.find(l => l.scheduleId === sch.id);
     if (log) {
       if (log.status === 'TAKEN') return { label: t('schedule.status.taken'), color: Theme.colors.success, pill: styles.statusPillSuccess };
+      if (log.status === 'LATE') return { label: t('schedule.status.late'), color: Theme.colors.surfaceWhite, pill: styles.statusPillLate };
       if (log.status === 'MISSED') return { label: t('schedule.status.skipped'), color: Theme.colors.surfaceWhite, pill: styles.statusPillMissed };
     }
     const diff = minutes - currentMinutes;
@@ -427,6 +428,11 @@ const styles = StyleSheet.create({
   statusPillSuccess: {
     backgroundColor: Theme.colors.badgeSuccessBackground || '#e8f5e9',
     borderColor: Theme.colors.success || '#4caf50',
+    borderWidth: 1,
+  },
+  statusPillLate: {
+    backgroundColor: Theme.colors.surfaceSoftOrange || '#fff3e0',
+    borderColor: Theme.colors.accentOrange || '#ff9800',
     borderWidth: 1,
   },
   statusPillMissed: {
