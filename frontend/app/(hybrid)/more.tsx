@@ -1,11 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { Theme } from '../../constants/theme';
+import { useTranslation } from 'react-i18next';
 
 export default function MoreScreen() {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>More</Text>
+      <Text style={styles.title}>{t('placeholder.more')}</Text>
     </View>
   );
 }

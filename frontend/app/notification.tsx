@@ -25,6 +25,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
 import { requestUserNotificationPermission } from '../services/notificationPermissions';
+import { useTranslation } from 'react-i18next';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -54,6 +55,7 @@ function navigateToMainApp(role: Role) {
 }
 
 export default function NotificationScreen() {
+  const { t } = useTranslation();
   const { userRole } = useAuth();
   const [busy, setBusy] = useState(false);
   const [exitCover, setExitCover] = useState(false);
@@ -139,14 +141,10 @@ export default function NotificationScreen() {
           />
 
           <Text style={styles.title}>
-            {isCaretaker
-              ? 'Zezwól na powiadomienia!'
-              : 'Nigdy nie zapomnij o lekach!'}
+            {isCaretaker ? t('notification.titleCaretaker') : t('notification.titleDependent')}
           </Text>
           <Text style={styles.subtitle}>
-            {isCaretaker
-              ? 'Bądź na bieżąco z aktywnością Twojego podopiecznego!'
-              : 'Bądźmy pewni, że otrzymasz powiadomienia, gdy będziesz ich potrzebować.'}
+            {isCaretaker ? t('notification.subtitleCaretaker') : t('notification.subtitleDependent')}
           </Text>
 
           <View style={styles.ctaShadowWrap}>
@@ -166,7 +164,7 @@ export default function NotificationScreen() {
                 style={styles.primaryCta}
               >
                 <Text style={styles.primaryCtaText}>
-                  {busy ? 'Chwileczkę…' : 'Zezwól na powiadomienia'}
+                  {busy ? t('notification.loading') : t('notification.cta')}
                 </Text>
                 <MaterialCommunityIcons
                   name="bell-ring-outline"
@@ -186,9 +184,9 @@ export default function NotificationScreen() {
               pressed && { opacity: 0.75 },
             ]}
             accessibilityRole="button"
-            accessibilityLabel="Nie, podejmuję ryzyko"
+            accessibilityLabel={t('notification.skip')}
           >
-            <Text style={styles.riskLinkText}>Nie, podejmuję ryzyko</Text>
+            <Text style={styles.riskLinkText}>{t('notification.skip')}</Text>
           </Pressable>
         </View>
       </ScrollView>

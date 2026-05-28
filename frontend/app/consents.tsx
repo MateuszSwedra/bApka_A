@@ -19,6 +19,7 @@ import {
   OnboardingPalette,
   OnboardingGradient,
 } from '../constants/onboardingTheme';
+import { useTranslation } from 'react-i18next';
 
 /** Placeholdery — podmień na docelowe URL-e produkcyjne. */
 const TERMS_URL = 'https://bapka.app/warunki-korzystania';
@@ -51,6 +52,7 @@ async function markConsentsSeen() {
 }
 
 export default function ConsentsScreen() {
+  const { t } = useTranslation();
   const [granular, setGranular] = useState(false);
   const [analytics, setAnalytics] = useState(true);
   const [tailored, setTailored] = useState(true);
@@ -78,7 +80,7 @@ export default function ConsentsScreen() {
     }
   };
 
-  const primaryLabel = granular ? 'Zapisz i kontynuuj' : 'Akceptuję wszystko';
+  const primaryLabel = granular ? t('consents.ctaSave') : t('consents.ctaAcceptAll');
 
   return (
     <View style={styles.screen}>
@@ -86,7 +88,7 @@ export default function ConsentsScreen() {
         onPress={handleBack}
         style={({ pressed }) => [styles.backBtn, pressed && { opacity: 0.85 }]}
         accessibilityRole="button"
-        accessibilityLabel="Wróć"
+        accessibilityLabel={t('common.back')}
       >
         <MaterialCommunityIcons
           name="chevron-left"
@@ -106,60 +108,38 @@ export default function ConsentsScreen() {
           resizeMode="contain"
         />
 
-        <Text style={styles.title}>Twój komfort jest najważniejszy</Text>
+        <Text style={styles.title}>{t('consents.title')}</Text>
 
-        <Text style={styles.sectionTitle}>Zapewnienie prywatności</Text>
-        <Text style={styles.body}>
-          Aby zapewnić pełną funkcjonalność aplikacji, potrzebujemy Twojej zgody na
-          odpowiedzialne przetwarzanie danych osobowych oraz informacji o zdrowiu,
-          które nam powierzasz.
-        </Text>
+        <Text style={styles.sectionTitle}>{t('consents.privacy.title')}</Text>
+        <Text style={styles.body}>{t('consents.privacy.body')}</Text>
 
-        <Text style={styles.sectionTitle}>
-          Ulepszanie doświadczenia dla Ciebie i innych
-        </Text>
-        <Text style={styles.body}>
-          Korzystamy z narzędzi analitycznych, które pomagają nam poznawać popularne
-          funkcje, ulepszać aplikację i promować ją wśród innych użytkowników na
-          podstawie Twojego korzystania z niej — zgodnie z opisem w{' '}
-          <Text
-            style={styles.link}
-            onPress={() => openUrl(PRIVACY_URL)}
-            accessibilityRole="link"
-          >
-            Polityce prywatności bApka
-          </Text>
-          . Możemy też wyświetlać treści sponsorowane dopasowane do Twoich preferencji.
-        </Text>
+        <Text style={styles.sectionTitle}>{t('consents.analytics.title')}</Text>
+        <Text style={styles.body}>{t('consents.analytics.body')}</Text>
 
         <Text style={styles.body}>
-          Korzystając z przycisków na dole ekranu akceptujesz{' '}
+          {t('consents.legal.body')}{' '}
           <Text
             style={styles.link}
             onPress={() => openUrl(TERMS_URL)}
             accessibilityRole="link"
           >
-            Warunki korzystania z serwisu bApka
-          </Text>{' '}
-          oraz potwierdzasz zapoznanie się z{' '}
+            {t('consents.linkTerms')}
+          </Text>
+          .{' '}
           <Text
             style={styles.link}
             onPress={() => openUrl(PRIVACY_URL)}
             accessibilityRole="link"
           >
-            Polityką prywatności bApka
+            {t('consents.linkPrivacy')}
           </Text>
-          . Szczegółowe ustawienia zgód możesz zmienić po wybraniu „Przejdź do
-          ustawień”.
         </Text>
 
         {granular && (
           <View style={styles.granularCard}>
-            <Text style={styles.granularHeading}>Wybór zgód</Text>
+            <Text style={styles.granularHeading}>{t('consents.granular.title')}</Text>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>
-                Analityka i ulepszanie aplikacji (anonimowe statystyki)
-              </Text>
+              <Text style={styles.switchLabel}>{t('consents.granular.analytics')}</Text>
               <Switch
                 value={analytics}
                 onValueChange={setAnalytics}
@@ -171,9 +151,7 @@ export default function ConsentsScreen() {
               />
             </View>
             <View style={styles.switchRow}>
-              <Text style={styles.switchLabel}>
-                Spersonalizowane treści i rekomendacje
-              </Text>
+              <Text style={styles.switchLabel}>{t('consents.granular.tailored')}</Text>
               <Switch
                 value={tailored}
                 onValueChange={setTailored}
@@ -185,14 +163,12 @@ export default function ConsentsScreen() {
               />
             </View>
             <Pressable onPress={() => setGranular(false)} style={styles.backLink}>
-              <Text style={styles.backLinkText}>Wróć do widoku uproszczonego</Text>
+              <Text style={styles.backLinkText}>{t('consents.granular.backSimple')}</Text>
             </Pressable>
           </View>
         )}
 
-        <Text style={styles.withdrawNote}>
-          Zgodę mogę wycofać w każdej chwili w ustawieniach aplikacji bApka.
-        </Text>
+        <Text style={styles.withdrawNote}>{t('consents.withdrawNote')}</Text>
       </ScrollView>
 
       <View style={styles.footer}>
@@ -218,7 +194,7 @@ export default function ConsentsScreen() {
             onPress={() => setGranular(true)}
             style={({ pressed }) => [styles.secondaryBtn, pressed && { opacity: 0.75 }]}
           >
-            <Text style={styles.secondaryBtnText}>Przejdź do ustawień</Text>
+            <Text style={styles.secondaryBtnText}>{t('consents.ctaSettings')}</Text>
           </Pressable>
         )}
       </View>

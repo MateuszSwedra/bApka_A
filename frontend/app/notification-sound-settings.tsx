@@ -12,11 +12,12 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
 import {
-  NOTIFICATION_SOUND_CHOICES,
+  NOTIFICATION_SOUND_CHOICE_IDS,
   type NotificationSoundChoiceId,
   resolveMedicationSoundAsset,
   resolveSosSoundAsset,
 } from '../constants/notificationSounds';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import {
   getMedicationSoundChoice,
@@ -38,6 +39,7 @@ function exitSettings(userRole: string | null) {
 }
 
 export default function NotificationSoundSettingsScreen() {
+  const { t } = useTranslation();
   const { userRole } = useAuth();
   const [med, setMed] = useState<NotificationSoundChoiceId>('default');
   const [sos, setSos] = useState<NotificationSoundChoiceId>('default');
@@ -102,13 +104,15 @@ export default function NotificationSoundSettingsScreen() {
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>{title}</Text>
       <Text style={styles.sectionSubtitle}>{subtitle}</Text>
-      {NOTIFICATION_SOUND_CHOICES.map((opt) => {
-        const selected = value === opt.id;
-        const rowPreviewKey = `${busyKey}-${opt.id}`;
+      {NOTIFICATION_SOUND_CHOICE_IDS.map((id) => {
+        const selected = value === id;
+        const rowPreviewKey = `${busyKey}-${id}`;
+        const label = t(`sounds.${id}.label`);
+        const description = t(`sounds.${id}.description`);
         return (
-          <View key={opt.id} style={styles.row}>
+          <View key={id} style={styles.row}>
             <Pressable
-              onPress={() => void onSelect(opt.id)}
+              onPress={() => void onSelect(id)}
               style={({ pressed }) => [
                 styles.choice,
                 selected && styles.choiceSelected,
@@ -121,14 +125,14 @@ export default function NotificationSoundSettingsScreen() {
                 color={selected ? Theme.colors.primaryLimeDark : Theme.colors.textLight}
               />
               <View style={styles.choiceText}>
-                <Text style={styles.choiceLabel}>{opt.label}</Text>
-                <Text style={styles.choiceDesc}>{opt.description}</Text>
+                <Text style={styles.choiceLabel}>{label}</Text>
+                <Text style={styles.choiceDesc}>{description}</Text>
               </View>
             </Pressable>
             <Pressable
-              onPress={() => void onPreview(opt.id)}
+              onPress={() => void onPreview(id)}
               style={({ pressed }) => [styles.previewBtn, pressed && { opacity: 0.75 }]}
-              accessibilityLabel={`Odsłuchaj: ${opt.label}`}
+              accessibilityLabel={t('sounds.a11yPreview', { label })}
               disabled={previewKey !== null}
             >
               {previewKey === rowPreviewKey ? (
@@ -151,10 +155,10 @@ export default function NotificationSoundSettingsScreen() {
           ) : (
             <>
               {renderGroup(
-                'Przypomnienie o leku',
+                t('sounds.sectionMedication'),
                 userRole === 'DEPENDENT'
-                  ? 'Wybierz dźwięk, który usłyszysz przy przypomnieniu o przyjęciu leku.'
-                  : 'Dźwięk przypomnień dla podopiecznych (zapisany na tym urządzeniu).',
+                  ? t('sounds.sectionMedicationSubtitleDependent')
+                  : t('sounds.sectionMedicationSubtitleCaretaker'),
                 med,
                 onSelectMed,
                 onPreviewMed,
@@ -162,17 +166,15 @@ export default function NotificationSoundSettingsScreen() {
               )}
               {showSos &&
                 renderGroup(
-                  'Powiadomienie SOS',
-                  'Osobny dźwięk dla alarmu SOS od podopiecznego.',
+                  t('sounds.sectionSos'),
+                  t('sounds.sectionSosSubtitle'),
                   sos,
                   onSelectSos,
                   onPreviewSos,
                   'sos',
                 )}
               {Platform.OS === 'web' && (
-                <Text style={styles.webHint}>
-                  W przeglądarce podgląd dźwięku może być ograniczony — pełną obsługę mają aplikacje na Androidzie i iOS.
-                </Text>
+                <Text style={styles.webHint}>{t('sounds.webHint')}</Text>
               )}
             </>
           )}
@@ -181,7 +183,7 @@ export default function NotificationSoundSettingsScreen() {
           style={({ pressed }) => [styles.doneBtn, pressed && { opacity: 0.9 }]}
           onPress={() => exitSettings(userRole)}
         >
-          <Text style={styles.doneBtnText}>Gotowe</Text>
+          <Text style={styles.doneBtnText}>{t('common.done')}</Text>
         </Pressable>
       </View>
   );

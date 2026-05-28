@@ -14,8 +14,15 @@ enum Role {
 
 enum LogStatus {
   TAKEN
+  LATE
   MISSED
   PENDING
+}
+
+enum LogSource {
+  APP_SENIOR
+  APP_CARETAKER
+  SYSTEM_AUTO
 }
 
 model User {
@@ -24,15 +31,25 @@ model User {
   password  String?  
   role      Role
   fcmToken  String?
-  name      String?  // Jak się zwracać do użytkownika (para kont / UI)
+  name      String?  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  lastMood    String?
+  lastMoodAt  DateTime?
+  moodEnabled Boolean @default(true)
 
+  // Relacje połączeń (opiekun <-> podopieczny)
   caretakerConnections Connection[] @relation("CaretakerConnections")
   dependentConnections Connection[] @relation("DependentConnections")
 
-  schedules Schedule[]
+  // Relacje do harmonogramów
+  schedules         Schedule[] @relation("OwnedSchedules")   // Harmonogramy przypisane do tego użytkownika (Seniora)
+  createdSchedules  Schedule[] @relation("CreatedSchedules") // Harmonogramy utworzone przez tego użytkownika (Opiekuna)
+  
   inventory Inventory[]
+  moodLogs  MoodLog[]
+  sosLogs   SosLog[]
+  healthMetricLogs HealthMetricLog[]
 }
 
 model Connection {
@@ -51,9 +68,11 @@ model Inventory {
   id              String   @id @default(uuid())
   userId          String
   name            String
-  totalPills      Int
-  currentPills    Int
-  pillsPerDose    Int
+  type            String   @default("MEDICATION")
+  description     String?
+  totalPills      Int?
+  currentPills    Int?
+  pillsPerDose    Int?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -63,17 +82,21 @@ model Inventory {
 
 model Schedule {
   id          String   @id @default(uuid())
-  userId      String
+  userId      String   // ID Seniora (do kogo należy ten lek)
+  createdById String?  // ID Opiekuna (kto dodał/podyktował ten lek)
   inventoryId String?
   medication  String?
   dosage      String
   time        String   // np. "08:30"
-  type        String   @default("DAILY") // e.g., DAILY, ONCE
-  startDate   String?  // format YYYY-MM-DD
+  type        String   @default("DAILY")
+  startDate   String?  
+  endDate     String?
+  daysOfWeek  Int[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user      User       @relation(fields: [userId], references: [id])
+  user      User       @relation("OwnedSchedules", fields: [userId], references: [id])
+  creator   User?      @relation("CreatedSchedules", fields: [createdById], references: [id])
   inventory Inventory? @relation(fields: [inventoryId], references: [id])
   logs      DoseLog[]
 }
@@ -82,9 +105,46 @@ model DoseLog {
   id          String    @id @default(uuid())
   scheduleId  String
   status      LogStatus @default(PENDING)
+  source      LogSource? 
   scheduledAt DateTime
   takenAt     DateTime?
   createdAt   DateTime  @default(now())
 
   schedule Schedule @relation(fields: [scheduleId], references: [id])
+}
+
+model MoodLog {
+  id        String   @id @default(uuid())
+  userId    String
+  mood      String
+  source    String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model SosLog {
+  id        String   @id @default(uuid())
+  userId    String
+  source    String?
+  note      String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model HealthMetricLog {
+  id         String   @id @default(uuid())
+  userId     String
+  type       String
+  value      Float?
+  systolic   Int?
+  diastolic  Int?
+  pulse      Int?
+  unit       String?
+  measuredAt DateTime
+  source     String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

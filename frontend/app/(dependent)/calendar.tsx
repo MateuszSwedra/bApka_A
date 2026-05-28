@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
@@ -11,30 +11,10 @@ import type { ScheduleItem } from '../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
 import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
-
-LocaleConfig.locales['en'] = {
-  monthNames: [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ],
-  monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-  dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  today: 'Today',
-};
-LocaleConfig.defaultLocale = 'en';
+import { useTranslation } from 'react-i18next';
 
 export default function DependentCalendarScreen() {
+  const { t } = useTranslation();
   const { colors } = useDependentDisplay();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const { depletionAlerts, schedules, treatments } = useMeds();
@@ -57,8 +37,8 @@ export default function DependentCalendarScreen() {
   const labelForSchedule = (sch: ScheduleItem) => {
     if (sch.customName) return sch.customName;
     const tid = getScheduleTreatmentId(sch);
-    if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Activity';
-    return 'Activity';
+    if (tid) return treatments.find(t => t.id === tid)?.name ?? t('schedule.activityFallback');
+    return t('schedule.activityFallback');
   };
 
   const typeForSchedule = (sch: ScheduleItem) => {
@@ -67,9 +47,9 @@ export default function DependentCalendarScreen() {
   };
 
   const typeLabel = (sch: ScheduleItem) => {
-    if (sch.type === 'ONCE') return 'One-off';
-    if (sch.type === 'REGULAR') return 'Regular';
-    return 'Temporary';
+    if (sch.type === 'ONCE') return t('schedule.type.once');
+    if (sch.type === 'REGULAR') return t('schedule.type.regular');
+    return t('schedule.type.temporary');
   };
 
   return (
@@ -78,7 +58,7 @@ export default function DependentCalendarScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={32} color={colors.textDark} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textDark }]}>Your calendar</Text>
+        <Text style={[styles.headerTitle, { color: colors.textDark }]}>{t('calendar.title')}</Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -120,7 +100,7 @@ export default function DependentCalendarScreen() {
 
         <View style={styles.scheduleSection}>
           <Text style={[styles.sectionTitle, { color: colors.textDark }]}>
-            Day: {selectedDate}
+            {t('calendar.daySection', { date: selectedDate })}
           </Text>
 
           {todayAlerts.map((alert, idx) => (
@@ -130,12 +110,12 @@ export default function DependentCalendarScreen() {
               style={{ ...styles.scheduleCardWarning, borderColor: colors.accentOrange }}
             >
               <Text style={[styles.scheduleTimeWarning, { color: colors.accentOrange }]}>
-                Medicine running low
+                {t('dependent.calendar.alertDepletion')}
               </Text>
               <View style={styles.scheduleRow}>
                 <MaterialIcons name="shopping-cart" size={28} color={colors.accentOrange} />
                 <Text style={[styles.scheduleItemWarning, { color: colors.accentOrange }]}>
-                  Buy a new pack: {alert.inventoryItemName}
+                  {t('dependent.calendar.alertBuyPack', { name: alert.inventoryItemName })}
                 </Text>
               </View>
             </Card>
@@ -160,7 +140,7 @@ export default function DependentCalendarScreen() {
           })}
 
           {scheduledForDay.length === 0 && todayAlerts.length === 0 && (
-            <Text style={[styles.emptyDay, { color: colors.textLight }]}>No activities on this day.</Text>
+            <Text style={[styles.emptyDay, { color: colors.textLight }]}>{t('calendar.emptyDay')}</Text>
           )}
         </View>
       </ScrollView>

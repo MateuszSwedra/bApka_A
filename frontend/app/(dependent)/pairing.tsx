@@ -4,14 +4,16 @@ import { router } from 'expo-router';
 import { HugeButton } from '../../components/HugeButton';
 import { Theme } from '../../constants/theme';
 import { normalizePinInput } from '../../utils/pin';
+import { useTranslation } from 'react-i18next';
 
 export default function DependentPairingScreen() {
+  const { t } = useTranslation();
   const [pin, setPin] = useState('');
 
   const handlePair = () => {
     const digits = normalizePinInput(pin);
     if (digits.length !== 6) {
-      alert('PIN musi mieć 6 cyfr.');
+      alert(t('pairing.validationLength'));
       return;
     }
     router.replace('/(dependent)');
@@ -19,19 +21,19 @@ export default function DependentPairingScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Wpisz kod od Opiekuna</Text>
+      <Text style={styles.title}>{t('pairing.dependent.title')}</Text>
       
       <TextInput 
         style={styles.pinInput}
         value={pin}
-        onChangeText={(t) => setPin(normalizePinInput(t))}
+        onChangeText={(text) => setPin(normalizePinInput(text))}
         keyboardType="number-pad"
-        placeholder="------"
+        placeholder={t('pairing.pinPlaceholder')}
         autoFocus
       />
 
       <HugeButton 
-        title="POŁĄCZ" 
+        title={t('pairing.ctaConnectUpper')} 
         size="huge" 
         onPress={handlePair} 
         disabled={normalizePinInput(pin).length !== 6}

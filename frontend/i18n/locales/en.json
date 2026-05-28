@@ -1,0 +1,412 @@
+{
+  "brand": { "name": "bApka" },
+  "common": {
+    "back": "Back",
+    "save": "Save",
+    "cancel": "Cancel",
+    "done": "Done",
+    "delete": "Delete",
+    "error": "Error",
+    "success": "Success",
+    "edit": "Edit",
+    "hour": "Hour",
+    "minute": "Minute"
+  },
+  "calendar": {
+    "monthNames": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
+    "monthNamesShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
+    "dayNames": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+    "dayNamesShort": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "today": "Today",
+    "daySection": "Day: {{date}}",
+    "emptyDay": "No activities on this day.",
+    "editTitle": "Edit schedule",
+    "deleteCycle": "Delete cycle",
+    "deleteConfirmTitle": "Delete schedule",
+    "deleteConfirmMessage": "Are you sure you want to remove this schedule?",
+    "errorUpdate": "Could not update the schedule",
+    "errorDelete": "Could not delete the schedule",
+    "title": "Your calendar",
+    "weekdayShort": { "1": "Mon", "2": "Tue", "3": "Wed", "4": "Thu", "5": "Fri", "6": "Sat", "7": "Sun" }
+  },
+  "tabs": {
+    "today": "Today",
+    "calendar": "Calendar",
+    "treatment": "Treatment",
+    "insights": "Insights",
+    "meds": "Meds",
+    "more": "More"
+  },
+  "errors": {
+    "invalidDependentProfile": "Invalid dependent profile. Go back to the list and open the profile again.",
+    "dependentUnlinked": "This dependent is no longer linked to your account. Refresh the home screen and pair again.",
+    "invalidDependentId": "Invalid dependent identifier."
+  },
+  "onboarding": {
+    "welcome": {
+      "slide1": { "title": "Help for your senior" },
+      "slide2": { "title": "Medication reminders", "subtitle": "and much more" },
+      "slide3": { "title": "Track your dependent's progress" },
+      "cta": "Let's start"
+    },
+    "name": {
+      "title": "What should we call you?",
+      "subtitle": "Caretakers and dependents will see this name in the app.",
+      "placeholder": "e.g. Anna, Mrs. Smith, Dad…",
+      "cta": "Continue",
+      "saving": "Saving…",
+      "errorEmpty": "Enter a name or nickname.",
+      "errorMinLength": "Enter at least 2 characters — e.g. a name or nickname.",
+      "errorMaxLength": "This field can be at most 80 characters.",
+      "errorSave": "Could not save. Please try again."
+    }
+  },
+  "consents": {
+    "title": "Your comfort comes first",
+    "privacy": {
+      "title": "Privacy protection",
+      "body": "We protect your data and use it only to run the app and as required by law."
+    },
+    "analytics": {
+      "title": "Improving your experience",
+      "body": "We may collect anonymous usage statistics to improve features and stability."
+    },
+    "legal": {
+      "body": "By using bApka you accept our Privacy Policy and Terms of Service."
+    },
+    "linkPrivacy": "bApka Privacy Policy",
+    "linkTerms": "bApka Terms of Service",
+    "granular": {
+      "title": "Consent choices",
+      "analytics": "Analytics and app improvements",
+      "tailored": "Personalised content and recommendations",
+      "backSimple": "Back to simplified view"
+    },
+    "withdrawNote": "You can withdraw consent in app settings.",
+    "ctaAcceptAll": "Accept all",
+    "ctaSave": "Save and continue",
+    "ctaSettings": "Open settings"
+  },
+  "auth": {
+    "pick": {
+      "title": "Welcome",
+      "subtitle": "Choose whether to create a new account or sign in to an existing one.",
+      "register": "Create account",
+      "signIn": "Sign in"
+    },
+    "register": {
+      "title": "Registration",
+      "hint": "Create a caretaker or dependent account."
+    },
+    "signIn": {
+      "title": "Sign in",
+      "hint": "Enter the credentials for your existing account."
+    },
+    "fieldEmail": "Email",
+    "fieldPassword": "Password",
+    "fieldPasswordRepeat": "Repeat password",
+    "a11yHidePassword": "Hide password",
+    "a11yShowPassword": "Show password",
+    "loadingRegister": "One moment…",
+    "loadingLogin": "Signing in…",
+    "ctaRegister": "Create account",
+    "ctaLogin": "Sign in",
+    "hasAccount": "Already have an account?",
+    "noAccount": "Don't have an account?",
+    "errorLoginTitle": "Sign-in error",
+    "errorRegisterTitle": "Registration error",
+    "validationEmailPassword": "Enter email and password",
+    "validationAllFields": "Fill in all fields",
+    "validationPasswordMatch": "Passwords must match",
+    "validationPasswordLength": "Password should be at least 6 characters",
+    "errorLoginFallback": "Invalid email or password, or no server connection.",
+    "errorRegisterFallback": "Check your details or connection and try again."
+  },
+  "role": {
+    "title": "Choose your role",
+    "subtitle": "We'll tailor the app to your needs.",
+    "caretaker": { "title": "Caretaker", "desc": "You manage schedules and medications for your dependent." },
+    "dependent": { "title": "Dependent", "desc": "You get reminders and can easily mark activities as done." },
+    "errorUpdate": "Could not update role. Please try again."
+  },
+  "seniorType": {
+    "title": "How do you want to use the app?",
+    "subtitle": "Pick the mode that fits your situation.",
+    "withCaretaker": { "title": "With a caretaker", "desc": "Your caretaker sets the schedule; you use reminders." },
+    "independent": { "title": "On my own", "desc": "You manage medications and activities yourself." },
+    "errorUpdate": "Could not update account type."
+  },
+  "profileReady": {
+    "greeting": "Nice to meet you, {{name}}!",
+    "greetingGeneric": "Nice to meet you!",
+    "subtitle": "Your profile has been created.",
+    "cta": "Continue"
+  },
+  "notification": {
+    "titleCaretaker": "Allow notifications!",
+    "titleDependent": "Never forget your medication!",
+    "subtitleCaretaker": "We'll notify you about important events for your dependents.",
+    "subtitleDependent": "We'll remind you about medications and calendar activities.",
+    "loading": "One moment…",
+    "cta": "Allow notifications",
+    "skip": "No, I'll take the risk"
+  },
+  "pairing": {
+    "enterPin": {
+      "title": "Enter PIN code",
+      "subtitle": "Enter the 6-digit code shown on your caretaker's device."
+    },
+    "dependent": { "title": "Enter code from caretaker" },
+    "pinPlaceholder": "------",
+    "ctaConnect": "Connect account",
+    "ctaConnectUpper": "CONNECT",
+    "validationLength": "PIN must be 6 digits.",
+    "alertErrorTitle": "Pairing error",
+    "alertSuccessTitle": "Success",
+    "alertSuccessMessage": "Account connected successfully.",
+    "alertInvalidPin": "The PIN code is invalid or has expired."
+  },
+  "sounds": {
+    "screenTitle": "Notification sounds",
+    "default": { "label": "System default", "description": "Standard device notification sound." },
+    "gentle": { "label": "Gentle", "description": "Short, discreet signal." },
+    "strong": { "label": "Clear", "description": "More noticeable signal." },
+    "sectionMedication": "Medication reminder",
+    "sectionMedicationSubtitleCaretaker": "Reminder sound for your dependent's medications.",
+    "sectionMedicationSubtitleDependent": "Reminder sound for medications and activities.",
+    "sectionSos": "SOS notification",
+    "sectionSosSubtitle": "Separate sound for the SOS alarm.",
+    "a11yPreview": "Preview: {{label}}",
+    "webHint": "Preview may be muted in the browser — you'll hear the full sound on your phone."
+  },
+  "caretaker": {
+    "dashboard": {
+      "badge": "Caretaker dashboard",
+      "title": "Your dependents",
+      "emptyTitle": "No dependents yet",
+      "emptySubtitle": "Add your first dependent to manage their schedule.",
+      "statusAttention": "Needs attention",
+      "statusOk": "All good"
+    },
+    "insights": {
+      "title": "Insights",
+      "range": {
+        "today": "Today",
+        "week": "7 days",
+        "month": "30 days"
+      },
+      "rangeLabel": "Range: {{range}}",
+      "loading": "Loading insights…",
+      "errorGeneric": "Could not load insights.",
+      "sectionDoses": "Medication doses",
+      "sectionMood": "Senior's mood",
+      "dosesTaken": "Taken doses",
+      "dosesLate": "Late doses",
+      "dosesMissed": "Missed doses",
+      "dosesPlanned": "Planned doses",
+      "dosesOnTime": "On time (±{{window}} min)",
+      "dosesEmpty": "No dose data in this range.",
+      "moodEmpty": "No mood entries in this range."
+    },
+    "moodAt": "Mood at {{time}}",
+    "dependentHeader": "Dependent profile",
+    "dependentFallbackName": "Dependent",
+    "pairing": {
+      "title": "Add dependent",
+      "instructions": "Ask your dependent to choose \"I have a caretaker\" and enter the code below.",
+      "a11yCode": "Pairing code {{code}}",
+      "a11yCopy": "Copy code to clipboard",
+      "hint": "You can select the code and copy it manually.",
+      "alertCopiedTitle": "Copied",
+      "alertCopiedMessage": "Code copied to clipboard.",
+      "alertCopyError": "Could not copy the code.",
+      "alertGenerateError": "Could not generate pairing code."
+    },
+    "today": {
+      "nextActivity": "Next activity:",
+      "allDone": "All done for today",
+      "allDoneHint": "No more activities scheduled for today.",
+      "plan": "Today's plan",
+      "empty": "No activities scheduled for today."
+    },
+    "device": {
+      "synced": "Device synced correctly",
+      "statusOk": "Status: OK"
+    },
+    "alerts": {
+      "title": "Alerts",
+      "depletion": "Medication running low",
+      "buyPack": "Buy a new pack: {{name}}"
+    }
+  },
+  "dependent": {
+    "greeting": "Good day,",
+    "nameFallback": "dear senior",
+    "moodTitle": "How do you feel today?",
+    "moodThanks": "Thank you for letting us know.",
+    "mainDue": "Take your medicine or do your exercises — it's time from your calendar.",
+    "mainUpcoming": "Next medicine or activity at: {{time}}",
+    "mainEmpty": "No activity is required by your caretaker's calendar right now.",
+    "mainAllDone": "That's all for today — no more planned activities.",
+    "sosTitle": "SOS",
+    "sosMessage": "You tapped the SOS button. No notification was sent to your caretaker in this version.",
+    "todayTitle": "Today's activities",
+    "todayEmpty": "Nothing scheduled for today.",
+    "calendarCta": "Open calendar — other days",
+    "inventoryTitle": "Medicine left at home",
+    "inventoryEmpty": "No packs were added yet.",
+    "inventoryDoses": "{{count}} doses left",
+    "inventoryDoses_one": "{{count}} dose left",
+    "errorMarkTaken": "Could not record this on the server. Please try again.",
+    "settings": {
+      "backHome": "Back to home",
+      "returningHome": "Returning home in {{seconds}}s…",
+      "title": "Settings",
+      "accessibility": "Accessibility",
+      "colorBlind": "Colour-blind friendly",
+      "highContrast": "High contrast",
+      "moodPicker": "Mood question",
+      "reminderSound": "Reminder sound",
+      "confirm": "Confirm",
+      "modalCancel": "Cancel",
+      "pageHint": "Every change needs your confirmation. Nothing is saved until you confirm.",
+      "otherSettings": "Other settings",
+      "colorBlindSub": "Clearer shapes and safer colours.",
+      "highContrastSub": "Extra bold text and backgrounds.",
+      "moodPickerSub": "Ask how you feel after activities.",
+      "soundHint": "Pick the system sound or a built-in local tone. Tap a row to select (with confirmation). Use the speaker to preview.",
+      "soundChangeTitle": "Change reminder sound?",
+      "soundChangeMessage": "Use \"{{label}}\" for medication reminders on this device?",
+      "confirmColorBlindOff": "Turn off colour-blind friendly?",
+      "confirmColorBlindOn": "Turn on colour-blind friendly?",
+      "confirmColorBlindOffMsg": "Colours and emphasis will return to the standard style.",
+      "confirmColorBlindOnMsg": "Uses stronger outlines and avoids easy-to-confuse colour pairs.",
+      "confirmHighContrastOff": "Turn off high contrast?",
+      "confirmHighContrastOn": "Turn on high contrast?",
+      "confirmHighContrastOffMsg": "The screen will use the standard contrast again.",
+      "confirmHighContrastOnMsg": "Text and buttons will use very high contrast for easier reading.",
+      "confirmMoodOff": "Turn off mood picker?",
+      "confirmMoodOn": "Turn on mood picker?",
+      "confirmMoodOffMsg": "The mood picking screen will no longer appear after taking medications.",
+      "confirmMoodOnMsg": "The mood picking screen will appear after you take medications."
+    },
+    "metrics": {
+      "title": "Health measurements",
+      "hint": "Enter your measurements (e.g. blood pressure or glucose).",
+      "bp": "Blood pressure",
+      "glucose": "Glucose",
+      "systolic": "Systolic (SYS)",
+      "diastolic": "Diastolic (DIA)",
+      "pulseOptional": "Pulse (optional)",
+      "glucoseValue": "Value (mg/dL)",
+      "saving": "Saving…",
+      "saved": "Measurement saved."
+    },
+    "calendar": {
+      "alertDepletion": "Medicine running low",
+      "alertBuyPack": "Buy a new pack: {{name}}"
+    }
+  },
+  "hybrid": {
+    "greeting": "Good day,",
+    "nameFallback": "User",
+    "pinBanner": "Secure the app with a 4-digit PIN.",
+    "pinBannerCta": "Set up now",
+    "scheduleTitle": "Today's schedule",
+    "medsDue": "Time for medication:",
+    "mockMedsDetail": "6 medications (6 tablets)",
+    "mockTaken": "6 medications: Taken at {{time}}",
+    "mockPartial": "Incomplete dose: 3/4 taken",
+    "mockTakenShort": "3 medications: Taken",
+    "now": "NOW",
+    "medTakenAlert": "Medication taken!"
+  },
+  "schedule": {
+    "activityFallback": "Activity",
+    "dosagePieces": " ({{count}} pcs.)",
+    "type": {
+      "once": "One-off",
+      "regular": "Regular",
+      "temporary": "Temporary"
+    },
+    "status": {
+      "taken": "Taken",
+      "late": "Late",
+      "skipped": "Skipped",
+      "now": "Now",
+      "past": "Past",
+      "next": "Next",
+      "planned": "Planned"
+    },
+    "add": {
+      "title": "Add to calendar",
+      "activities": "Activities from cabinet",
+      "activitiesEmpty": "Add an activity in the Treatment tab first.",
+      "a11yAddActivity": "Add activity to cabinet",
+      "medType": "Schedule type",
+      "dosagePills": "Quantity (pills)",
+      "dosageDose": "Dose",
+      "pickDate": "Pick a date",
+      "weekdays": "Days of week",
+      "weekdaysOptional": "Days of week (optional)",
+      "weekdaysHint": "You can limit days within a temporary period.",
+      "periodTitle": "Administration period",
+      "clear": "Clear",
+      "from": "From",
+      "to": "To",
+      "rangeSet": "Range set. Tap another day to start over.",
+      "rangeStart": "Select the start date of the period",
+      "rangeEnd": "Now select the end date of the period"
+    }
+  },
+  "treatment": {
+    "group": {
+      "medication": "Medication",
+      "bloodSugar": "Blood sugar check",
+      "bloodPressure": "Blood pressure",
+      "exercise": "Exercise",
+      "custom": "Other activities"
+    },
+    "list": {
+      "title": "Medical activities",
+      "subtitle": "Manage activities assigned to your dependent.",
+      "empty": "No activities yet. Add the first one with the + button.",
+      "stock": "Stock: {{count}} pcs.",
+      "noDescription": "No description"
+    },
+    "add": {
+      "title": "New activity",
+      "lead": "Choose activity type and fill in details.",
+      "name": "Name",
+      "description": "Description (optional)",
+      "pillsInPack": "Pills per pack",
+      "helper": "Helps predict when medication runs out.",
+      "errorSave": "Could not save activity."
+    },
+    "edit": {
+      "title": "Edit",
+      "notFound": "Activity not found.",
+      "placeholderPills": "e.g. 60",
+      "placeholderHints": "e.g. tips for senior",
+      "errorSave": "Could not save changes."
+    },
+    "type": {
+      "medication": { "label": "Medication", "hint": "Tablets, capsules, etc.", "defaultName": "Medication" },
+      "bloodSugar": { "label": "Blood sugar", "hint": "Glucose measurement", "defaultName": "Blood sugar" },
+      "bloodPressure": { "label": "Blood pressure", "hint": "BP measurement", "defaultName": "Blood pressure" },
+      "exercise": { "label": "Exercise", "hint": "Physical activity", "defaultName": "Exercise" },
+      "custom": { "label": "Other", "hint": "Any activity", "defaultName": "Activity" }
+    }
+  },
+  "calendarEdit": {
+    "hour": "Hour",
+    "quantity": "Quantity",
+    "dose": "Dose",
+    "dosageExample": "Quantity / dose (e.g. 2)"
+  },
+  "placeholder": {
+    "insights": "Insights",
+    "meds": "Meds",
+    "more": "More"
+  }
+}

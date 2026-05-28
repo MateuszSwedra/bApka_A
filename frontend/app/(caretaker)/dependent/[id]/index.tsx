@@ -4,12 +4,15 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
-import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
 import { format } from 'date-fns';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
-import { usersAPI } from '../../../../services/api';
+import { usersAPI, scheduleAPI } from '../../../../services/api';
+import { useTranslation } from 'react-i18next';
 
 interface DependentInfo {
   id: string;
@@ -18,10 +21,23 @@ interface DependentInfo {
 }
 
 export default function DependentTodayDashboard() {
-  const params = useLocalSearchParams<{ id: string }>();
-  const dependentId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { t } = useTranslation();
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
 
-  const { schedules, treatments, depletionAlerts } = useMeds();
+  const { schedules, treatments, depletionAlerts, targetUserId } = useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
+  );
   const [dependent, setDependent] = useState<DependentInfo | null>(null);
   const [now, setNow] = useState(new Date());
 
@@ -31,12 +47,16 @@ export default function DependentTodayDashboard() {
     return () => clearInterval(t);
   }, []);
 
+  const [logs, setLogs] = useState<any[]>([]);
+
   const fetchDependent = useCallback(async () => {
     if (!dependentId) return;
     try {
       const all = (await usersAPI.getDependents()) as DependentInfo[];
       const found = all?.find?.(d => String(d.id) === String(dependentId));
       if (found) setDependent(found);
+      const todayLogs = await scheduleAPI.getTodayLogs(dependentId);
+      setLogs(todayLogs);
     } catch (e) {
       console.warn('Nie udało się pobrać danych podopiecznego', e);
     }
@@ -64,8 +84,8 @@ export default function DependentTodayDashboard() {
   const labelFor = (sch: ScheduleItem) => {
     if (sch.customName) return sch.customName;
     const tid = getScheduleTreatmentId(sch);
-    if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Aktywność';
-    return 'Aktywność';
+    if (tid) return treatments.find(tr => tr.id === tid)?.name ?? t('schedule.activityFallback');
+    return t('schedule.activityFallback');
   };
 
   const typeFor = (sch: ScheduleItem) => {
@@ -80,53 +100,95 @@ export default function DependentTodayDashboard() {
     [todaysSchedules, currentMinutes]
   );
 
-  const greeting = dependent?.name?.trim() || dependent?.email || 'Podopieczny';
+  const greeting = dependent?.name?.trim() || dependent?.email || t('caretaker.dependentFallbackName');
+
+  const renderMood = () => {
+    // @ts-ignore
+    if (!dependent?.lastMood || !dependent?.lastMoodAt) return null;
+    // @ts-ignore
+    const moodEmoji = dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
+    // @ts-ignore
+    const date = new Date(dependent.lastMoodAt);
+    const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    return (
+      <View style={{ 
+        flexDirection: 'row', 
+        alignItems: 'center', 
+        backgroundColor: Theme.colors.surfaceGrey, 
+        paddingHorizontal: 12, 
+        paddingVertical: 6, 
+        borderRadius: 20, 
+        alignSelf: 'flex-start', 
+        marginBottom: Theme.spacing.l,
+        borderWidth: 1,
+        borderColor: Theme.colors.border
+      }}>
+        <Text style={{ fontSize: 24 }}>{moodEmoji}</Text>
+        <Text style={{ fontSize: 14, color: Theme.colors.textDark, marginLeft: 8, fontWeight: '700' }}>
+          {t('caretaker.moodAt', { time: timeStr })}
+        </Text>
+      </View>
+    );
+  };
 
   const handleAdd = () => {
     if (!dependentId) return;
-    router.push(`/(caretaker)/add-med/${dependentId}` as any);
+    openAddMedForDependent(dependentId);
+  };
+
+  const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {
+    const log = logs.find(l => l.scheduleId === sch.id);
+    if (log) {
+      if (log.status === 'TAKEN') return { label: t('schedule.status.taken'), color: Theme.colors.success, pill: styles.statusPillSuccess };
+      if (log.status === 'LATE') return { label: t('schedule.status.late'), color: Theme.colors.surfaceWhite, pill: styles.statusPillLate };
+      if (log.status === 'MISSED') return { label: t('schedule.status.skipped'), color: Theme.colors.surfaceWhite, pill: styles.statusPillMissed };
+    }
+    const diff = minutes - currentMinutes;
+    if (Math.abs(diff) <= 5) return { label: t('schedule.status.now'), color: Theme.colors.surfaceWhite, pill: styles.statusPillNext };
+    if (diff < -5) return { label: t('schedule.status.past'), color: Theme.colors.textLight, pill: styles.statusPillPast };
+    if (isNext) return { label: t('schedule.status.next'), color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
+    return { label: t('schedule.status.planned'), color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.greeting}>{greeting}</Text>
+        {renderMood()}
 
         {nextSchedule ? (
           <Card variant="lime" style={styles.mainCard}>
-            <Text style={styles.mainCardSubtitle}>Następna aktywność:</Text>
+            <Text style={styles.mainCardSubtitle}>{t('caretaker.today.nextActivity')}</Text>
             <Text style={styles.mainCardTime}>{nextSchedule.time}</Text>
             <Text style={styles.mainCardDetails}>{labelFor(nextSchedule)}</Text>
           </Card>
         ) : (
           <Card variant="lime" style={styles.mainCard}>
-            <Text style={styles.mainCardSubtitle}>Wszystko na dziś zrobione</Text>
-            <Text style={styles.mainCardDetailsMuted}>
-              Brak kolejnych aktywności w planie.
-            </Text>
+            <Text style={styles.mainCardSubtitle}>{t('caretaker.today.allDone')}</Text>
+            <Text style={styles.mainCardDetailsMuted}>{t('caretaker.today.allDoneHint')}</Text>
           </Card>
         )}
 
         <Card variant="white" style={styles.infoCard}>
           <View style={styles.infoCardTop}>
-            <Text style={styles.infoCardText}>Urządzenie poprawnie zsynchronizowane</Text>
+            <Text style={styles.infoCardText}>{t('caretaker.device.synced')}</Text>
           </View>
           <View style={styles.infoCardBottom}>
-            <Text style={styles.setupText}>Status: OK</Text>
+            <Text style={styles.setupText}>{t('caretaker.device.statusOk')}</Text>
             <MaterialIcons name="check-circle" size={36} color={Theme.colors.success} />
           </View>
         </Card>
 
         {todaysDepletion.length > 0 && (
           <View style={{ marginTop: Theme.spacing.l }}>
-            <Text style={styles.sectionTitle}>Alerty</Text>
+            <Text style={styles.sectionTitle}>{t('caretaker.alerts.title')}</Text>
             {todaysDepletion.map((alert, idx) => (
               <Card
                 key={`alert-${idx}`}
                 variant="white"
                 style={styles.alertCard}
               >
-                <Text style={styles.alertTitle}>Koniec zapasu leku</Text>
+                <Text style={styles.alertTitle}>{t('caretaker.alerts.depletion')}</Text>
                 <View style={styles.scheduleRow}>
                   <MaterialIcons
                     name="shopping-cart"
@@ -134,7 +196,7 @@ export default function DependentTodayDashboard() {
                     color={Theme.colors.accentOrange}
                   />
                   <Text style={styles.alertText}>
-                    Kup nową paczkę: {alert.inventoryItemName}
+                    {t('caretaker.alerts.buyPack', { name: alert.inventoryItemName })}
                   </Text>
                 </View>
               </Card>
@@ -142,13 +204,11 @@ export default function DependentTodayDashboard() {
           </View>
         )}
 
-        <Text style={styles.sectionTitle}>Plan na dziś</Text>
+        <Text style={styles.sectionTitle}>{t('caretaker.today.plan')}</Text>
 
         {todaysSchedules.length === 0 ? (
           <Card variant="grey" style={styles.emptyCard}>
-            <Text style={styles.emptyText}>
-              Brak aktywności na dziś. Dodaj pierwszą w kalendarzu.
-            </Text>
+            <Text style={styles.emptyText}>{t('caretaker.today.empty')}</Text>
           </Card>
         ) : (
           todaysSchedules.map(sch => {
@@ -156,21 +216,16 @@ export default function DependentTodayDashboard() {
             const tType = typeFor(sch);
             const vis = tType ? TREATMENT_VISUAL[tType] : null;
             const minutes = timeToMinutes(sch.time);
-            const isPast = minutes < currentMinutes;
             const isNext = nextSchedule?.id === sch.id;
-
-            const status: 'past' | 'next' | 'upcoming' = isPast
-              ? 'past'
-              : isNext
-                ? 'next'
-                : 'upcoming';
+            
+            const display = getStatusDisplay(sch, minutes, isNext);
 
             return (
               <Card
                 key={sch.id}
-                variant={status === 'next' ? 'lime' : 'grey'}
+                variant={isNext ? 'lime' : 'grey'}
                 style={
-                  status === 'next' ? styles.activeScheduleCard : styles.scheduleCard
+                  isNext ? styles.activeScheduleCard : styles.scheduleCard
                 }
               >
                 <View style={styles.scheduleHead}>
@@ -195,26 +250,9 @@ export default function DependentTodayDashboard() {
                     </View>
                   </View>
 
-                  <View
-                    style={[
-                      styles.statusPill,
-                      status === 'past' && styles.statusPillPast,
-                      status === 'next' && styles.statusPillNext,
-                      status === 'upcoming' && styles.statusPillUpcoming,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.statusPillText,
-                        status === 'past' && { color: Theme.colors.textLight },
-                        status === 'next' && { color: Theme.colors.surfaceWhite },
-                      ]}
-                    >
-                      {status === 'past'
-                        ? 'Minęło'
-                        : status === 'next'
-                          ? 'Teraz'
-                          : 'Zaplanowane'}
+                  <View style={[styles.statusPill, display.pill]}>
+                    <Text style={[styles.statusPillText, { color: display.color }]}>
+                      {display.label}
                     </Text>
                   </View>
                 </View>
@@ -386,6 +424,21 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.small,
     fontWeight: '700',
     color: Theme.colors.textDark,
+  },
+  statusPillSuccess: {
+    backgroundColor: Theme.colors.badgeSuccessBackground || '#e8f5e9',
+    borderColor: Theme.colors.success || '#4caf50',
+    borderWidth: 1,
+  },
+  statusPillLate: {
+    backgroundColor: Theme.colors.surfaceSoftOrange || '#fff3e0',
+    borderColor: Theme.colors.accentOrange || '#ff9800',
+    borderWidth: 1,
+  },
+  statusPillMissed: {
+    backgroundColor: Theme.colors.badgeWarningBackground || '#ffebee',
+    borderColor: Theme.colors.accentOrange || '#ff9800',
+    borderWidth: 1,
   },
   fab: {
     position: 'absolute',

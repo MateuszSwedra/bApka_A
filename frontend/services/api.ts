@@ -89,6 +89,17 @@ function resolveApiBaseUrl(): string {
 
 const API_URL = resolveApiBaseUrl();
 
+export async function getStoredAuthToken(): Promise<string | null> {
+  try {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem('userToken');
+    }
+    return await SecureStore.getItemAsync('userToken');
+  } catch {
+    return null;
+  }
+}
+
 const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${API_URL.replace(/\/$/, '')}${path}`;
@@ -97,16 +108,7 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
     throw new Error(`Nieprawidłowy adres API: ${url}`);
   }
 
-  let token = null;
-  try {
-    if (Platform.OS === 'web') {
-      token = localStorage.getItem('userToken');
-    } else {
-      token = await SecureStore.getItemAsync('userToken');
-    }
-  } catch (e) {
-    // secure store not available on web sometimes
-  }
+  const token = await getStoredAuthToken();
 
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -126,6 +128,22 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const text = await response.text();
 
   if (!response.ok) {
+    // #region agent log
+    if (path.includes('/inventory/')) {
+      fetch('http://127.0.0.1:7440/ingest/0d678d3a-7dc4-4153-b52b-ba4140534c07', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9e4a7a' },
+        body: JSON.stringify({
+          sessionId: '9e4a7a',
+          location: 'api.ts:fetchApi',
+          message: 'inventory API error',
+          data: { url, status: response.status, bodyPreview: text.slice(0, 300) },
+          hypothesisId: 'H-D',
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+    // #endregion
     let detail = `Serwer zwrócił błąd ${response.status}.`;
     if (text) {
       try {
@@ -224,6 +242,42 @@ export const usersAPI = {
     }
     throw lastError;
   },
+  updateMood: async (mood: string) => {
+    return fetchApi('/users/me/mood', {
+      method: 'PATCH',
+      body: JSON.stringify({ mood }),
+    });
+  },
+  updateSettings: async (settings: any) => {
+    return fetchApi('/users/me/settings', {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  },
+  getMoodHistory: async (userId: string, from: string, to: string) => {
+    const params = new URLSearchParams({ from, to }).toString();
+    return fetchApi(`/users/${userId}/moods?${params}`);
+  },
+  createSos: async (note?: string) => {
+    return fetchApi('/users/me/sos', {
+      method: 'POST',
+      body: JSON.stringify({ note: note ?? '' }),
+    });
+  },
+  listSos: async (userId: string, from: string, to: string) => {
+    const params = new URLSearchParams({ from, to }).toString();
+    return fetchApi(`/users/${userId}/sos?${params}`);
+  },
+  createMetric: async (body: any) => {
+    return fetchApi('/users/me/metrics', {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  },
+  listMetrics: async (userId: string, from: string, to: string, type?: string) => {
+    const params = new URLSearchParams({ from, to, ...(type ? { type } : {}) }).toString();
+    return fetchApi(`/users/${userId}/metrics?${params}`);
+  },
 };
 
 export const inventoryAPI = {
@@ -236,6 +290,9 @@ export const inventoryAPI = {
       return [];
     }
   },
+  getById: async (id: string) => {
+    return fetchApi(`/inventory/${id}`);
+  },
   getDepletion: async (inventoryId: string) => {
     try {
       const data = await fetchApi(`/inventory/${inventoryId}/depletion`);
@@ -244,16 +301,79 @@ export const inventoryAPI = {
       console.warn('Error fetching depletion', error);
       return null;
     }
-  }
+  },
+  create: async (userId: string, data: any) => {
+    return fetchApi(`/inventory/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  remove: async (id: string) => {
+    return fetchApi(`/inventory/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  update: async (id: string, data: any) => {
+    return fetchApi(`/inventory/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
 };
 
 export const scheduleAPI = {
   getSchedules: async (userId: string) => {
-    // Zostanie podpięte pod dedykowany kontroler Schedules w przyszłości
-    return [];
+    try {
+      const data = await fetchApi(`/schedules/user/${userId}`);
+      return data;
+    } catch (error) {
+      console.warn('Error fetching schedules', error);
+      return [];
+    }
+  },
+  create: async (userId: string, data: any) => {
+    return fetchApi(`/schedules/${userId}`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+  remove: async (id: string) => {
+    return fetchApi(`/schedules/${id}`, {
+      method: 'DELETE',
+    });
+  },
+  update: async (id: string, data: any) => {
+    return fetchApi(`/schedules/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
   },
   markTaken: async (scheduleId: string) => {
-    // Zostanie podpięte pod DoseLog
-    return { success: true };
+    return fetchApi(`/schedules/logs/${scheduleId}/mark`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'TAKEN' })
+    });
+  },
+  markMissed: async (scheduleId: string) => {
+    return fetchApi(`/schedules/logs/${scheduleId}/mark`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'MISSED' })
+    });
+  },
+  getTodayLogs: async (userId: string) => {
+    try {
+      return await fetchApi(`/schedules/user/${userId}/logs`);
+    } catch {
+      return [];
+    }
+  },
+  getStats: async (userId: string, from: string, to: string) => {
+    const params = new URLSearchParams({ from, to }).toString();
+    try {
+      return await fetchApi(`/schedules/user/${userId}/stats?${params}`);
+    } catch (error) {
+      console.warn('Error fetching schedule stats', error);
+      return null;
+    }
   }
 };

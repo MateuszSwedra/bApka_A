@@ -13,7 +13,7 @@ import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-import { scheduleAPI } from '../../services/api';
+import { scheduleAPI, usersAPI } from '../../services/api';
 import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { format } from 'date-fns';
@@ -24,8 +24,10 @@ import {
 } from '../../services/seniorScheduleCompletion';
 import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { useFocusEffect } from '@react-navigation/native';
+import { useTranslation } from 'react-i18next';
 
 export default function DependentDashboard() {
+  const { t } = useTranslation();
   const { logout } = useAuth();
   const { colors } = useDependentDisplay();
   const { treatments, schedules, inventory, refetchFromServer } = useMeds();
@@ -50,10 +52,17 @@ export default function DependentDashboard() {
     void loadCompleted();
   }, [loadCompleted]);
 
+  const [moodEnabled, setMoodEnabled] = useState(true);
+
   useFocusEffect(
     useCallback(() => {
       void refetchFromServer();
       void loadCompleted();
+      usersAPI.getMe().then(me => {
+        if (me && typeof me.moodEnabled === 'boolean') {
+          setMoodEnabled(me.moodEnabled);
+        }
+      }).catch(() => {});
     }, [refetchFromServer, loadCompleted]),
   );
 
@@ -87,12 +96,17 @@ export default function DependentDashboard() {
       setHighlightMood(true);
       setMoodPhase('pick');
     } catch {
-      Alert.alert('Error', 'Could not record this on the server. Please try again.');
+      Alert.alert(t('common.error'), t('dependent.errorMarkTaken'));
     }
   };
 
-  const onMoodPick = () => {
+  const onMoodPick = async (mood: string) => {
     setMoodPhase('thanks');
+    try {
+      await usersAPI.updateMood(mood);
+    } catch (e) {
+      console.warn('Could not save mood', e);
+    }
     setTimeout(() => {
       setMoodPhase('hidden');
       setHighlightMood(false);
@@ -100,10 +114,7 @@ export default function DependentDashboard() {
   };
 
   const onSos = () => {
-    Alert.alert(
-      'SOS',
-      'You tapped the SOS button. No notification was sent to your carer in this version.',
-    );
+    Alert.alert(t('dependent.sosTitle'), t('dependent.sosMessage'));
   };
 
   const borderMain = colors.mainButtonBorderWidth ?? 0;
@@ -111,10 +122,7 @@ export default function DependentDashboard() {
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
-        <View style={styles.greeting}>
-          <Text style={[styles.greetingText, { color: colors.textLight }]}>Good day,</Text>
-          <Text style={[styles.nameText, { color: colors.textDark }]}>dear senior</Text>
-        </View>
+        <Text style={[styles.headerClock, { color: colors.textDark }]}>{clockText}</Text>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/(dependent)/settings' as any)}
@@ -132,7 +140,7 @@ export default function DependentDashboard() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {moodPhase !== 'hidden' && (
+        {moodEnabled && moodPhase !== 'hidden' && (
           <View
             style={[
               styles.moodWrap,
@@ -146,23 +154,23 @@ export default function DependentDashboard() {
             {moodPhase === 'pick' && (
               <>
                 <Text style={[styles.moodTitle, { color: colors.textDark }]}>
-                  How do you feel today?
+                  {t('dependent.moodTitle')}
                 </Text>
                 <View style={styles.moodRow}>
                   <Pressable
-                    onPress={onMoodPick}
+                    onPress={() => onMoodPick('sad')}
                     style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
                   >
                     <Text style={styles.moodEmoji}>🙁</Text>
                   </Pressable>
                   <Pressable
-                    onPress={onMoodPick}
+                    onPress={() => onMoodPick('neutral')}
                     style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
                   >
                     <Text style={styles.moodEmoji}>😐</Text>
                   </Pressable>
                   <Pressable
-                    onPress={onMoodPick}
+                    onPress={() => onMoodPick('happy')}
                     style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
                   >
                     <Text style={styles.moodEmoji}>🙂</Text>
@@ -172,7 +180,7 @@ export default function DependentDashboard() {
             )}
             {moodPhase === 'thanks' && (
               <Text style={[styles.moodThanks, { color: colors.textDark }]}>
-                Thank you for letting us know.
+                {t('dependent.moodThanks')}
               </Text>
             )}
           </View>
@@ -199,7 +207,7 @@ export default function DependentDashboard() {
               <MaterialIcons name="medication" size={64} color={colors.surfaceWhite} />
             </View>
             <Text style={[styles.mainActionText, { color: colors.surfaceWhite }]}>
-              Take your medicine or do your exercises — it is time from your calendar.
+              {t('dependent.mainDue')}
             </Text>
             <Text style={[styles.mainActionSub, { color: colors.surfaceWhite }]}>{mainState.name}</Text>
           </Pressable>
@@ -218,7 +226,7 @@ export default function DependentDashboard() {
           >
             <MaterialIcons name="schedule" size={40} color={colors.textDark} />
             <Text style={[styles.mainPassiveText, { color: colors.textDark }]}>
-              Next medicine or activity at: {mainState.nextTime}
+              {t('dependent.mainUpcoming', { time: mainState.nextTime })}
             </Text>
             <Text style={[styles.mainPassiveHint, { color: colors.textDark }]}>{mainState.nextName}</Text>
           </View>
@@ -237,7 +245,7 @@ export default function DependentDashboard() {
           >
             <MaterialIcons name="event-available" size={40} color={colors.textDark} />
             <Text style={[styles.mainPassiveText, { color: colors.textDark }]}>
-              {"No activity is required by your carer's calendar right now."}
+              {t('dependent.mainEmpty')}
             </Text>
           </View>
         )}
@@ -255,7 +263,7 @@ export default function DependentDashboard() {
           >
             <MaterialIcons name="task-alt" size={44} color={colors.primaryLimeDark} />
             <Text style={[styles.mainDoneText, { color: colors.textDark }]}>
-              That is all for today — no more planned activities.
+              {t('dependent.mainAllDone')}
             </Text>
           </View>
         )}
@@ -269,14 +277,14 @@ export default function DependentDashboard() {
           onPress={onSos}
         >
           <MaterialIcons name="emergency" size={36} color={colors.surfaceWhite} />
-          <Text style={[styles.sosText, { color: colors.surfaceWhite }]}>SOS</Text>
+          <Text style={[styles.sosText, { color: colors.surfaceWhite }]}>{t('dependent.sosTitle')}</Text>
         </Pressable>
 
         <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{"Today's activities"}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('dependent.todayTitle')}</Text>
         </View>
         {todayRows.length === 0 ? (
-          <Text style={[styles.emptyLine, { color: colors.textLight }]}>Nothing scheduled for today.</Text>
+          <Text style={[styles.emptyLine, { color: colors.textLight }]}>{t('dependent.todayEmpty')}</Text>
         ) : (
           todayRows.map(({ sch, name }) => {
             const tid = getScheduleTreatmentId(sch);
@@ -297,7 +305,16 @@ export default function DependentDashboard() {
                   <Text style={[styles.activityTime, { color: colors.textDark }]}>{sch.time}</Text>
                 </View>
                 <MaterialIcons name={icon} size={28} color={colors.primaryLimeDark} />
-                <Text style={[styles.activityName, { color: colors.textDark }]}>{name}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.activityName, { color: colors.textDark }]}>
+                    {name}
+                  </Text>
+                  {t?.description ? (
+                    <Text style={{ fontSize: 16, color: colors.textDark, marginTop: 4 }}>
+                      {t.description}
+                    </Text>
+                  ) : null}
+                </View>
                 <MaterialIcons
                   name={done ? 'check-circle' : 'radio-button-unchecked'}
                   size={32}
@@ -317,22 +334,24 @@ export default function DependentDashboard() {
         >
           <MaterialIcons name="calendar-month" size={36} color={colors.surfaceWhite} />
           <Text style={[styles.calendarCtaText, { color: colors.surfaceWhite }]}>
-            Open calendar — other days
+            {t('dependent.calendarCta')}
           </Text>
         </Pressable>
 
         <Text style={[styles.sectionTitle, { color: colors.textDark, marginTop: Theme.spacing.l }]}>
-          Medicine left at home
+          {t('dependent.inventoryTitle')}
         </Text>
         {inventory.length === 0 ? (
-          <Text style={[styles.emptyLine, { color: colors.textLight }]}>No packs were added yet.</Text>
+          <Text style={[styles.emptyLine, { color: colors.textLight }]}>{t('dependent.inventoryEmpty')}</Text>
         ) : (
           inventory.map(item => (
             <Card key={item.id} variant="grey" style={{ ...styles.stockCard, borderColor: colors.border }}>
               <Text style={[styles.stockName, { color: colors.textDark }]}>{item.name}</Text>
-              <Text style={[styles.stockCount, { color: colors.primaryLimeDark }]}>
-                {item.totalPills} dose(s) left
-              </Text>
+              {Number(item.totalPills) > 0 && (
+                <Text style={[styles.stockCount, { color: colors.primaryLimeDark }]}>
+                  {t('dependent.inventoryDoses', { count: item.totalPills })}
+                </Text>
+              )}
             </Card>
           ))
         )}
@@ -363,15 +382,11 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.round,
   },
-  greeting: {
+  headerClock: {
     flex: 1,
-  },
-  greetingText: {
-    fontSize: 22,
-  },
-  nameText: {
-    fontSize: 28,
-    fontWeight: 'bold',
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: -1,
   },
   logoutBtn: {
     padding: Theme.spacing.s,

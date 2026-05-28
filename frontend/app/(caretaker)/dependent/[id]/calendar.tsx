@@ -1,52 +1,120 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal, TextInput, Alert } from 'react-native';
+import { Calendar } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { format } from 'date-fns';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useGlobalSearchParams, useLocalSearchParams, useFocusEffect, useSegments } from 'expo-router';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
+import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../../../utils/scheduleHelpers';
-
-LocaleConfig.locales['pl'] = {
-  monthNames: [
-    'Styczeń',
-    'Luty',
-    'Marzec',
-    'Kwiecień',
-    'Maj',
-    'Czerwiec',
-    'Lipiec',
-    'Sierpień',
-    'Wrzesień',
-    'Październik',
-    'Listopad',
-    'Grudzień',
-  ],
-  monthNamesShort: ['Sty', 'Lut', 'Mar', 'Kwi', 'Maj', 'Cze', 'Lip', 'Sie', 'Wrz', 'Paź', 'Lis', 'Gru'],
-  dayNames: ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'],
-  dayNamesShort: ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'],
-  today: 'Dzisiaj',
-};
-LocaleConfig.defaultLocale = 'pl';
+import { buildScheduleMarkedDates } from '../../../../utils/buildScheduleMarkedDates';
+import {
+  TimeScrollPicker,
+  formatTimeParts,
+  parseTimeParts,
+  type TimeScrollPickerRef,
+} from '../../../../components/TimeScrollPicker';
+import { useTranslation } from 'react-i18next';
 
 export default function DependentCalendarScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const dependentId = Array.isArray(id) ? id[0] : id;
+  const { t } = useTranslation();
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
+  const fabBottom = useFabBottomOffset();
 
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const { depletionAlerts, schedules, treatments } = useMeds();
+  const { depletionAlerts, schedules, treatments, updateSchedule, removeSchedule, refetchFromServer, targetUserId } =
+    useMeds();
 
-  const dynamicMarks = depletionAlerts.reduce(
-    (acc, alert) => {
-      acc[alert.date] = { marked: true, dotColor: Theme.colors.accentOrange };
-      return acc;
-    },
-    {} as Record<string, { marked: boolean; dotColor: string }>
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (dependentId) void refetchFromServer(dependentId);
+    }, [dependentId, refetchFromServer]),
+  );
+
+  const editTimePickerRef = useRef<TimeScrollPickerRef>(null);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleItem | null>(null);
+  const [editHour, setEditHour] = useState(8);
+  const [editMinute, setEditMinute] = useState(0);
+  const [editDosage, setEditDosage] = useState('');
+
+  const editingTreatmentType = useMemo(() => {
+    if (!editingSchedule) return undefined;
+    const tid = getScheduleTreatmentId(editingSchedule);
+    return treatments.find(t => t.id === tid)?.type;
+  }, [editingSchedule, treatments]);
+
+  const editingIsMedication = editingTreatmentType === 'MEDICATION';
+
+  useEffect(() => {
+    if (editingSchedule) {
+      const parts = parseTimeParts(editingSchedule.time);
+      setEditHour(parts.hour);
+      setEditMinute(parts.minute);
+      setEditDosage(editingSchedule.dosage || '1');
+    }
+  }, [editingSchedule]);
+
+  const handleSaveEdit = async () => {
+    if (!editingSchedule) return;
+    const picked = editTimePickerRef.current?.getTime() ?? { hour: editHour, minute: editMinute };
+    const editTime = formatTimeParts(picked.hour, picked.minute);
+    try {
+      await updateSchedule(editingSchedule.id, {
+        time: editTime,
+        dosage: editingIsMedication ? editDosage : '1',
+      });
+      setEditingSchedule(null);
+    } catch (e) {
+      Alert.alert(t('common.error'), t('calendar.errorUpdate'));
+    }
+  };
+
+  const handleDelete = () => {
+    if (!editingSchedule) return;
+    Alert.alert(t('calendar.deleteConfirmTitle'), t('calendar.deleteConfirmMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('common.delete'), style: 'destructive', onPress: async () => {
+        try {
+          await removeSchedule(editingSchedule.id);
+          setEditingSchedule(null);
+        } catch (e) {
+          Alert.alert(t('common.error'), t('calendar.errorDelete'));
+        }
+      }},
+    ]);
+  };
+
+  const scheduleMarks = useMemo(
+    () => buildScheduleMarkedDates(schedules, Theme.colors.primaryLimeDark),
+    [schedules],
+  );
+
+  const dynamicMarks = useMemo(() => {
+    const acc = { ...scheduleMarks };
+    depletionAlerts.forEach(alert => {
+      acc[alert.date] = { marked: true, dotColor: Theme.colors.accentOrange };
+    });
+    return acc;
+  }, [scheduleMarks, depletionAlerts]);
 
   const todayAlerts = depletionAlerts.filter(a => a.date === selectedDate);
 
@@ -58,8 +126,8 @@ export default function DependentCalendarScreen() {
   const labelForSchedule = (sch: ScheduleItem) => {
     if (sch.customName) return sch.customName;
     const tid = getScheduleTreatmentId(sch);
-    if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Aktywność';
-    return 'Aktywność';
+    if (tid) return treatments.find(tr => tr.id === tid)?.name ?? t('schedule.activityFallback');
+    return t('schedule.activityFallback');
   };
 
   const typeForSchedule = (sch: ScheduleItem) => {
@@ -104,14 +172,16 @@ export default function DependentCalendarScreen() {
         </View>
 
         <View style={styles.scheduleSection}>
-          <Text style={styles.sectionTitle}>Dzień: {selectedDate}</Text>
+          <Text style={styles.sectionTitle}>{t('calendar.daySection', { date: selectedDate })}</Text>
 
           {todayAlerts.map((alert, idx) => (
             <Card key={`warn-${idx}`} variant="white" style={styles.scheduleCardWarning}>
-              <Text style={styles.scheduleTimeWarning}>Koniec zapasu leku</Text>
+              <Text style={styles.scheduleTimeWarning}>{t('caretaker.alerts.depletion')}</Text>
               <View style={styles.scheduleRow}>
                 <MaterialIcons name="shopping-cart" size={24} color={Theme.colors.accentOrange} />
-                <Text style={styles.scheduleItemWarning}>Kup nową paczkę: {alert.inventoryItemName}</Text>
+                <Text style={styles.scheduleItemWarning}>
+                  {t('caretaker.alerts.buyPack', { name: alert.inventoryItemName })}
+                </Text>
               </View>
             </Card>
           ))}
@@ -123,38 +193,101 @@ export default function DependentCalendarScreen() {
               tType && TREATMENT_VISUAL[tType]
                 ? TREATMENT_VISUAL[tType].icon
                 : ('event' as const);
-            const typeLabel =
+            const scheduleTypeLabel =
               sch.type === 'ONCE'
-                ? 'Jednorazowo'
+                ? t('schedule.type.once')
                 : sch.type === 'REGULAR'
-                  ? 'Stałe'
-                  : 'Tymczasowo';
+                  ? t('schedule.type.regular')
+                  : t('schedule.type.temporary');
             return (
-              <Card key={sch.id} variant="grey" style={styles.scheduleCard}>
-                <Text style={styles.scheduleTime}>
-                  {sch.time} · {typeLabel}
-                </Text>
-                <View style={styles.scheduleRow}>
-                  <MaterialIcons name={icon} size={20} color={Theme.colors.success} />
-                  <Text style={styles.scheduleItemDone}>{name}</Text>
-                </View>
-              </Card>
+              <Pressable
+                key={sch.id}
+                onPress={() => setEditingSchedule(sch)}
+              >
+                <Card variant="grey" style={styles.scheduleCard}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <View>
+                      <Text style={styles.scheduleTime}>
+                        {sch.time} · {scheduleTypeLabel}
+                        {sch.dosage && sch.dosage !== '1'
+                          ? t('schedule.dosagePieces', { count: sch.dosage })
+                          : ''}
+                      </Text>
+                      <View style={styles.scheduleRow}>
+                        <MaterialIcons name={icon} size={20} color={Theme.colors.success} />
+                        <Text style={styles.scheduleItemDone}>{name}</Text>
+                      </View>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 16 }}>
+                      <MaterialIcons name="edit" size={24} color={Theme.colors.primaryLimeDark} />
+                    </View>
+                  </View>
+                </Card>
+              </Pressable>
             );
           })}
 
           {scheduledForToday.length === 0 && todayAlerts.length === 0 && (
-            <Text style={styles.emptyDay}>Brak aktywności na ten dzień.</Text>
+            <Text style={styles.emptyDay}>{t('calendar.emptyDay')}</Text>
           )}
         </View>
       </ScrollView>
 
+      {/* MODAL EDYCJI */}
+      <Modal visible={!!editingSchedule} transparent animationType="fade">
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>{t('calendar.editTitle')}</Text>
+            
+            <Text style={styles.label}>{t('calendarEdit.hour')}</Text>
+            <TimeScrollPicker
+              ref={editTimePickerRef}
+              hour={editHour}
+              minute={editMinute}
+              onHourChange={setEditHour}
+              onMinuteChange={setEditMinute}
+            />
+
+            {editingIsMedication && (
+              <>
+                <Text style={styles.label}>{t('calendarEdit.dosageExample')}</Text>
+                <TextInput
+                  style={styles.textInput}
+                  value={editDosage}
+                  onChangeText={setEditDosage}
+                  keyboardType="number-pad"
+                />
+              </>
+            )}
+            
+            <View style={styles.modalActions}>
+              <Pressable style={styles.modalBtnGhost} onPress={() => setEditingSchedule(null)}>
+                <Text style={styles.modalBtnGhostText}>{t('common.cancel')}</Text>
+              </Pressable>
+              
+              <Pressable style={[styles.modalBtnGhost, { borderColor: Theme.colors.accentOrange }]} onPress={handleDelete}>
+                <Text style={[styles.modalBtnGhostText, { color: Theme.colors.accentOrange }]}>
+                  {t('calendar.deleteCycle')}
+                </Text>
+              </Pressable>
+
+              <Pressable style={styles.modalBtnPrimary} onPress={handleSaveEdit}>
+                <Text style={styles.modalBtnPrimaryText}>{t('common.save')}</Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       <Pressable
-        style={styles.fab}
-        onPress={() =>
-          dependentId
-            ? router.push(`/(caretaker)/add-med/${dependentId}` as any)
-            : router.push('/(caretaker)/add-med/1' as any)
-        }
+        style={[styles.fab, { bottom: fabBottom }]}
+        onPress={() => {
+          if (!dependentId) {
+            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+            return;
+          }
+          openAddMedForDependent(dependentId);
+        }}
       >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
       </Pressable>
@@ -230,8 +363,9 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
     right: Theme.spacing.xl,
+    zIndex: 10,
+    elevation: 8,
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
     height: 64,
@@ -240,5 +374,62 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Theme.colors.primaryLimeDark,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    padding: Theme.spacing.l,
+  },
+  modalCard: {
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    padding: Theme.spacing.l,
+  },
+  modalTitle: {
+    fontSize: Theme.typography.title,
+    fontWeight: 'bold',
+    marginBottom: Theme.spacing.m,
+  },
+  label: {
+    fontSize: Theme.typography.caption,
+    fontWeight: 'bold',
+    marginBottom: 4,
+    marginTop: Theme.spacing.m,
+  },
+  textInput: {
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.borderRadius.medium,
+    padding: Theme.spacing.m,
+    fontSize: Theme.typography.body,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: Theme.spacing.xl,
+    gap: Theme.spacing.m,
+  },
+  modalBtnGhost: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Theme.borderRadius.round,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  modalBtnGhostText: {
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+  },
+  modalBtnPrimary: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: Theme.borderRadius.round,
+    backgroundColor: Theme.colors.primaryLimeDark,
+  },
+  modalBtnPrimaryText: {
+    fontSize: Theme.typography.body,
+    fontWeight: 'bold',
+    color: Theme.colors.surfaceWhite,
   },
 });

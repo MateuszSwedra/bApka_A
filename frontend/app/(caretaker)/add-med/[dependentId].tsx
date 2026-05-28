@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -8,14 +8,24 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Alert,
 } from 'react-native';
-import { useLocalSearchParams, router } from 'expo-router';
+import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Theme } from '../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, MedScheduleType } from '../../../context/MedsContext';
+import { pickDependentUserId } from '../../../utils/resolveMedsTargetUserId';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
+import { openAddTreatmentForDependent } from '../../../utils/caretakerNavigation';
+import {
+  TimeScrollPicker,
+  formatTimeParts,
+  type TimeScrollPickerRef,
+} from '../../../components/TimeScrollPicker';
+import { useTranslation } from 'react-i18next';
 
 /** yyyy-MM-dd → data w lokalnej strefie (unika błędów parseISO / UTC). */
 function parseYmdLocal(ymd: string): Date {
@@ -27,19 +37,48 @@ function compareYmd(a: string, b: string): number {
   return parseYmdLocal(a).getTime() - parseYmdLocal(b).getTime();
 }
 
-export default function AddMedicationScreen() {
-  const params = useLocalSearchParams<{ dependentId: string }>();
-  const dependentId = Array.isArray(params.dependentId)
-    ? params.dependentId[0]
-    : params.dependentId;
+const WEEKDAY_IDS = [1, 2, 3, 4, 5, 6, 7] as const;
 
-  const { treatments, addSchedule } = useMeds();
+export default function AddMedicationScreen() {
+  const { t } = useTranslation();
+  const localParams = useLocalSearchParams<{ dependentId?: string; id?: string }>();
+  const globalParams = useGlobalSearchParams<{ dependentId?: string; id?: string }>();
+  const segments = useSegments();
+  const { treatments, addSchedule, refetchFromServer, targetUserId } = useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localDependentId: localParams.dependentId,
+        localId: localParams.id,
+        globalDependentId: globalParams.dependentId,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [
+      localParams.dependentId,
+      localParams.id,
+      globalParams.dependentId,
+      globalParams.id,
+      segments,
+      targetUserId,
+    ],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (dependentId) void refetchFromServer(dependentId);
+    }, [dependentId, refetchFromServer]),
+  );
 
   const [medType, setMedType] = useState<MedScheduleType>('ONCE');
   const [selectedTreatmentId, setSelectedTreatmentId] = useState<string | null>(null);
 
-  const [hour, setHour] = useState('08');
-  const [minute, setMinute] = useState('00');
+  const timePickerRef = useRef<TimeScrollPickerRef>(null);
+  const [hour, setHour] = useState(8);
+  const [minute, setMinute] = useState(0);
+  const [dosage, setDosage] = useState('1');
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
@@ -60,43 +99,11 @@ export default function AddMedicationScreen() {
     setTempRangeComplete(false);
   }, [medType, today]);
 
-  const daysOfWeek = [
-    { id: 1, label: 'Pn' },
-    { id: 2, label: 'Wt' },
-    { id: 3, label: 'Śr' },
-    { id: 4, label: 'Cz' },
-    { id: 5, label: 'Pt' },
-    { id: 6, label: 'Sb' },
-    { id: 7, label: 'Nd' },
-  ];
-
-  const handleHourChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '');
-    if (cleaned.length <= 2) {
-      const val = parseInt(cleaned, 10);
-      if (!val || val < 24) setHour(cleaned);
-      if (val >= 24) setHour('23');
-    }
-  };
-
-  const handleMinuteChange = (text: string) => {
-    const cleaned = text.replace(/[^0-9]/g, '');
-    if (cleaned.length <= 2) {
-      const val = parseInt(cleaned, 10);
-      if (!val || val < 60) setMinute(cleaned);
-      if (val >= 60) setMinute('59');
-    }
-  };
-
-  const handleHourBlur = () => {
-    if (hour.length === 1) setHour('0' + hour);
-    if (hour.length === 0) setHour('00');
-  };
-
-  const handleMinuteBlur = () => {
-    if (minute.length === 1) setMinute('0' + minute);
-    if (minute.length === 0) setMinute('00');
-  };
+  const selectedTreatment = useMemo(
+    () => treatments.find(t => t.id === selectedTreatmentId) ?? null,
+    [treatments, selectedTreatmentId],
+  );
+  const isMedication = selectedTreatment?.type === 'MEDICATION';
 
   const toggleDay = (id: number) => {
     setSelectedDays(prev =>
@@ -112,8 +119,8 @@ export default function AddMedicationScreen() {
     return false;
   };
 
-  const handleSave = () => {
-    if (!canSave() || !selectedTreatmentId) return;
+  const handleSave = async () => {
+    if (!canSave() || !selectedTreatmentId || !dependentId) return;
     let startDate = today;
     let endDate: string | undefined;
     let daysOfWeek: number[] = [];
@@ -122,18 +129,27 @@ export default function AddMedicationScreen() {
     if (medType === 'TEMPORARY') {
       startDate = tempStart;
       endDate = tempEnd;
-      // Brak zaznaczonych dni = codziennie w okresie
       daysOfWeek = selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5, 6, 7];
     }
-    addSchedule({
-      treatmentId: selectedTreatmentId,
-      type: medType,
-      time: `${hour}:${minute}`,
-      daysOfWeek,
-      startDate,
-      endDate,
-    });
-    router.back();
+    const picked = timePickerRef.current?.getTime() ?? { hour, minute };
+    const timeStr = formatTimeParts(picked.hour, picked.minute);
+    try {
+      await addSchedule(
+        {
+          treatmentId: selectedTreatmentId,
+          type: medType,
+          time: timeStr,
+          dosage: isMedication ? dosage : '1',
+          daysOfWeek,
+          startDate,
+          endDate,
+        },
+        dependentId,
+      );
+      router.back();
+    } catch {
+      // zalogowane w MedsContext
+    }
   };
 
   const handleTempDayPress = (dateString: string) => {
@@ -195,8 +211,11 @@ export default function AddMedicationScreen() {
   }, [tempStart, tempEnd]);
 
   const openAddTreatment = () => {
-    if (!dependentId) return;
-    router.push(`/(caretaker)/add-treatment/${dependentId}` as any);
+    if (!dependentId) {
+      Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+      return;
+    }
+    openAddTreatmentForDependent(dependentId);
   };
 
   const calendarTheme = {
@@ -217,12 +236,9 @@ export default function AddMedicationScreen() {
 
   const renderActivityPicker = () => (
     <View style={styles.section}>
-      <Text style={styles.label}>Aktywności z apteczki</Text>
+      <Text style={styles.label}>{t('schedule.add.activities')}</Text>
       {treatments.length === 0 ? (
-        <Text style={styles.hint}>
-          Brak aktywności. Dotknij „+”, aby dodać pierwszą — po zapisie wrócisz tutaj i wybierzesz ją w
-          kalendarzu.
-        </Text>
+        <Text style={styles.hint}>{t('schedule.add.activitiesEmpty')}</Text>
       ) : null}
       <ScrollView
         horizontal
@@ -261,8 +277,9 @@ export default function AddMedicationScreen() {
         })}
         <Pressable
           onPress={openAddTreatment}
-          style={[styles.activityAddPill]}
-          accessibilityLabel="Dodaj aktywność do apteczki"
+          style={styles.activityAddPill}
+          accessibilityLabel={t('schedule.add.a11yAddActivity')}
+          hitSlop={8}
         >
           <MaterialIcons name="add" size={24} color={Theme.colors.primaryLimeDark} />
         </Pressable>
@@ -279,10 +296,10 @@ export default function AddMedicationScreen() {
         <Pressable onPress={() => router.back()} style={styles.iconBtn}>
           <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
         </Pressable>
-        <Text style={styles.headerTitle}>Dodaj do Kalendarza</Text>
+        <Text style={styles.headerTitle}>{t('schedule.add.title')}</Text>
         <Pressable onPress={handleSave} style={styles.saveBtn} disabled={!canSave()}>
           <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>
-            Zapisz
+            {t('common.save')}
           </Text>
         </Pressable>
       </View>
@@ -295,14 +312,14 @@ export default function AddMedicationScreen() {
       >
         {renderActivityPicker()}
 
-        <Text style={styles.label}>Rodzaj podawania</Text>
+        <Text style={styles.label}>{t('schedule.add.medType')}</Text>
         <View style={styles.segmentContainer}>
           <Pressable
             style={[styles.segmentBtn, medType === 'ONCE' && styles.segmentBtnActive]}
             onPress={() => setMedType('ONCE')}
           >
             <Text style={[styles.segmentText, medType === 'ONCE' && styles.segmentTextActive]}>
-              Jednorazowo
+              {t('schedule.type.once')}
             </Text>
           </Pressable>
           <Pressable
@@ -310,7 +327,7 @@ export default function AddMedicationScreen() {
             onPress={() => setMedType('REGULAR')}
           >
             <Text style={[styles.segmentText, medType === 'REGULAR' && styles.segmentTextActive]}>
-              Stałe
+              {t('schedule.type.regular')}
             </Text>
           </Pressable>
           <Pressable
@@ -318,37 +335,36 @@ export default function AddMedicationScreen() {
             onPress={() => setMedType('TEMPORARY')}
           >
             <Text style={[styles.segmentText, medType === 'TEMPORARY' && styles.segmentTextActive]}>
-              Tymczasowo
+              {t('schedule.type.temporary')}
             </Text>
           </Pressable>
         </View>
 
-        <Text style={styles.label}>Godzina</Text>
-        <View style={styles.timeContainer}>
-          <TextInput
-            style={styles.timeInput}
-            value={hour}
-            onChangeText={handleHourChange}
-            onBlur={handleHourBlur}
-            keyboardType="number-pad"
-            maxLength={2}
-            selectTextOnFocus
-          />
-          <Text style={styles.timeSeparator}>:</Text>
-          <TextInput
-            style={styles.timeInput}
-            value={minute}
-            onChangeText={handleMinuteChange}
-            onBlur={handleMinuteBlur}
-            keyboardType="number-pad"
-            maxLength={2}
-            selectTextOnFocus
-          />
-        </View>
+        <Text style={styles.label}>{t('common.hour')}</Text>
+        <TimeScrollPicker
+          ref={timePickerRef}
+          hour={hour}
+          minute={minute}
+          onHourChange={setHour}
+          onMinuteChange={setMinute}
+        />
+
+        {isMedication && (
+          <>
+            <Text style={styles.label}>{t('schedule.add.dosagePills')}</Text>
+            <TextInput
+              style={[styles.dosageInput, { alignSelf: 'center' }]}
+              value={dosage}
+              onChangeText={setDosage}
+              keyboardType="number-pad"
+              selectTextOnFocus
+            />
+          </>
+        )}
 
         {medType === 'ONCE' && (
           <View style={styles.section}>
-            <Text style={styles.label}>Wybierz datę</Text>
+            <Text style={styles.label}>{t('schedule.add.pickDate')}</Text>
             <View style={styles.calendarWrapper}>
               <Calendar
                 current={selectedDate}
@@ -364,23 +380,23 @@ export default function AddMedicationScreen() {
         {(medType === 'REGULAR' || medType === 'TEMPORARY') && (
           <View style={styles.section}>
             <Text style={styles.label}>
-              Dni tygodnia{medType === 'TEMPORARY' ? ' (opcjonalne)' : ''}
+              {medType === 'TEMPORARY' ? t('schedule.add.weekdaysOptional') : t('schedule.add.weekdays')}
             </Text>
             {medType === 'TEMPORARY' && (
-              <Text style={styles.weekdaysHint}>
-                Pozostaw puste, by aktywność była każdego dnia w wybranym okresie.
-              </Text>
+              <Text style={styles.weekdaysHint}>{t('schedule.add.weekdaysHint')}</Text>
             )}
             <View style={styles.daysRow}>
-              {daysOfWeek.map(day => {
-                const isActive = selectedDays.includes(day.id);
+              {WEEKDAY_IDS.map(dayNum => {
+                const isActive = selectedDays.includes(dayNum);
                 return (
                   <Pressable
-                    key={day.id}
+                    key={dayNum}
                     style={[styles.dayCircle, isActive && styles.dayCircleActive]}
-                    onPress={() => toggleDay(day.id)}
+                    onPress={() => toggleDay(dayNum)}
                   >
-                    <Text style={[styles.dayText, isActive && styles.dayTextActive]}>{day.label}</Text>
+                    <Text style={[styles.dayText, isActive && styles.dayTextActive]}>
+                      {t(`calendar.weekdayShort.${dayNum}`)}
+                    </Text>
                   </Pressable>
                 );
               })}
@@ -391,29 +407,29 @@ export default function AddMedicationScreen() {
         {medType === 'TEMPORARY' && (
           <View style={styles.section}>
             <View style={styles.rangeHeader}>
-              <Text style={[styles.label, { marginTop: 0 }]}>Okres podawania</Text>
+              <Text style={[styles.label, { marginTop: 0 }]}>{t('schedule.add.periodTitle')}</Text>
               <Pressable onPress={resetTempRange} style={styles.resetBtn} hitSlop={8}>
                 <MaterialIcons name="refresh" size={16} color={Theme.colors.primaryLimeDark} />
-                <Text style={styles.resetBtnText}>Wyczyść</Text>
+                <Text style={styles.resetBtnText}>{t('schedule.add.clear')}</Text>
               </Pressable>
             </View>
             <View style={styles.rangePreview}>
               <View style={styles.rangePill}>
-                <Text style={styles.rangePillLabel}>Od</Text>
+                <Text style={styles.rangePillLabel}>{t('schedule.add.from')}</Text>
                 <Text style={styles.rangePillValue}>{tempStart}</Text>
               </View>
               <MaterialIcons name="arrow-forward" size={18} color={Theme.colors.textLight} />
               <View style={styles.rangePill}>
-                <Text style={styles.rangePillLabel}>Do</Text>
+                <Text style={styles.rangePillLabel}>{t('schedule.add.to')}</Text>
                 <Text style={styles.rangePillValue}>{tempEnd}</Text>
               </View>
             </View>
             <Text style={styles.rangeHint}>
               {tempRangeComplete
-                ? 'Zakres ustawiony. Dotknij innego dnia, aby zacząć od nowa.'
+                ? t('schedule.add.rangeSet')
                 : tempSelectingStart
-                  ? 'Zaznacz datę początkową okresu'
-                  : 'Teraz zaznacz datę końcową okresu'}
+                  ? t('schedule.add.rangeStart')
+                  : t('schedule.add.rangeEnd')}
             </Text>
             <View style={styles.calendarPeriodWrapper}>
               <Calendar
@@ -556,28 +572,16 @@ const styles = StyleSheet.create({
     marginBottom: Theme.spacing.s,
     lineHeight: 20,
   },
-  timeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: Theme.spacing.s,
-  },
-  timeInput: {
+  dosageInput: {
     backgroundColor: Theme.colors.surfaceGrey,
     borderRadius: 16,
-    width: 80,
-    height: 90,
+    width: 120,
+    height: 60,
     textAlign: 'center',
-    fontSize: 48,
+    fontSize: 32,
     fontWeight: '300',
     color: Theme.colors.textDark,
-  },
-  timeSeparator: {
-    fontSize: 48,
-    fontWeight: '300',
-    color: Theme.colors.textLight,
-    marginHorizontal: 16,
-    marginBottom: 8,
+    marginTop: Theme.spacing.s,
   },
   calendarWrapper: {
     borderWidth: 1,

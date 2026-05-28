@@ -1,0 +1,412 @@
+{
+  "brand": { "name": "bApka" },
+  "common": {
+    "back": "Wróć",
+    "save": "Zapisz",
+    "cancel": "Anuluj",
+    "done": "Gotowe",
+    "delete": "Usuń",
+    "error": "Błąd",
+    "success": "Sukces",
+    "edit": "Edytuj",
+    "hour": "Godzina",
+    "minute": "Minuta"
+  },
+  "calendar": {
+    "monthNames": ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"],
+    "monthNamesShort": ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"],
+    "dayNames": ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"],
+    "dayNamesShort": ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"],
+    "today": "Dzisiaj",
+    "daySection": "Dzień: {{date}}",
+    "emptyDay": "Brak aktywności na ten dzień.",
+    "editTitle": "Edytuj harmonogram",
+    "deleteCycle": "Usuń cykl",
+    "deleteConfirmTitle": "Usuwanie cyklu",
+    "deleteConfirmMessage": "Czy na pewno chcesz usunąć ten harmonogram?",
+    "errorUpdate": "Nie udało się zaktualizować harmonogramu",
+    "errorDelete": "Nie udało się usunąć harmonogramu",
+    "title": "Twój kalendarz",
+    "weekdayShort": { "1": "Pn", "2": "Wt", "3": "Śr", "4": "Cz", "5": "Pt", "6": "Sb", "7": "Nd" }
+  },
+  "tabs": {
+    "today": "Dziś",
+    "calendar": "Kalendarz",
+    "treatment": "Apteczka",
+    "insights": "Statystyki",
+    "meds": "Leki",
+    "more": "Więcej"
+  },
+  "errors": {
+    "invalidDependentProfile": "Nieprawidłowy profil podopiecznego. Wróć do listy i otwórz profil ponownie.",
+    "dependentUnlinked": "Ten podopieczny nie jest już powiązany z kontem. Odśwież listę na ekranie głównym i sparuj ponownie.",
+    "invalidDependentId": "Nieprawidłowy identyfikator podopiecznego."
+  },
+  "onboarding": {
+    "welcome": {
+      "slide1": { "title": "Pomoc dla Twojego seniora" },
+      "slide2": { "title": "Przypomnienia o lekach", "subtitle": "i wiele więcej" },
+      "slide3": { "title": "Śledź postępy podopiecznego" },
+      "cta": "Zaczynamy"
+    },
+    "name": {
+      "title": "Jak mamy się do Ciebie zwracać?",
+      "subtitle": "To imię zobaczą opiekun i podopieczni w aplikacji.",
+      "placeholder": "Np. Ania, Pani Basia, Tato…",
+      "cta": "Dalej",
+      "saving": "Zapisujemy…",
+      "errorEmpty": "Podaj imię lub pseudonim.",
+      "errorMinLength": "Wpisz co najmniej 2 znaki — np. imię lub zwracane imię.",
+      "errorMaxLength": "To pole może mieć co najwyżej 80 znaków.",
+      "errorSave": "Nie udało się zapisać. Spróbuj ponownie."
+    }
+  },
+  "consents": {
+    "title": "Twój komfort jest najważniejszy",
+    "privacy": {
+      "title": "Zapewnienie prywatności",
+      "body": "Dbamy o bezpieczeństwo Twoich danych. Korzystamy z nich wyłącznie w celu działania aplikacji i zgodnie z przepisami."
+    },
+    "analytics": {
+      "title": "Ulepszanie doświadczenia",
+      "body": "Możemy zbierać anonimowe statystyki użytkowania, aby ulepszać funkcje i stabilność aplikacji."
+    },
+    "legal": {
+      "body": "Korzystając z bApka, akceptujesz naszą Politykę prywatności oraz Warunki korzystania z serwisu."
+    },
+    "linkPrivacy": "Polityce prywatności bApka",
+    "linkTerms": "Warunki korzystania z serwisu bApka",
+    "granular": {
+      "title": "Wybór zgód",
+      "analytics": "Analityka i ulepszanie aplikacji",
+      "tailored": "Spersonalizowane treści i rekomendacje",
+      "backSimple": "Wróć do widoku uproszczonego"
+    },
+    "withdrawNote": "Zgodę mogę wycofać w ustawieniach aplikacji.",
+    "ctaAcceptAll": "Akceptuję wszystko",
+    "ctaSave": "Zapisz i kontynuuj",
+    "ctaSettings": "Przejdź do ustawień"
+  },
+  "auth": {
+    "pick": {
+      "title": "Witaj",
+      "subtitle": "Wybierz, czy zakładasz nowe konto, czy logujesz się do istniejącego.",
+      "register": "Załóż konto",
+      "signIn": "Zaloguj się"
+    },
+    "register": {
+      "title": "Rejestracja",
+      "hint": "Utwórz konto opiekuna lub podopiecznego."
+    },
+    "signIn": {
+      "title": "Logowanie",
+      "hint": "Wpisz dane konta, które już utworzyłeś."
+    },
+    "fieldEmail": "E-mail",
+    "fieldPassword": "Hasło",
+    "fieldPasswordRepeat": "Powtórz hasło",
+    "a11yHidePassword": "Ukryj hasło",
+    "a11yShowPassword": "Pokaż hasło",
+    "loadingRegister": "Chwileczkę…",
+    "loadingLogin": "Logowanie…",
+    "ctaRegister": "Utwórz konto",
+    "ctaLogin": "Zaloguj",
+    "hasAccount": "Masz już konto?",
+    "noAccount": "Nie masz konta?",
+    "errorLoginTitle": "Błąd logowania",
+    "errorRegisterTitle": "Błąd rejestracji",
+    "validationEmailPassword": "Wpisz e-mail i hasło",
+    "validationAllFields": "Uzupełnij wszystkie pola",
+    "validationPasswordMatch": "Hasła muszą być takie same",
+    "validationPasswordLength": "Hasło powinno mieć co najmniej 6 znaków",
+    "errorLoginFallback": "Nieprawidłowy e-mail lub hasło albo brak połączenia z serwerem.",
+    "errorRegisterFallback": "Sprawdź dane lub połączenie z serwerem i spróbuj ponownie."
+  },
+  "role": {
+    "title": "Wybierz swoją rolę",
+    "subtitle": "Dostosujemy aplikację do Twoich potrzeb.",
+    "caretaker": { "title": "Opiekun", "desc": "Zarządzasz harmonogramem i lekami podopiecznego." },
+    "dependent": { "title": "Podopieczny", "desc": "Otrzymujesz przypomnienia i łatwo oznaczasz wykonane czynności." },
+    "errorUpdate": "Nie udało się zaktualizować roli. Spróbuj ponownie."
+  },
+  "seniorType": {
+    "title": "Jak chcesz korzystać?",
+    "subtitle": "Wybierz tryb dopasowany do Twojej sytuacji.",
+    "withCaretaker": { "title": "Z Opiekunem", "desc": "Opiekun ustawia harmonogram, Ty korzystasz z przypomnień." },
+    "independent": { "title": "Samodzielnie", "desc": "Samodzielnie zarządzasz lekami i aktywnościami." },
+    "errorUpdate": "Nie udało się zaktualizować typu konta."
+  },
+  "profileReady": {
+    "greeting": "Miło nam Cię poznać, {{name}}!",
+    "greetingGeneric": "Miło nam Cię poznać!",
+    "subtitle": "Twój profil został utworzony.",
+    "cta": "Kontynuuj"
+  },
+  "notification": {
+    "titleCaretaker": "Zezwól na powiadomienia!",
+    "titleDependent": "Nigdy nie zapomnij o lekach!",
+    "subtitleCaretaker": "Powiadomimy Cię o ważnych zdarzeniach u podopiecznych.",
+    "subtitleDependent": "Przypomnimy o lekach i aktywnościach z kalendarza.",
+    "loading": "Chwileczkę…",
+    "cta": "Zezwól na powiadomienia",
+    "skip": "Nie, podejmuję ryzyko"
+  },
+  "pairing": {
+    "enterPin": {
+      "title": "Podaj kod PIN",
+      "subtitle": "Wpisz 6-cyfrowy kod wyświetlony u opiekuna."
+    },
+    "dependent": { "title": "Wpisz kod od Opiekuna" },
+    "pinPlaceholder": "------",
+    "ctaConnect": "Połącz konto",
+    "ctaConnectUpper": "POŁĄCZ",
+    "validationLength": "PIN musi mieć 6 cyfr.",
+    "alertErrorTitle": "Błąd parowania",
+    "alertSuccessTitle": "Sukces",
+    "alertSuccessMessage": "Konto zostało połączone.",
+    "alertInvalidPin": "Podany kod PIN jest nieprawidłowy lub wygasł."
+  },
+  "sounds": {
+    "screenTitle": "Dźwięki powiadomień",
+    "default": { "label": "Domyślny systemowy", "description": "Standardowy dźwięk systemu przy powiadomieniu." },
+    "gentle": { "label": "Łagodny", "description": "Krótki, dyskretny sygnał." },
+    "strong": { "label": "Wyraźny", "description": "Bardziej zauważalny sygnał." },
+    "sectionMedication": "Przypomnienie o leku",
+    "sectionMedicationSubtitleCaretaker": "Dźwięk przypomnienia dla Ciebie o lekach podopiecznego.",
+    "sectionMedicationSubtitleDependent": "Dźwięk przypomnienia o lekach i aktywnościach.",
+    "sectionSos": "Powiadomienie SOS",
+    "sectionSosSubtitle": "Osobny dźwięk dla alarmu SOS.",
+    "a11yPreview": "Odsłuchaj: {{label}}",
+    "webHint": "W przeglądarce podgląd może być wyciszony — na telefonie usłyszysz pełny dźwięk."
+  },
+  "caretaker": {
+    "dashboard": {
+      "badge": "Panel Opiekuna",
+      "title": "Twoi podopieczni",
+      "emptyTitle": "Brak podopiecznych",
+      "emptySubtitle": "Dodaj pierwszego podopiecznego, aby zarządzać harmonogramem.",
+      "statusAttention": "Wymaga uwagi",
+      "statusOk": "Wszystko ok"
+    },
+    "insights": {
+      "title": "Statystyki",
+      "range": {
+        "today": "Dziś",
+        "week": "7 dni",
+        "month": "30 dni"
+      },
+      "rangeLabel": "Okres: {{range}}",
+      "loading": "Ładowanie statystyk…",
+      "errorGeneric": "Nie udało się pobrać statystyk.",
+      "sectionDoses": "Dawki leków",
+      "sectionMood": "Humor seniora",
+      "dosesTaken": "Przyjęte dawki",
+      "dosesLate": "Spóźnione dawki",
+      "dosesMissed": "Pominięte dawki",
+      "dosesPlanned": "Zaplanowane dawki",
+      "dosesOnTime": "Na czas (±{{window}} min)",
+      "dosesEmpty": "Brak danych o dawkach w tym okresie.",
+      "moodEmpty": "Brak zapisanych humorów w tym okresie."
+    },
+    "moodAt": "Humor z {{time}}",
+    "dependentHeader": "Profil Podopiecznego",
+    "dependentFallbackName": "Podopieczny",
+    "pairing": {
+      "title": "Dodaj Podopiecznego",
+      "instructions": "Poproś podopiecznego o wybranie opcji „Mam Opiekuna” i wpisanie kodu poniżej.",
+      "a11yCode": "Kod parowania {{code}}",
+      "a11yCopy": "Kopiuj kod do schowka",
+      "hint": "Możesz zaznaczyć kod i skopiować go ręcznie.",
+      "alertCopiedTitle": "Skopiowano",
+      "alertCopiedMessage": "Kod został skopiowany do schowka.",
+      "alertCopyError": "Nie udało się skopiować kodu.",
+      "alertGenerateError": "Nie udało się wygenerować kodu parowania."
+    },
+    "today": {
+      "nextActivity": "Następna aktywność:",
+      "allDone": "Wszystko na dziś zrobione",
+      "allDoneHint": "Brak kolejnych aktywności w harmonogramie na dziś.",
+      "plan": "Plan na dziś",
+      "empty": "Brak aktywności na dziś w harmonogramie."
+    },
+    "device": {
+      "synced": "Urządzenie poprawnie zsynchronizowane",
+      "statusOk": "Status: OK"
+    },
+    "alerts": {
+      "title": "Alerty",
+      "depletion": "Koniec zapasu leku",
+      "buyPack": "Kup nową paczkę: {{name}}"
+    }
+  },
+  "dependent": {
+    "greeting": "Dzień dobry,",
+    "nameFallback": "drogi seniorze",
+    "moodTitle": "Jak się dziś czujesz?",
+    "moodThanks": "Dziękujemy za informację.",
+    "mainDue": "Czas na leki lub ćwiczenia — zgodnie z kalendarzem.",
+    "mainUpcoming": "Następna aktywność o: {{time}}",
+    "mainEmpty": "Kalendarz opiekuna nie wymaga teraz żadnej aktywności.",
+    "mainAllDone": "To wszystko na dziś — brak zaplanowanych aktywności.",
+    "sosTitle": "SOS",
+    "sosMessage": "Naciśnięto przycisk SOS. W tej wersji powiadomienie do opiekuna nie zostało wysłane.",
+    "todayTitle": "Dzisiejsze aktywności",
+    "todayEmpty": "Brak zaplanowanych aktywności na dziś.",
+    "calendarCta": "Otwórz kalendarz — inne dni",
+    "inventoryTitle": "Leki w domu",
+    "inventoryEmpty": "Nie dodano jeszcze żadnych opakowań.",
+    "inventoryDoses": "{{count}} dawek pozostało",
+    "inventoryDoses_one": "{{count}} dawka pozostała",
+    "errorMarkTaken": "Nie udało się zapisać na serwerze. Spróbuj ponownie.",
+    "settings": {
+      "backHome": "Wróć do ekranu głównego",
+      "returningHome": "Powrót za {{seconds}} s…",
+      "title": "Ustawienia",
+      "accessibility": "Dostępność",
+      "colorBlind": "Tryb przyjazny daltonistom",
+      "highContrast": "Wysoki kontrast",
+      "moodPicker": "Pytanie o samopoczucie",
+      "reminderSound": "Dźwięk przypomnienia",
+      "confirm": "Potwierdź",
+      "modalCancel": "Anuluj",
+      "pageHint": "Każda zmiana wymaga potwierdzenia. Nic nie zapisujemy bez Twojej zgody.",
+      "otherSettings": "Pozostałe ustawienia",
+      "colorBlindSub": "Wyraźniejsze kształty i bezpieczniejsze kolory.",
+      "highContrastSub": "Pogrubiony tekst i tła.",
+      "moodPickerSub": "Pytanie o samopoczucie po aktywnościach.",
+      "soundHint": "Wybierz dźwięk systemowy lub wbudowany. Dotknij wiersza, aby wybrać (z potwierdzeniem). Głośnik — podgląd.",
+      "soundChangeTitle": "Zmienić dźwięk przypomnienia?",
+      "soundChangeMessage": "Użyć „{{label}}” do przypomnień o lekach na tym urządzeniu?",
+      "confirmColorBlindOff": "Wyłączyć tryb dla daltonistów?",
+      "confirmColorBlindOn": "Włączyć tryb dla daltonistów?",
+      "confirmColorBlindOffMsg": "Kolory i akcenty wrócą do standardowego stylu.",
+      "confirmColorBlindOnMsg": "Mocniejsze obrysy i unikanie mylących par kolorów.",
+      "confirmHighContrastOff": "Wyłączyć wysoki kontrast?",
+      "confirmHighContrastOn": "Włączyć wysoki kontrast?",
+      "confirmHighContrastOffMsg": "Ekran wróci do standardowego kontrastu.",
+      "confirmHighContrastOnMsg": "Tekst i przyciski będą miały bardzo wysoki kontrast.",
+      "confirmMoodOff": "Wyłączyć pytanie o samopoczucie?",
+      "confirmMoodOn": "Włączyć pytanie o samopoczucie?",
+      "confirmMoodOffMsg": "Ekran nastroju nie będzie się już pojawiał po przyjęciu leków.",
+      "confirmMoodOnMsg": "Ekran nastroju będzie się pojawiał po przyjęciu leków."
+    },
+    "metrics": {
+      "title": "Pomiary zdrowotne",
+      "hint": "Wpisz swoje pomiary (np. ciśnienie lub cukier).",
+      "bp": "Ciśnienie",
+      "glucose": "Cukier",
+      "systolic": "Skurczowe (SYS)",
+      "diastolic": "Rozkurczowe (DIA)",
+      "pulseOptional": "Puls (opcjonalnie)",
+      "glucoseValue": "Wartość (mg/dL)",
+      "saving": "Zapisuję…",
+      "saved": "Zapisano pomiar."
+    },
+    "calendar": {
+      "alertDepletion": "Kończy się zapas leku",
+      "alertBuyPack": "Kup nową paczkę: {{name}}"
+    }
+  },
+  "hybrid": {
+    "greeting": "Dzień dobry,",
+    "nameFallback": "Użytkowniku",
+    "pinBanner": "Zabezpiecz aplikację 4-cyfrowym kodem PIN.",
+    "pinBannerCta": "Skonfiguruj teraz",
+    "scheduleTitle": "Dzisiejszy harmonogram",
+    "medsDue": "Pora na leki:",
+    "mockMedsDetail": "6 leków (6 tabletek)",
+    "mockTaken": "6 leków: Przyjęto o {{time}}",
+    "mockPartial": "Niepełna dawka: 3/4 przyjęte",
+    "mockTakenShort": "3 leki: Przyjęto",
+    "now": "TERAZ",
+    "medTakenAlert": "Wzięto lek!"
+  },
+  "schedule": {
+    "activityFallback": "Aktywność",
+    "dosagePieces": " ({{count}} szt.)",
+    "type": {
+      "once": "Jednorazowo",
+      "regular": "Stałe",
+      "temporary": "Tymczasowo"
+    },
+    "status": {
+      "taken": "Odebrane",
+      "late": "Spóźnione",
+      "skipped": "Pominięte",
+      "now": "Teraz",
+      "past": "Minęło",
+      "next": "Następny",
+      "planned": "Zaplanowane"
+    },
+    "add": {
+      "title": "Dodaj do Kalendarza",
+      "activities": "Aktywności z apteczki",
+      "activitiesEmpty": "Najpierw dodaj aktywność w zakładce Apteczka.",
+      "a11yAddActivity": "Dodaj aktywność do apteczki",
+      "medType": "Rodzaj podawania",
+      "dosagePills": "Ilość sztuk",
+      "dosageDose": "Dawka",
+      "pickDate": "Wybierz datę",
+      "weekdays": "Dni tygodnia",
+      "weekdaysOptional": "Dni tygodnia (opcjonalne)",
+      "weekdaysHint": "Możesz ograniczyć dni w okresie tymczasowym.",
+      "periodTitle": "Okres podawania",
+      "clear": "Wyczyść",
+      "from": "Od",
+      "to": "Do",
+      "rangeSet": "Zakres ustawiony. Dotknij innego dnia, aby zacząć od nowa.",
+      "rangeStart": "Zaznacz datę początkową okresu",
+      "rangeEnd": "Teraz zaznacz datę końcową okresu"
+    }
+  },
+  "treatment": {
+    "group": {
+      "medication": "Leki",
+      "bloodSugar": "Badanie cukru",
+      "bloodPressure": "Mierzenie ciśnienia",
+      "exercise": "Ćwiczenia",
+      "custom": "Inne aktywności"
+    },
+    "list": {
+      "title": "Aktywności medyczne",
+      "subtitle": "Zarządzaj aktywnościami przypisanymi do podopiecznego.",
+      "empty": "Brak aktywności. Dodaj pierwszą za pomocą przycisku +.",
+      "stock": "Zapas: {{count}} szt.",
+      "noDescription": "Brak opisu"
+    },
+    "add": {
+      "title": "Nowa aktywność",
+      "lead": "Wybierz rodzaj aktywności i uzupełnij szczegóły.",
+      "name": "Nazwa",
+      "description": "Opis (opcjonalny)",
+      "pillsInPack": "Ilość tabletek w paczce",
+      "helper": "Pomoże przewidzieć koniec zapasu leku.",
+      "errorSave": "Nie udało się zapisać aktywności."
+    },
+    "edit": {
+      "title": "Edytuj",
+      "notFound": "Nie znaleziono aktywności.",
+      "placeholderPills": "np. 60",
+      "placeholderHints": "np. wskazówki dla seniora",
+      "errorSave": "Nie udało się zapisać zmian."
+    },
+    "type": {
+      "medication": { "label": "Lek", "hint": "Tabletki, kapsułki itp.", "defaultName": "Lek" },
+      "bloodSugar": { "label": "Cukier", "hint": "Pomiar glukozy", "defaultName": "Badanie cukru" },
+      "bloodPressure": { "label": "Ciśnienie", "hint": "Pomiar RR", "defaultName": "Ciśnienie" },
+      "exercise": { "label": "Ćwiczenia", "hint": "Aktywność fizyczna", "defaultName": "Ćwiczenia" },
+      "custom": { "label": "Inne", "hint": "Dowolna aktywność", "defaultName": "Aktywność" }
+    }
+  },
+  "calendarEdit": {
+    "hour": "Godzina",
+    "quantity": "Ilość",
+    "dose": "Dawka",
+    "dosageExample": "Ilość / Dawka (np. 2)"
+  },
+  "placeholder": {
+    "insights": "Statystyki",
+    "meds": "Leki",
+    "more": "Więcej"
+  }
+}

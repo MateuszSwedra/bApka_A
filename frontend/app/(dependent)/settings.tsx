@@ -15,21 +15,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../constants/theme';
 import type { NotificationSoundChoiceId } from '../../constants/notificationSounds';
 import {
-  NOTIFICATION_SOUND_CHOICES,
+  NOTIFICATION_SOUND_CHOICE_IDS,
   resolveMedicationSoundAsset,
 } from '../../constants/notificationSounds';
+import { useTranslation } from 'react-i18next';
 import {
   getMedicationSoundChoice,
   setMedicationSoundChoice,
 } from '../../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../../services/notificationSoundPreview';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
-
-const SOUND_LABELS_EN: Record<NotificationSoundChoiceId, { title: string; hint: string }> = {
-  default: { title: 'System default', hint: 'Uses the device notification sound.' },
-  gentle: { title: 'Local — soft', hint: 'Built-in gentle reminder tone.' },
-  strong: { title: 'Local — clear', hint: 'Built-in easy-to-hear tone.' },
-};
+import { usersAPI } from '../../services/api';
 
 type ConfirmPayload = {
   title: string;
@@ -38,6 +34,7 @@ type ConfirmPayload = {
 };
 
 export default function DependentSettingsScreen() {
+  const { t } = useTranslation();
   const { colors, colorBlindFriendly, highContrast, setColorBlindFriendly, setHighContrastMode, reload } =
     useDependentDisplay();
   const [secondsLeft, setSecondsLeft] = useState(10);
@@ -45,6 +42,7 @@ export default function DependentSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
   const [confirm, setConfirm] = useState<ConfirmPayload | null>(null);
+  const [moodEnabled, setMoodEnabled] = useState(true);
 
   const goHome = useCallback(() => {
     router.replace('/(dependent)' as any);
@@ -59,6 +57,15 @@ export default function DependentSettingsScreen() {
         try {
           const m = await getMedicationSoundChoice();
           setMedSound(m);
+          
+          try {
+            const me = await usersAPI.getMe();
+            if (me && typeof me.moodEnabled === 'boolean') {
+              setMoodEnabled(me.moodEnabled);
+            }
+          } catch (e) {
+            console.warn('Failed to fetch user settings in settings screen', e);
+          }
         } finally {
           setLoading(false);
         }
@@ -107,17 +114,21 @@ export default function DependentSettingsScreen() {
           ]}
         >
           <MaterialIcons name="home" size={36} color={colors.surfaceWhite} />
-          <Text style={[styles.backHugeText, { color: colors.surfaceWhite }]}>Back to home</Text>
+          <Text style={[styles.backHugeText, { color: colors.surfaceWhite }]}>
+            {t('dependent.settings.backHome')}
+          </Text>
         </Pressable>
         <Text style={[styles.countdown, { color: colors.textDark }]}>
-          Returning to home in {secondsLeft}s…
+          {t('dependent.settings.returningHome', { seconds: secondsLeft })}
         </Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <Text style={[styles.pageTitle, { color: colors.textDark, fontSize: titleSize + 4 }]}>Settings</Text>
+        <Text style={[styles.pageTitle, { color: colors.textDark, fontSize: titleSize + 4 }]}>
+          {t('dependent.settings.title')}
+        </Text>
         <Text style={[styles.pageHint, { color: colors.textLight, fontSize: bodySize - 2 }]}>
-          Every change needs your confirmation. Nothing is saved until you confirm.
+          {t('dependent.settings.pageHint')}
         </Text>
 
         {loading ? (
@@ -125,16 +136,45 @@ export default function DependentSettingsScreen() {
         ) : (
           <>
             <Text style={[styles.sectionTitle, { color: colors.textDark, fontSize: titleSize }]}>
-              Accessibility
+              {t('dependent.settings.otherSettings')}
+            </Text>
+
+            <Pressable
+              onPress={() => router.push('/(dependent)/metrics' as any)}
+              style={({ pressed }) => [
+                styles.rowCard,
+                {
+                  backgroundColor: colors.surfaceWhite,
+                  borderColor: colors.border,
+                  borderWidth: colors.mainButtonBorderWidth ?? 1,
+                },
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <MaterialIcons name="monitor-heart" size={36} color={colors.primaryLimeDark} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
+                  {t('dependent.metrics.title')}
+                </Text>
+                <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
+                  {t('dependent.metrics.hint')}
+                </Text>
+              </View>
+            </Pressable>
+
+            <Text style={[styles.sectionTitle, { color: colors.textDark, fontSize: titleSize }]}>
+              {t('dependent.settings.accessibility')}
             </Text>
 
             <Pressable
               onPress={() =>
                 openConfirm({
-                  title: colorBlindFriendly ? 'Turn off colour-blind friendly?' : 'Turn on colour-blind friendly?',
+                  title: colorBlindFriendly
+                    ? t('dependent.settings.confirmColorBlindOff')
+                    : t('dependent.settings.confirmColorBlindOn'),
                   message: colorBlindFriendly
-                    ? 'Colours and emphasis will return to the standard style.'
-                    : 'Uses stronger outlines and avoids easy-to-confuse colour pairs.',
+                    ? t('dependent.settings.confirmColorBlindOffMsg')
+                    : t('dependent.settings.confirmColorBlindOnMsg'),
                   onConfirm: async () => {
                     await setColorBlindFriendly(!colorBlindFriendly);
                   },
@@ -157,10 +197,10 @@ export default function DependentSettingsScreen() {
               />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
-                  Colour-blind friendly
+                  {t('dependent.settings.colorBlind')}
                 </Text>
                 <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
-                  Clearer shapes and safer colours.
+                  {t('dependent.settings.colorBlindSub')}
                 </Text>
               </View>
             </Pressable>
@@ -168,10 +208,12 @@ export default function DependentSettingsScreen() {
             <Pressable
               onPress={() =>
                 openConfirm({
-                  title: highContrast ? 'Turn off high contrast?' : 'Turn on high contrast?',
+                  title: highContrast
+                    ? t('dependent.settings.confirmHighContrastOff')
+                    : t('dependent.settings.confirmHighContrastOn'),
                   message: highContrast
-                    ? 'The screen will use the standard contrast again.'
-                    : 'Text and buttons will use very high contrast for easier reading.',
+                    ? t('dependent.settings.confirmHighContrastOffMsg')
+                    : t('dependent.settings.confirmHighContrastOnMsg'),
                   onConfirm: async () => {
                     await setHighContrastMode(!highContrast);
                   },
@@ -195,10 +237,10 @@ export default function DependentSettingsScreen() {
               />
               <View style={{ flex: 1, marginLeft: 12 }}>
                 <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
-                  High contrast
+                  {t('dependent.settings.highContrast')}
                 </Text>
                 <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
-                  Extra bold text and backgrounds.
+                  {t('dependent.settings.highContrastSub')}
                 </Text>
               </View>
             </Pressable>
@@ -209,26 +251,76 @@ export default function DependentSettingsScreen() {
                 { color: colors.textDark, fontSize: titleSize, marginTop: Theme.spacing.xl },
               ]}
             >
-              Reminder sound
-            </Text>
-            <Text style={[styles.pageHint, { color: colors.textLight, fontSize: bodySize - 4 }]}>
-              Pick the system sound or a built-in local tone. Tap a row to select (with confirmation). Use the
-              speaker to preview.
+              {t('dependent.settings.otherSettings')}
             </Text>
 
-            {NOTIFICATION_SOUND_CHOICES.map(opt => {
-              const en = SOUND_LABELS_EN[opt.id];
-              const selected = medSound === opt.id;
-              const rowPreviewKey = `med-${opt.id}`;
+            <Pressable
+              onPress={() =>
+                openConfirm({
+                  title: moodEnabled
+                    ? t('dependent.settings.confirmMoodOff')
+                    : t('dependent.settings.confirmMoodOn'),
+                  message: moodEnabled
+                    ? t('dependent.settings.confirmMoodOffMsg')
+                    : t('dependent.settings.confirmMoodOnMsg'),
+                  onConfirm: async () => {
+                    await usersAPI.updateSettings({ moodEnabled: !moodEnabled });
+                    setMoodEnabled(!moodEnabled);
+                  },
+                })
+              }
+              style={({ pressed }) => [
+                styles.rowCard,
+                {
+                  backgroundColor: colors.surfaceWhite,
+                  borderColor: colors.border,
+                  borderWidth: colors.mainButtonBorderWidth ?? 1,
+                  marginTop: Theme.spacing.m,
+                },
+                pressed && { opacity: 0.9 },
+              ]}
+            >
+              <MaterialIcons
+                name={moodEnabled ? 'check-box' : 'check-box-outline-blank'}
+                size={36}
+                color={colors.primaryLimeDark}
+              />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
+                  {t('dependent.settings.moodPicker')}
+                </Text>
+                <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
+                  {t('dependent.settings.moodPickerSub')}
+                </Text>
+              </View>
+            </Pressable>
+
+            <Text
+              style={[
+                styles.sectionTitle,
+                { color: colors.textDark, fontSize: titleSize, marginTop: Theme.spacing.xl },
+              ]}
+            >
+              {t('dependent.settings.reminderSound')}
+            </Text>
+            <Text style={[styles.pageHint, { color: colors.textLight, fontSize: bodySize - 4 }]}>
+              {t('dependent.settings.soundHint')}
+            </Text>
+
+            {NOTIFICATION_SOUND_CHOICE_IDS.map(soundId => {
+              const label = t(`sounds.${soundId}.label`);
+              const hint = t(`sounds.${soundId}.description`);
+              const selected = medSound === soundId;
+              const rowPreviewKey = `med-${soundId}`;
               return (
-                <View key={opt.id} style={styles.soundRow}>
+                <View key={soundId} style={styles.soundRow}>
                   <Pressable
                     onPress={() =>
                       openConfirm({
-                        title: 'Change reminder sound?',
-                        message: `Use “${en.title}” for medication reminders on this device?`,
+                        title: t('dependent.settings.soundChangeTitle'),
+                        message: t('dependent.settings.soundChangeMessage', { label }),
                         onConfirm: async () => {
-                          await applySound(opt.id);
+                          await applySound(soundId);
                         },
                       })
                     }
@@ -252,15 +344,15 @@ export default function DependentSettingsScreen() {
                     />
                     <View style={{ flex: 1, marginLeft: 12 }}>
                       <Text style={[styles.rowTitle, { color: colors.textDark, fontSize: bodySize }]}>
-                        {en.title}
+                        {label}
                       </Text>
                       <Text style={[styles.rowSub, { color: colors.textLight, fontSize: bodySize - 4 }]}>
-                        {en.hint}
+                        {hint}
                       </Text>
                     </View>
                   </Pressable>
                   <Pressable
-                    onPress={() => void onPreview(opt.id)}
+                    onPress={() => void onPreview(soundId)}
                     style={({ pressed }) => [
                       styles.previewBtn,
                       {
@@ -269,7 +361,7 @@ export default function DependentSettingsScreen() {
                       },
                       pressed && { opacity: 0.85 },
                     ]}
-                    accessibilityLabel={`Preview ${en.title}`}
+                    accessibilityLabel={t('sounds.a11yPreview', { label })}
                     disabled={previewKey !== null}
                   >
                     {previewKey === rowPreviewKey ? (
@@ -284,7 +376,7 @@ export default function DependentSettingsScreen() {
 
             {Platform.OS === 'web' && (
               <Text style={[styles.webHint, { color: colors.textLight }]}>
-                In the browser, sound preview may be limited; phones give the full experience.
+                {t('sounds.webHint')}
               </Text>
             )}
           </>
@@ -305,7 +397,9 @@ export default function DependentSettingsScreen() {
                   pressed && { opacity: 0.9 },
                 ]}
               >
-                <Text style={[styles.modalBtnGhostText, { color: colors.textDark }]}>Cancel</Text>
+                <Text style={[styles.modalBtnGhostText, { color: colors.textDark }]}>
+                  {t('dependent.settings.modalCancel')}
+                </Text>
               </Pressable>
               <Pressable
                 onPress={() => {
@@ -319,7 +413,9 @@ export default function DependentSettingsScreen() {
                   pressed && { opacity: 0.92 },
                 ]}
               >
-                <Text style={[styles.modalBtnPrimaryText, { color: colors.surfaceWhite }]}>Confirm</Text>
+                <Text style={[styles.modalBtnPrimaryText, { color: colors.surfaceWhite }]}>
+                  {t('dependent.settings.confirm')}
+                </Text>
               </Pressable>
             </View>
           </View>

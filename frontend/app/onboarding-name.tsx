@@ -22,6 +22,7 @@ import {
   OnboardingGradient,
 } from '../constants/onboardingTheme';
 import { usersAPI } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 
@@ -34,17 +35,18 @@ const showAlert = (title: string, message: string) => {
 };
 
 export default function OnboardingNameScreen() {
+  const { t } = useTranslation();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleContinue = async () => {
     const trimmed = name.trim();
     if (trimmed.length < 2) {
-      showAlert('Błąd', 'Wpisz co najmniej 2 znaki — np. imię lub zwracane imię.');
+      showAlert(t('common.error'), t('onboarding.name.errorMinLength'));
       return;
     }
     if (trimmed.length > 80) {
-      showAlert('Błąd', 'To pole może mieć co najwyżej 80 znaków.');
+      showAlert(t('common.error'), t('onboarding.name.errorMaxLength'));
       return;
     }
 
@@ -59,8 +61,8 @@ export default function OnboardingNameScreen() {
       router.replace('/role-selection');
     } catch (e) {
       const msg =
-        e instanceof Error ? e.message : 'Nie udało się zapisać. Sprawdź połączenie.';
-      showAlert('Błąd', msg);
+        e instanceof Error ? e.message : t('onboarding.name.errorSave');
+      showAlert(t('common.error'), msg);
     } finally {
       setLoading(false);
     }
@@ -84,11 +86,8 @@ export default function OnboardingNameScreen() {
             contentFit="contain"
             accessibilityIgnoresInvertColors
           />
-          <Text style={styles.title}>Jak mamy się do Ciebie zwracać?</Text>
-          <Text style={styles.subtitle}>
-            To imię lub zwrot zobaczysz Ty oraz osoby połączone z Tobą w aplikacji
-            — np. na powitaniu lub przy współdzieleniu opieki.
-          </Text>
+          <Text style={styles.title}>{t('onboarding.name.title')}</Text>
+          <Text style={styles.subtitle}>{t('onboarding.name.subtitle')}</Text>
 
           <View style={styles.formCard}>
             <View style={styles.field}>
@@ -100,7 +99,7 @@ export default function OnboardingNameScreen() {
               />
               <TextInput
                 style={styles.input}
-                placeholder="Np. Ania, Pani Basia, Tato…"
+                placeholder={t('onboarding.name.placeholder')}
                 value={name}
                 onChangeText={setName}
                 autoCapitalize="sentences"
@@ -128,7 +127,7 @@ export default function OnboardingNameScreen() {
                 style={styles.primaryCta}
               >
                 <Text style={styles.primaryCtaText}>
-                  {loading ? 'Zapisujemy…' : 'Dalej'}
+                  {loading ? t('onboarding.name.saving') : t('onboarding.name.cta')}
                 </Text>
                 <MaterialCommunityIcons
                   name="arrow-right"

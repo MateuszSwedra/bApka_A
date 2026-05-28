@@ -7,8 +7,10 @@ import { OnboardingPalette } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
+import { useTranslation } from 'react-i18next';
 
 export default function RoleSelectionScreen() {
+  const { t } = useTranslation();
   const { loginFake, setUserSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -37,9 +39,9 @@ export default function RoleSelectionScreen() {
       }
     } catch (e) {
       if (Platform.OS === 'web') {
-        window.alert('Błąd: Nie udało się zaktualizować roli na serwerze.');
+        window.alert(`${t('common.error')}: ${t('role.errorUpdate')}`);
       } else {
-        Alert.alert('Błąd', 'Nie udało się zaktualizować roli na serwerze.');
+        Alert.alert(t('common.error'), t('role.errorUpdate'));
       }
     } finally {
       setIsLoading(false);
@@ -50,8 +52,8 @@ export default function RoleSelectionScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <MaterialIcons name="account-circle" size={64} color={OnboardingPalette.navy} />
-        <Text style={styles.title}>Wybierz swoją rolę</Text>
-        <Text style={styles.subtitle}>Dostosujemy aplikację do Twoich potrzeb</Text>
+        <Text style={styles.title}>{t('role.title')}</Text>
+        <Text style={styles.subtitle}>{t('role.subtitle')}</Text>
       </View>
       
       {isLoading ? (
@@ -66,10 +68,8 @@ export default function RoleSelectionScreen() {
               <MaterialIcons name="favorite" size={40} color={OnboardingPalette.navy} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Opiekun</Text>
-              <Text style={styles.cardDescription}>
-                Chcę pomagać moim bliskim w przyjmowaniu leków i zarządzać ich harmonogramem.
-              </Text>
+              <Text style={styles.cardTitle}>{t('role.caretaker.title')}</Text>
+              <Text style={styles.cardDescription}>{t('role.caretaker.desc')}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>
@@ -82,10 +82,8 @@ export default function RoleSelectionScreen() {
               <MaterialIcons name="elderly" size={40} color={OnboardingPalette.orange} />
             </View>
             <View style={styles.cardContent}>
-              <Text style={styles.cardTitle}>Podopieczny</Text>
-              <Text style={styles.cardDescription}>
-                Będę korzystać z aplikacji, aby pamiętać o swoich lekach i wizytach.
-              </Text>
+              <Text style={styles.cardTitle}>{t('role.dependent.title')}</Text>
+              <Text style={styles.cardDescription}>{t('role.dependent.desc')}</Text>
             </View>
             <MaterialIcons name="chevron-right" size={28} color={OnboardingPalette.textSecondary} />
           </Pressable>

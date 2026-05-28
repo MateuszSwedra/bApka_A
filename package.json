@@ -1,0 +1,9 @@
+{
+  "name": "bapka",
+  "private": true,
+  "scripts": {
+    "test": "npm run test --prefix backend && npm run test --prefix frontend && npm run test:e2e --prefix backend",
+    "test:backend": "npm run test:all --prefix backend",
+    "test:frontend": "npm run test --prefix frontend"
+  }
+}

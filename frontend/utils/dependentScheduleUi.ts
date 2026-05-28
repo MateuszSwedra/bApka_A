@@ -4,6 +4,7 @@ import { getScheduleTreatmentId } from '../context/MedsContext';
 import type { Treatment } from '../context/MedsContext';
 import { scheduleAppliesToDate } from './scheduleHelpers';
 import { timeToMinutes } from './scheduleHelpers';
+import i18n from '../i18n';
 
 export type DependentMainScheduleState =
   | { kind: 'empty' }
@@ -12,10 +13,17 @@ export type DependentMainScheduleState =
   | { kind: 'due'; scheduleId: string; name: string };
 
 function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]): string {
-  if (sch.customName) return sch.customName;
-  const tid = getScheduleTreatmentId(sch);
-  if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Activity';
-  return 'Activity';
+  let name = i18n.t('schedule.activityFallback');
+  if (sch.customName) {
+    name = sch.customName;
+  } else {
+    const tid = getScheduleTreatmentId(sch);
+    if (tid) name = treatments.find(t => t.id === tid)?.name ?? i18n.t('schedule.activityFallback');
+  }
+  if (sch.dosage && sch.dosage !== '1') {
+    name += i18n.t('schedule.dosagePieces', { count: sch.dosage });
+  }
+  return name;
 }
 
 /** Today’s calendar entries sorted by time. */
