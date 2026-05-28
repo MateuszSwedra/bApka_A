@@ -24,7 +24,7 @@ export default function DependentTreatmentsScreen() {
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
-  const fabBottom = useFabBottomOffset();
+  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
   const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
 
@@ -85,7 +85,7 @@ export default function DependentTreatmentsScreen() {
       </ScrollView>
 
       <Pressable
-        style={[styles.fab, { bottom: fabBottom }]}
+        style={[styles.fab, { bottom: fabBottomOffset }]}
         onPress={() => {
           if (!dependentId) {
             Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));

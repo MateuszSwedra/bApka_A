@@ -1,14 +1,25 @@
-import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, Platform } from 'react-native';
-import { useFabBottomOffset } from '../../utils/useFabBottomOffset';
+import React, { useState, useCallback, useMemo } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Platform,
+} from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
+import * as Haptics from 'expo-haptics';
 import { Theme } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
 import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
 import { useTranslation } from 'react-i18next';
+import { HugeButton } from '../../components/HugeButton';
 
 interface Dependent {
   id: string;
@@ -19,10 +30,84 @@ interface Dependent {
   lastMoodAt?: string;
 }
 
+const AVATAR_PALETTE = [
+  { solid: Theme.colors.primaryLimeDark, soft: 'rgba(69, 104, 130, 0.14)' },
+  { solid: Theme.colors.accentOrange, soft: 'rgba(233, 164, 61, 0.2)' },
+  { solid: '#5B8FA8', soft: 'rgba(91, 143, 168, 0.16)' },
+  { solid: '#6B8E6B', soft: 'rgba(107, 142, 107, 0.16)' },
+] as const;
+
+function getInitials(nameOrEmail: string) {
+  const trimmed = nameOrEmail.trim();
+  if (!trimmed) return '??';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  }
+  return trimmed.substring(0, 2).toUpperCase();
+}
+
+function SeniorProfileCard({
+  dependent,
+  accentIndex,
+  onPress,
+  moodLabel,
+  profileHint,
+}: {
+  dependent: Dependent;
+  accentIndex: number;
+  onPress: () => void;
+  moodLabel: string | null;
+  profileHint: string;
+}) {
+  const accent = AVATAR_PALETTE[accentIndex % AVATAR_PALETTE.length];
+  const displayName = dependent.name?.trim() || dependent.email;
+  const showEmail = !!dependent.name?.trim() && dependent.email;
+
+  return (
+    <Pressable
+      onPress={onPress}
+      accessibilityRole="button"
+      style={({ pressed }) => [styles.profileCard, pressed && styles.profileCardPressed]}
+    >
+      <View style={[styles.profileAccent, { backgroundColor: accent.solid }]} />
+      <View style={styles.profileCardInner}>
+        <View style={[styles.avatarRing, { borderColor: accent.solid, backgroundColor: accent.soft }]}>
+          <Text style={[styles.avatarText, { color: accent.solid }]}>
+            {getInitials(displayName)}
+          </Text>
+        </View>
+
+        <View style={styles.profileBody}>
+          <Text style={styles.profileName} numberOfLines={1}>
+            {displayName}
+          </Text>
+          {showEmail ? (
+            <Text style={styles.profileEmail} numberOfLines={1}>
+              {dependent.email}
+            </Text>
+          ) : null}
+          {moodLabel ? (
+            <View style={styles.moodChip}>
+              <Text style={styles.moodChipText}>{moodLabel}</Text>
+            </View>
+          ) : (
+            <Text style={styles.profileHint}>{profileHint}</Text>
+          )}
+        </View>
+
+        <View style={[styles.goCircle, { backgroundColor: accent.soft }]}>
+          <MaterialIcons name="arrow-forward" size={22} color={accent.solid} />
+        </View>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function CaretakerDashboard() {
   const { t } = useTranslation();
   const { logout } = useAuth();
-  const fabBottom = useFabBottomOffset();
+  const insets = useSafeAreaInsets();
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -46,10 +131,7 @@ export default function CaretakerDashboard() {
       const data = await usersAPI.getDependents();
       const list = Array.isArray(data) ? data : [];
       setDependents(
-        list.filter(
-          (d): d is Dependent =>
-            !!d?.id && isUserUuid(String(d.id)),
-        ),
+        list.filter((d): d is Dependent => !!d?.id && isUserUuid(String(d.id))),
       );
     } catch (e) {
       console.error('Failed to fetch dependents', e);
@@ -61,14 +143,25 @@ export default function CaretakerDashboard() {
   useFocusEffect(
     useCallback(() => {
       void fetchDependents();
-    }, [fetchDependents])
+    }, [fetchDependents]),
   );
 
+  const countLabel = useMemo(() => {
+    if (dependents.length === 0) return null;
+    return t('caretaker.dashboard.count', { count: dependents.length });
+  }, [dependents.length, t]);
+
   const handleAddDependent = () => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     router.push('/(caretaker)/pairing');
   };
 
   const handleDependentPress = (id: string) => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
     router.push(`/(caretaker)/dependent/${id}`);
   };
 
@@ -81,299 +174,379 @@ export default function CaretakerDashboard() {
     }
   };
 
-  const getInitials = (email: string) => {
-    return email.substring(0, 2).toUpperCase();
-  };
-
-  const renderMood = (dependent: Dependent) => {
+  const moodLabelFor = (dependent: Dependent) => {
     if (!dependent.lastMood || !dependent.lastMoodAt) return null;
-    const moodEmoji = dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
+    const moodEmoji =
+      dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
     const date = new Date(dependent.lastMoodAt);
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-    return (
-      <View style={{ 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: Theme.colors.surfaceGrey, 
-        paddingHorizontal: 8, 
-        paddingVertical: 4, 
-        borderRadius: 16, 
-        alignSelf: 'flex-start', 
-        marginTop: 6,
-        borderWidth: 1,
-        borderColor: Theme.colors.border
-      }}>
-        <Text style={{ fontSize: 18 }}>{moodEmoji}</Text>
-        <Text style={{ fontSize: 12, color: Theme.colors.textDark, marginLeft: 6, fontWeight: '700' }}>
-          {t('caretaker.moodAt', { time: timeStr })}
-        </Text>
-      </View>
-    );
+    return `${moodEmoji} ${t('caretaker.moodAt', { time: timeStr })}`;
   };
 
+  const headerTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 8);
+
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.greeting}>
-          <Text style={styles.greetingText}>{t('caretaker.dashboard.badge')}</Text>
-          <Text style={styles.nameText}>{t('caretaker.dashboard.title')}</Text>
-        </View>
-        <View style={styles.headerActions}>
-          <Pressable onPress={() => router.push('/notification-sound-settings' as any)} style={styles.iconBtn}>
-            <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
-          </Pressable>
-          <Pressable onPress={handleLogout} style={styles.logoutBtn}>
-            <MaterialIcons name="logout" size={28} color={Theme.colors.accentOrange} />
-          </Pressable>
-        </View>
+    <View style={styles.root}>
+      <LinearGradient
+        colors={['#E8F2F8', Theme.colors.surfaceGrey, Theme.colors.background]}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+
+      <View style={[styles.decorOrb, styles.decorOrbPrimary]} />
+      <View style={[styles.decorOrb, styles.decorOrbAccent]} />
+
+      <View style={[styles.topBar, { paddingTop: headerTop }]}>
+        <Pressable
+          onPress={() => router.push('/notification-sound-settings' as never)}
+          style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
+          accessibilityLabel={t('sounds.screenTitle')}
+        >
+          <MaterialIcons name="tune" size={22} color={Theme.colors.primaryLimeDark} />
+        </Pressable>
+        <Pressable
+          onPress={handleLogout}
+          style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
+        >
+          <MaterialIcons name="logout" size={22} color={Theme.colors.textLight} />
+        </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: insets.bottom + Theme.spacing.xl, paddingTop: Theme.spacing.s },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <View style={styles.badgePill}>
+            <MaterialIcons name="verified-user" size={14} color={Theme.colors.primaryLimeDark} />
+            <Text style={styles.badgeText}>{t('caretaker.dashboard.badge')}</Text>
+          </View>
+          <Text style={styles.heroTitle}>{t('caretaker.dashboard.title')}</Text>
+          <Text style={styles.heroSubtitle}>{t('caretaker.dashboard.subtitle')}</Text>
+          {countLabel ? <Text style={styles.countLine}>{countLabel}</Text> : null}
+        </View>
+
         {isLoading ? (
-          <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 60 }} />
+          <ActivityIndicator
+            size="large"
+            color={Theme.colors.primaryLimeDark}
+            style={styles.loader}
+          />
         ) : dependents.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconCircle}>
-              <MaterialIcons name="people-outline" size={48} color={Theme.colors.primaryLimeDark} />
-            </View>
-            <Text style={styles.emptyStateText}>{t('caretaker.dashboard.emptyTitle')}</Text>
-            <Text style={styles.emptyStateSubText}>{t('caretaker.dashboard.emptySubtitle')}</Text>
+          <View style={styles.emptyCard}>
+            <LinearGradient
+              colors={[Theme.colors.primaryLime + 'CC', Theme.colors.surfaceWhite]}
+              style={styles.emptyIconWrap}
+            >
+              <MaterialIcons name="groups" size={40} color={Theme.colors.primaryLimeDark} />
+            </LinearGradient>
+            <Text style={styles.emptyTitle}>{t('caretaker.dashboard.emptyTitle')}</Text>
+            <Text style={styles.emptySubtitle}>{t('caretaker.dashboard.emptySubtitle')}</Text>
+            <HugeButton
+              title={t('caretaker.dashboard.emptyCta')}
+              onPress={handleAddDependent}
+              style={styles.emptyCta}
+            />
           </View>
         ) : (
-          dependents.map((dependent, index) => (
-            <Pressable 
-              key={dependent.id} 
-              onPress={() => handleDependentPress(dependent.id)}
-              style={({ pressed }) => [
-                styles.card, 
-                index % 2 !== 0 && styles.cardWarning,
-                pressed && styles.cardPressed
-              ]}
+          <View style={styles.cardStack}>
+            {dependents.map((dependent, index) => (
+              <SeniorProfileCard
+                key={dependent.id}
+                dependent={dependent}
+                accentIndex={index}
+                onPress={() => handleDependentPress(dependent.id)}
+                moodLabel={moodLabelFor(dependent)}
+                profileHint={t('caretaker.dashboard.profileHint')}
+              />
+            ))}
+
+            <Pressable
+              onPress={handleAddDependent}
+              accessibilityRole="button"
+              style={({ pressed }) => [styles.addCard, pressed && styles.profileCardPressed]}
             >
-              <View style={styles.cardHeader}>
-                <View style={[styles.avatar, index % 2 !== 0 && styles.avatarWarning]}>
-                  <Text style={[styles.avatarText, index % 2 !== 0 && styles.avatarTextWarning]}>
-                    {getInitials(dependent.email)}
-                  </Text>
-                </View>
-                <View style={styles.cardInfo}>
-                  <Text style={styles.dependentName}>{dependent.name || dependent.email}</Text>
-                  {renderMood(dependent)}
-                  {index % 2 !== 0 ? (
-                    <View style={[styles.statusBadgeWarning, { marginTop: 4 }]}>
-                      <MaterialIcons name="error-outline" size={14} color={Theme.colors.accentOrange} />
-                      <Text style={styles.statusWarningText}>{t('caretaker.dashboard.statusAttention')}</Text>
-                    </View>
-                  ) : (
-                    <View style={[styles.statusBadgeSuccess, { marginTop: 4 }]}>
-                      <MaterialIcons name="check-circle-outline" size={14} color={Theme.colors.success} />
-                      <Text style={styles.statusSuccessText}>{t('caretaker.dashboard.statusOk')}</Text>
-                    </View>
-                  )}
-                </View>
-                <MaterialIcons name="chevron-right" size={28} color={Theme.colors.textLight} />
+              <View style={styles.addIconWrap}>
+                <MaterialIcons name="person-add-alt-1" size={26} color={Theme.colors.primaryLimeDark} />
               </View>
+              <View style={styles.addTextWrap}>
+                <Text style={styles.addTitle}>{t('caretaker.dashboard.addCardTitle')}</Text>
+                <Text style={styles.addSubtitle}>{t('caretaker.dashboard.addCardSubtitle')}</Text>
+              </View>
+              <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} />
             </Pressable>
-          ))
+          </View>
         )}
       </ScrollView>
-
-      {/* FAB */}
-      <Pressable
-        style={({ pressed }) => [
-          styles.fab,
-          { bottom: fabBottom },
-          pressed && styles.fabPressed,
-        ]}
-        onPress={handleAddDependent}
-      >
-        <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
-      </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: Theme.colors.surfaceGrey,
+    backgroundColor: Theme.colors.background,
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: Theme.spacing.l,
-    paddingTop: Theme.spacing.xxl,
-    paddingBottom: Theme.spacing.m,
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderBottomWidth: 1,
-    borderBottomColor: Theme.colors.border,
+  decorOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.55,
   },
-  headerActions: {
+  decorOrbPrimary: {
+    width: 220,
+    height: 220,
+    top: -40,
+    right: -60,
+    backgroundColor: Theme.colors.primaryLime,
+  },
+  decorOrbAccent: {
+    width: 140,
+    height: 140,
+    top: 120,
+    left: -50,
+    backgroundColor: 'rgba(233, 164, 61, 0.35)',
+  },
+  topBar: {
     flexDirection: 'row',
+    justifyContent: 'flex-end',
     alignItems: 'center',
     gap: Theme.spacing.s,
+    paddingHorizontal: Theme.spacing.l,
+    paddingBottom: Theme.spacing.xs,
+    zIndex: 2,
   },
-  iconBtn: {
-    padding: Theme.spacing.s,
-    backgroundColor: Theme.colors.primaryLime,
+  topBarBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.9)',
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  topBarBtnPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.96 }],
+  },
+  scrollContent: {
+    paddingHorizontal: Theme.spacing.l,
+  },
+  hero: {
+    marginBottom: Theme.spacing.l,
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: Theme.borderRadius.round,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
+    marginBottom: Theme.spacing.m,
   },
-  greeting: {
+  badgeText: {
+    fontSize: Theme.typography.small,
+    fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
+    letterSpacing: 0.3,
+  },
+  heroTitle: {
+    fontSize: 34,
+    fontWeight: '800',
+    color: Theme.colors.textDark,
+    letterSpacing: -0.5,
+    lineHeight: 40,
+  },
+  heroSubtitle: {
+    marginTop: Theme.spacing.s,
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textLight,
+    lineHeight: 22,
+    maxWidth: 320,
+  },
+  countLine: {
+    marginTop: Theme.spacing.m,
+    fontSize: Theme.typography.caption,
+    fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  loader: {
+    marginTop: 48,
+  },
+  cardStack: {
+    gap: Theme.spacing.m,
+  },
+  profileCard: {
+    borderRadius: Theme.borderRadius.xlarge,
+    backgroundColor: Theme.colors.surfaceWhite,
+    overflow: 'hidden',
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.8)',
+  },
+  profileCardPressed: {
+    opacity: 0.92,
+    transform: [{ scale: 0.985 }],
+  },
+  profileAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+  },
+  profileCardInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: Theme.spacing.m + 2,
+    paddingRight: Theme.spacing.m,
+    paddingLeft: Theme.spacing.m + 4,
+  },
+  avatarRing: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    borderWidth: 2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Theme.spacing.m,
+  },
+  avatarText: {
+    fontSize: 20,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  profileBody: {
     flex: 1,
+    minWidth: 0,
+    paddingRight: Theme.spacing.s,
   },
-  greetingText: {
+  profileName: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Theme.colors.textDark,
+    letterSpacing: -0.2,
+  },
+  profileEmail: {
+    marginTop: 2,
     fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
   },
-  nameText: {
-    fontSize: Theme.typography.largeTitle,
-    fontWeight: 'bold',
+  profileHint: {
+    marginTop: 6,
+    fontSize: Theme.typography.small,
+    color: Theme.colors.textLight,
+    fontWeight: '500',
+  },
+  moodChip: {
+    alignSelf: 'flex-start',
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Theme.borderRadius.round,
+    backgroundColor: Theme.colors.surfaceGrey,
+  },
+  moodChipText: {
+    fontSize: Theme.typography.small,
+    fontWeight: '700',
     color: Theme.colors.textDark,
   },
-  logoutBtn: {
-    padding: Theme.spacing.s,
-    backgroundColor: Theme.colors.surfaceSoftOrange,
-    borderRadius: Theme.borderRadius.round,
-  },
-  scrollContent: {
-    padding: Theme.spacing.l,
-    paddingBottom: 120,
-  },
-  emptyState: {
-    alignItems: 'center',
+  goCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
-    padding: Theme.spacing.xxl,
-    marginTop: Theme.spacing.xl,
-    backgroundColor: Theme.colors.surfaceWhite,
+    alignItems: 'center',
+  },
+  addCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Theme.spacing.m,
     borderRadius: Theme.borderRadius.xlarge,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Theme.colors.primaryLimeDark,
+    backgroundColor: 'rgba(255, 255, 255, 0.65)',
+    marginTop: Theme.spacing.xs,
+  },
+  addIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Theme.colors.primaryLime,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Theme.spacing.m,
+  },
+  addTextWrap: {
+    flex: 1,
+  },
+  addTitle: {
+    fontSize: Theme.typography.body,
+    fontWeight: '800',
+    color: Theme.colors.primaryLimeDark,
+  },
+  addSubtitle: {
+    marginTop: 2,
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textLight,
+  },
+  emptyCard: {
+    alignItems: 'center',
+    padding: Theme.spacing.xl,
+    borderRadius: Theme.borderRadius.xlarge,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    borderStyle: 'dashed',
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
+    elevation: 3,
+    marginTop: Theme.spacing.m,
   },
-  emptyIconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: Theme.colors.primaryLime,
+  emptyIconWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: Theme.spacing.l,
   },
-  emptyStateText: {
+  emptyTitle: {
     fontSize: Theme.typography.title,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: Theme.colors.textDark,
     textAlign: 'center',
   },
-  emptyStateSubText: {
+  emptySubtitle: {
     fontSize: Theme.typography.body,
     color: Theme.colors.textLight,
     textAlign: 'center',
     marginTop: Theme.spacing.s,
     lineHeight: 22,
+    marginBottom: Theme.spacing.l,
   },
-  card: {
-    backgroundColor: Theme.colors.surfaceWhite,
-    padding: Theme.spacing.l,
-    borderRadius: Theme.borderRadius.large,
-    marginBottom: Theme.spacing.m,
-    borderWidth: 1,
-    borderColor: 'transparent',
-    shadowColor: Theme.colors.shadowNeutral,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 8,
-    elevation: 2,
+  emptyCta: {
+    width: '100%',
+    minHeight: 52,
   },
-  cardWarning: {
-    borderColor: Theme.colors.accentOrange,
-    backgroundColor: Theme.colors.surfaceWarmHighlight,
-  },
-  cardPressed: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  avatar: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Theme.colors.primaryLime,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarWarning: {
-    backgroundColor: Theme.colors.surfaceSoftOrange,
-  },
-  avatarText: {
-    color: Theme.colors.textDark,
-    fontSize: Theme.typography.title,
-    fontWeight: 'bold',
-  },
-  avatarTextWarning: {
-    color: Theme.colors.accentOrange,
-  },
-  cardInfo: {
-    flex: 1,
-    marginLeft: Theme.spacing.m,
-  },
-  dependentName: {
-    fontSize: Theme.typography.title,
-    fontWeight: 'bold',
-    color: Theme.colors.textDark,
-    marginBottom: 4,
-  },
-  statusBadgeSuccess: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Theme.colors.badgeSuccessBackground,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusSuccessText: {
-    fontSize: Theme.typography.small,
-    color: Theme.colors.primaryLimeDark,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  statusBadgeWarning: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Theme.colors.badgeWarningBackground,
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusWarningText: {
-    fontSize: Theme.typography.small,
-    color: Theme.colors.accentOrange,
-    fontWeight: 'bold',
-    marginLeft: 4,
-  },
-  fab: {
-    position: 'absolute',
-    right: Theme.spacing.xl,
-    backgroundColor: Theme.colors.primaryLime,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: Theme.colors.primaryLimeDark,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  fabPressed: {
-    transform: [{ scale: 0.95 }],
-  }
 });

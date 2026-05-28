@@ -32,14 +32,13 @@ const styles = StyleSheet.create({
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: Theme.spacing.l,
-    paddingBottom: Theme.spacing.m,
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderBottomWidth: 1,
+    paddingHorizontal: Theme.spacing.m,
+    paddingBottom: Theme.spacing.s,
+    backgroundColor: Theme.colors.background,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Theme.colors.border,
   },
   backBtn: {
-    padding: 4,
     minWidth: 48,
     minHeight: 48,
     justifyContent: 'center',
@@ -47,9 +46,10 @@ const styles = StyleSheet.create({
   },
   title: {
     flex: 1,
+    textAlign: 'center',
     fontSize: Theme.typography.title,
     fontWeight: '800',
     color: Theme.colors.textDark,
-    marginLeft: Theme.spacing.s,
+    marginRight: 48,
   },
 });

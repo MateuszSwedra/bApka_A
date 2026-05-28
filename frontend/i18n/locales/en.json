@@ -186,10 +186,18 @@
   },
   "caretaker": {
     "dashboard": {
-      "badge": "Caretaker dashboard",
+      "badge": "Caretaker hub",
       "title": "Your dependents",
+      "subtitle": "Pick a profile to view their schedule and meds.",
+      "profileHint": "Schedule · Calendar · Med cabinet",
+      "count": "{{count}} dependents",
+      "count_one": "{{count}} dependent",
+      "count_other": "{{count}} dependents",
+      "addCardTitle": "Add dependent",
+      "addCardSubtitle": "Pair an account with a PIN code",
       "emptyTitle": "No dependents yet",
       "emptySubtitle": "Add your first dependent to manage their schedule.",
+      "emptyCta": "Add dependent",
       "statusAttention": "Needs attention",
       "statusOk": "All good"
     },
@@ -228,6 +236,7 @@
       "alertGenerateError": "Could not generate pairing code."
     },
     "today": {
+      "nextActivitySection": "Next activity",
       "nextActivity": "Next activity:",
       "allDone": "All done for today",
       "allDoneHint": "No more activities scheduled for today.",
@@ -242,10 +251,16 @@
       "title": "Alerts",
       "depletion": "Medication running low",
       "buyPack": "Buy a new pack: {{name}}"
+    },
+    "calendar": {
+      "alertDepletionWithName": "supply ended: {{name}}"
     }
   },
   "dependent": {
     "greeting": "Good day,",
+    "greetingMorning": "Good morning,",
+    "greetingAfternoon": "Good afternoon,",
+    "greetingEvening": "Good evening,",
     "nameFallback": "dear senior",
     "moodTitle": "How do you feel today?",
     "moodThanks": "Thank you for letting us know.",

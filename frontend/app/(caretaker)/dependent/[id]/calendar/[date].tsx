@@ -26,7 +26,7 @@ export default function DependentCalendarDayScreen() {
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
-  const fabBottom = useFabBottomOffset();
+  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
 
   const dateStr = typeof dateParam === 'string' ? dateParam : Array.isArray(dateParam) ? dateParam[0] : '';
@@ -90,7 +90,7 @@ export default function DependentCalendarDayScreen() {
         </View>
 
         <Pressable
-          style={[styles.fab, { bottom: fabBottom }]}
+          style={[styles.fab, { bottom: fabBottomOffset }]}
           onPress={() => {
             if (!dependentId) {
               Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));

@@ -98,7 +98,9 @@ export function AndroidStyleMonthCalendar({
     depletionAlerts.forEach(alert => {
       push(alert.date, {
         id: `alert-${alert.date}-${alert.inventoryItemName}`,
-        label: t('caretaker.calendar.alertDepletion'),
+        label: t('caretaker.calendar.alertDepletionWithName', {
+          name: alert.inventoryItemName,
+        }),
         color: Theme.colors.accentOrange,
         textColor: Theme.colors.surfaceWhite,
         kind: 'alert',

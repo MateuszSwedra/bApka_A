@@ -53,18 +53,31 @@ export default function DependentDashboard() {
   }, [loadCompleted]);
 
   const [moodEnabled, setMoodEnabled] = useState(true);
+  const [displayName, setDisplayName] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       void refetchFromServer();
       void loadCompleted();
       usersAPI.getMe().then(me => {
-        if (me && typeof me.moodEnabled === 'boolean') {
+        if (!me) return;
+        if (typeof me.moodEnabled === 'boolean') {
           setMoodEnabled(me.moodEnabled);
         }
+        const name = typeof me.name === 'string' ? me.name.trim() : '';
+        setDisplayName(name.length > 0 ? name : null);
       }).catch(() => {});
     }, [refetchFromServer, loadCompleted]),
   );
+
+  const greetingLine = useMemo(() => {
+    const hour = now.getHours();
+    if (hour < 12) return t('dependent.greetingMorning');
+    if (hour < 18) return t('dependent.greetingAfternoon');
+    return t('dependent.greetingEvening');
+  }, [now, t]);
+
+  const seniorName = displayName ?? t('dependent.nameFallback');
 
   const mainState = useMemo(
     () => computeDependentMainScheduleState(schedules, treatments, completedIds, now),
@@ -122,7 +135,12 @@ export default function DependentDashboard() {
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
-        <Text style={[styles.headerClock, { color: colors.textDark }]}>{clockText}</Text>
+        <View style={styles.headerGreeting}>
+          <Text style={[styles.headerGreetingLine, { color: colors.textLight }]}>{greetingLine}</Text>
+          <Text style={[styles.headerName, { color: colors.textDark }]} numberOfLines={1}>
+            {seniorName}
+          </Text>
+        </View>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/(dependent)/settings' as any)}
@@ -382,11 +400,19 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.round,
   },
-  headerClock: {
+  headerGreeting: {
     flex: 1,
-    fontSize: 32,
-    fontWeight: '900',
-    letterSpacing: -1,
+    paddingRight: Theme.spacing.s,
+  },
+  headerGreetingLine: {
+    fontSize: Theme.typography.caption,
+    fontWeight: '600',
+  },
+  headerName: {
+    marginTop: 2,
+    fontSize: Theme.typography.largeTitle,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   logoutBtn: {
     padding: Theme.spacing.s,

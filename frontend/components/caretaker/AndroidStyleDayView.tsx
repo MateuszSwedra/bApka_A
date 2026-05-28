@@ -130,7 +130,9 @@ export function AndroidStyleDayView({
               {dayAlerts.map((alert, i) => (
                 <View key={`alert-${i}`} style={[styles.allDayChip, styles.allDayChipAlert]}>
                   <Text style={styles.allDayChipText} numberOfLines={1} ellipsizeMode="tail">
-                    {t('caretaker.calendar.alertDepletion')}: {alert.inventoryItemName}
+                    {t('caretaker.calendar.alertDepletionWithName', {
+                      name: alert.inventoryItemName,
+                    })}
                   </Text>
                 </View>
               ))}

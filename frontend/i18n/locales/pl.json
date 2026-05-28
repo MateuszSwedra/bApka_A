@@ -186,10 +186,20 @@
   },
   "caretaker": {
     "dashboard": {
-      "badge": "Panel Opiekuna",
+      "badge": "Panel opiekuna",
       "title": "Twoi podopieczni",
+      "subtitle": "Wybierz profil, aby zobaczyć harmonogram i apteczkę.",
+      "profileHint": "Harmonogram · Kalendarz · Apteczka",
+      "count": "{{count}} podopiecznych",
+      "count_one": "{{count}} podopieczny",
+      "count_few": "{{count}} podopiecznych",
+      "count_many": "{{count}} podopiecznych",
+      "count_other": "{{count}} podopiecznych",
+      "addCardTitle": "Dodaj podopiecznego",
+      "addCardSubtitle": "Sparuj konto przez kod PIN",
       "emptyTitle": "Brak podopiecznych",
       "emptySubtitle": "Dodaj pierwszego podopiecznego, aby zarządzać harmonogramem.",
+      "emptyCta": "Dodaj podopiecznego",
       "statusAttention": "Wymaga uwagi",
       "statusOk": "Wszystko ok"
     },
@@ -228,6 +238,7 @@
       "alertGenerateError": "Nie udało się wygenerować kodu parowania."
     },
     "today": {
+      "nextActivitySection": "Następna aktywność",
       "nextActivity": "Następna aktywność:",
       "allDone": "Wszystko na dziś zrobione",
       "allDoneHint": "Brak kolejnych aktywności w harmonogramie na dziś.",
@@ -242,10 +253,16 @@
       "title": "Alerty",
       "depletion": "Koniec zapasu leku",
       "buyPack": "Kup nową paczkę: {{name}}"
+    },
+    "calendar": {
+      "alertDepletionWithName": "koniec zapasu: {{name}}"
     }
   },
   "dependent": {
     "greeting": "Dzień dobry,",
+    "greetingMorning": "Dzień dobry,",
+    "greetingAfternoon": "Miłego dnia,",
+    "greetingEvening": "Dobry wieczór,",
     "nameFallback": "drogi seniorze",
     "moodTitle": "Jak się dziś czujesz?",
     "moodThanks": "Dziękujemy za informację.",

@@ -2,10 +2,8 @@ import '../i18n';
 import { Stack } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
 import { AuthProvider } from '../context/AuthContext';
 import { MedsProvider } from '../context/MedsContext';
-import { Theme } from '../constants/theme';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -18,8 +16,6 @@ Notifications.setNotificationHandler({
 });
 
 export default function RootLayout() {
-  const { t } = useTranslation();
-
   return (
     <SafeAreaProvider>
     <AuthProvider>
@@ -44,15 +40,7 @@ export default function RootLayout() {
         />
         <Stack.Screen name="senior-type" />
         <Stack.Screen name="enter-pin" />
-        <Stack.Screen
-          name="notification-sound-settings"
-          options={{
-            title: t('sounds.screenTitle'),
-            headerShown: true,
-            headerStyle: { backgroundColor: Theme.colors.surfaceWhite },
-            headerTintColor: Theme.colors.textDark,
-          }}
-        />
+        <Stack.Screen name="notification-sound-settings" options={{ headerShown: false }} />
         <Stack.Screen name="(caretaker)" />
         <Stack.Screen name="(dependent)" />
         <Stack.Screen name="(hybrid)" />

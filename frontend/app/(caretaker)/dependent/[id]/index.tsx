@@ -1,10 +1,10 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Card } from '../../../../components/Card';
 import { Theme } from '../../../../constants/theme';
+import { CaretakerFlowStyles as Flow } from '../../../../constants/caretakerFlowStyles';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
-import { useLocalSearchParams, router, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
+import { useLocalSearchParams, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
 import { format } from 'date-fns';
@@ -14,6 +14,7 @@ import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/schedule
 import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { useTranslation } from 'react-i18next';
 import { DependentProfileHeader } from '../../../../components/caretaker/DependentProfileHeader';
+import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 
 interface DependentInfo {
   id: string;
@@ -23,6 +24,7 @@ interface DependentInfo {
 
 export default function DependentTodayDashboard() {
   const { t } = useTranslation();
+  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -42,10 +44,9 @@ export default function DependentTodayDashboard() {
   const [dependent, setDependent] = useState<DependentInfo | null>(null);
   const [now, setNow] = useState(new Date());
 
-  // Co minutę odświeżamy „teraz”, by status „Oczekuje / Minęło” był aktualny.
   useEffect(() => {
-    const t = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(timer);
   }, []);
 
   const [logs, setLogs] = useState<any[]>([]);
@@ -66,7 +67,7 @@ export default function DependentTodayDashboard() {
   useFocusEffect(
     useCallback(() => {
       void fetchDependent();
-    }, [fetchDependent])
+    }, [fetchDependent]),
   );
 
   const todayStr = format(now, 'yyyy-MM-dd');
@@ -79,7 +80,7 @@ export default function DependentTodayDashboard() {
 
   const todaysDepletion = useMemo(
     () => depletionAlerts.filter(a => a.date === todayStr),
-    [depletionAlerts, todayStr]
+    [depletionAlerts, todayStr],
   );
 
   const labelFor = (sch: ScheduleItem) => {
@@ -91,43 +92,30 @@ export default function DependentTodayDashboard() {
 
   const typeFor = (sch: ScheduleItem) => {
     const tid = getScheduleTreatmentId(sch);
-    return treatments.find(t => t.id === tid)?.type;
+    return treatments.find(tr => tr.id === tid)?.type;
   };
 
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   const nextSchedule = useMemo(
     () => todaysSchedules.find(s => timeToMinutes(s.time) >= currentMinutes),
-    [todaysSchedules, currentMinutes]
+    [todaysSchedules, currentMinutes],
   );
 
   const greeting = dependent?.name?.trim() || dependent?.email || t('caretaker.dependentFallbackName');
 
   const renderMood = () => {
-    // @ts-ignore
+    // @ts-expect-error — lastMood z API
     if (!dependent?.lastMood || !dependent?.lastMoodAt) return null;
-    // @ts-ignore
+    // @ts-expect-error
     const moodEmoji = dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
-    // @ts-ignore
+    // @ts-expect-error
     const date = new Date(dependent.lastMoodAt);
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
     return (
-      <View style={{ 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        backgroundColor: Theme.colors.surfaceGrey, 
-        paddingHorizontal: 12, 
-        paddingVertical: 6, 
-        borderRadius: 20, 
-        alignSelf: 'flex-start', 
-        marginBottom: Theme.spacing.l,
-        borderWidth: 1,
-        borderColor: Theme.colors.border
-      }}>
-        <Text style={{ fontSize: 24 }}>{moodEmoji}</Text>
-        <Text style={{ fontSize: 14, color: Theme.colors.textDark, marginLeft: 8, fontWeight: '700' }}>
-          {t('caretaker.moodAt', { time: timeStr })}
-        </Text>
+      <View style={styles.moodChip}>
+        <Text style={styles.moodEmoji}>{moodEmoji}</Text>
+        <Text style={styles.moodTime}>{t('caretaker.moodAt', { time: timeStr })}</Text>
       </View>
     );
   };
@@ -140,131 +128,140 @@ export default function DependentTodayDashboard() {
   const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {
     const log = logs.find(l => l.scheduleId === sch.id);
     if (log) {
-      if (log.status === 'TAKEN') return { label: t('schedule.status.taken'), color: Theme.colors.success, pill: styles.statusPillSuccess };
-      if (log.status === 'LATE') return { label: t('schedule.status.late'), color: Theme.colors.surfaceWhite, pill: styles.statusPillLate };
-      if (log.status === 'MISSED') return { label: t('schedule.status.skipped'), color: Theme.colors.surfaceWhite, pill: styles.statusPillMissed };
+      if (log.status === 'TAKEN')
+        return { label: t('schedule.status.taken'), pill: styles.statusPillSuccess, textColor: Theme.colors.success };
+      if (log.status === 'LATE')
+        return { label: t('schedule.status.late'), pill: styles.statusPillLate, textColor: Theme.colors.accentOrange };
+      if (log.status === 'MISSED')
+        return { label: t('schedule.status.skipped'), pill: styles.statusPillMissed, textColor: Theme.colors.accentOrange };
     }
     const diff = minutes - currentMinutes;
-    if (Math.abs(diff) <= 5) return { label: t('schedule.status.now'), color: Theme.colors.surfaceWhite, pill: styles.statusPillNext };
-    if (diff < -5) return { label: t('schedule.status.past'), color: Theme.colors.textLight, pill: styles.statusPillPast };
-    if (isNext) return { label: t('schedule.status.next'), color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
-    return { label: t('schedule.status.planned'), color: Theme.colors.textDark, pill: styles.statusPillUpcoming };
+    if (Math.abs(diff) <= 5)
+      return { label: t('schedule.status.now'), pill: styles.statusPillNext, textColor: Theme.colors.surfaceWhite };
+    if (diff < -5)
+      return { label: t('schedule.status.past'), pill: styles.statusPillPast, textColor: Theme.colors.textLight };
+    if (isNext)
+      return { label: t('schedule.status.next'), pill: styles.statusPillUpcoming, textColor: Theme.colors.textDark };
+    return { label: t('schedule.status.planned'), pill: styles.statusPillUpcoming, textColor: Theme.colors.textDark };
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+    <View style={Flow.screen}>
       <DependentProfileHeader />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.content, { paddingBottom: fabBottomOffset + 80 }]}
+        showsVerticalScrollIndicator={false}
+      >
         <Text style={styles.greeting}>{greeting}</Text>
         {renderMood()}
 
+        <Text style={Flow.sectionLabel}>{t('caretaker.today.nextActivitySection')}</Text>
         {nextSchedule ? (
-          <Card variant="lime" style={styles.mainCard}>
-            <Text style={styles.mainCardSubtitle}>{t('caretaker.today.nextActivity')}</Text>
-            <Text style={styles.mainCardTime}>{nextSchedule.time}</Text>
-            <Text style={styles.mainCardDetails}>{labelFor(nextSchedule)}</Text>
-          </Card>
+          <View style={[Flow.cardRow, Flow.cardRowHighlight]}>
+            <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.primaryLime }]}>
+              <MaterialIcons name="schedule" size={26} color={Theme.colors.primaryLimeDark} />
+            </View>
+            <View style={Flow.rowText}>
+              <Text style={styles.heroTime}>{nextSchedule.time}</Text>
+              <Text style={Flow.rowSubtitle} numberOfLines={2}>
+                {labelFor(nextSchedule)}
+              </Text>
+            </View>
+          </View>
         ) : (
-          <Card variant="lime" style={styles.mainCard}>
-            <Text style={styles.mainCardSubtitle}>{t('caretaker.today.allDone')}</Text>
-            <Text style={styles.mainCardDetailsMuted}>{t('caretaker.today.allDoneHint')}</Text>
-          </Card>
+          <View style={Flow.cardRow}>
+            <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.badgeSuccessBackground }]}>
+              <MaterialIcons name="check-circle" size={26} color={Theme.colors.success} />
+            </View>
+            <View style={Flow.rowText}>
+              <Text style={Flow.rowTitle}>{t('caretaker.today.allDone')}</Text>
+              <Text style={Flow.rowSubtitle}>{t('caretaker.today.allDoneHint')}</Text>
+            </View>
+          </View>
         )}
 
-        <Card variant="white" style={styles.infoCard}>
-          <View style={styles.infoCardTop}>
-            <Text style={styles.infoCardText}>{t('caretaker.device.synced')}</Text>
+        <Text style={Flow.sectionLabel}>{t('caretaker.device.synced')}</Text>
+        <View style={Flow.cardRow}>
+          <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.badgeSuccessBackground }]}>
+            <MaterialIcons name="phonelink" size={24} color={Theme.colors.success} />
           </View>
-          <View style={styles.infoCardBottom}>
-            <Text style={styles.setupText}>{t('caretaker.device.statusOk')}</Text>
-            <MaterialIcons name="check-circle" size={36} color={Theme.colors.success} />
+          <View style={Flow.rowText}>
+            <Text style={Flow.rowTitle}>{t('caretaker.device.statusOk')}</Text>
+            <Text style={Flow.rowSubtitle}>{t('caretaker.device.synced')}</Text>
           </View>
-        </Card>
+          <MaterialIcons name="check-circle" size={28} color={Theme.colors.success} />
+        </View>
 
         {todaysDepletion.length > 0 && (
-          <View style={{ marginTop: Theme.spacing.l }}>
-            <Text style={styles.sectionTitle}>{t('caretaker.alerts.title')}</Text>
-            {todaysDepletion.map((alert, idx) => (
-              <Card
-                key={`alert-${idx}`}
-                variant="white"
-                style={styles.alertCard}
-              >
-                <Text style={styles.alertTitle}>{t('caretaker.alerts.depletion')}</Text>
-                <View style={styles.scheduleRow}>
-                  <MaterialIcons
-                    name="shopping-cart"
-                    size={20}
-                    color={Theme.colors.accentOrange}
-                  />
-                  <Text style={styles.alertText}>
-                    {t('caretaker.alerts.buyPack', { name: alert.inventoryItemName })}
+          <>
+            <Text style={Flow.sectionLabel}>{t('caretaker.alerts.title')}</Text>
+            <View style={Flow.list}>
+              {todaysDepletion.map((alert, idx) => (
+                <View key={`alert-${idx}`} style={[Flow.cardRow, Flow.cardRowAlert]}>
+                  <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.badgeWarningBackground }]}>
+                    <MaterialIcons name="inventory-2" size={24} color={Theme.colors.accentOrange} />
+                  </View>
+                  <Text style={[Flow.rowTitle, styles.alertRowTitle]} numberOfLines={2}>
+                    {t('caretaker.calendar.alertDepletionWithName', { name: alert.inventoryItemName })}
                   </Text>
                 </View>
-              </Card>
-            ))}
-          </View>
+              ))}
+            </View>
+          </>
         )}
 
-        <Text style={styles.sectionTitle}>{t('caretaker.today.plan')}</Text>
-
+        <Text style={Flow.sectionLabel}>{t('caretaker.today.plan')}</Text>
         {todaysSchedules.length === 0 ? (
-          <Card variant="grey" style={styles.emptyCard}>
-            <Text style={styles.emptyText}>{t('caretaker.today.empty')}</Text>
-          </Card>
+          <View style={Flow.cardRow}>
+            <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.surfaceGrey }]}>
+              <MaterialIcons name="event-busy" size={24} color={Theme.colors.textLight} />
+            </View>
+            <Text style={Flow.rowSubtitle}>{t('caretaker.today.empty')}</Text>
+          </View>
         ) : (
-          todaysSchedules.map(sch => {
-            const label = labelFor(sch);
-            const tType = typeFor(sch);
-            const vis = tType ? TREATMENT_VISUAL[tType] : null;
-            const minutes = timeToMinutes(sch.time);
-            const isNext = nextSchedule?.id === sch.id;
-            
-            const display = getStatusDisplay(sch, minutes, isNext);
+          <View style={Flow.list}>
+            {todaysSchedules.map(sch => {
+              const label = labelFor(sch);
+              const tType = typeFor(sch);
+              const vis = tType ? TREATMENT_VISUAL[tType] : null;
+              const minutes = timeToMinutes(sch.time);
+              const isNext = nextSchedule?.id === sch.id;
+              const display = getStatusDisplay(sch, minutes, isNext);
 
-            return (
-              <Card
-                key={sch.id}
-                variant={isNext ? 'lime' : 'grey'}
-                style={
-                  isNext ? styles.activeScheduleCard : styles.scheduleCard
-                }
-              >
-                <View style={styles.scheduleHead}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    {vis ? (
-                      <View
-                        style={[
-                          styles.activityIconCircle,
-                          { backgroundColor: vis.accent + '22' },
-                        ]}
-                      >
-                        <MaterialIcons
-                          name={vis.icon}
-                          size={18}
-                          color={vis.accent}
-                        />
-                      </View>
-                    ) : null}
-                    <View>
-                      <Text style={styles.scheduleTime}>{sch.time}</Text>
-                      <Text style={styles.scheduleItemName}>{label}</Text>
+              return (
+                <View
+                  key={sch.id}
+                  style={[Flow.cardRow, isNext && Flow.cardRowHighlight]}
+                >
+                  {vis ? (
+                    <View style={[Flow.iconCircle, { backgroundColor: vis.accent + '22' }]}>
+                      <MaterialIcons name={vis.icon} size={24} color={vis.accent} />
                     </View>
+                  ) : (
+                    <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.primaryLime }]}>
+                      <MaterialIcons name="medication" size={24} color={Theme.colors.primaryLimeDark} />
+                    </View>
+                  )}
+                  <View style={Flow.rowText}>
+                    <Text style={Flow.rowTitle}>{label}</Text>
+                    <Text style={Flow.rowSubtitle}>{sch.time}</Text>
                   </View>
-
-                  <View style={[styles.statusPill, display.pill]}>
-                    <Text style={[styles.statusPillText, { color: display.color }]}>
-                      {display.label}
-                    </Text>
+                  <View style={[Flow.statusPill, display.pill]}>
+                    <Text style={[Flow.statusPillText, { color: display.textColor }]}>{display.label}</Text>
                   </View>
                 </View>
-              </Card>
-            );
-          })
+              );
+            })}
+          </View>
         )}
       </ScrollView>
 
-      <Pressable style={styles.fab} onPress={handleAdd}>
+      <Pressable
+        style={({ pressed }) => [styles.fab, { bottom: fabBottomOffset }, pressed && styles.fabPressed]}
+        onPress={handleAdd}
+        accessibilityLabel={t('schedule.add.pickActivityTitle')}
+      >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
       </Pressable>
     </View>
@@ -272,146 +269,49 @@ export default function DependentTodayDashboard() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  scroll: {
     flex: 1,
-    backgroundColor: Theme.colors.background,
   },
   content: {
-    padding: Theme.spacing.l,
+    paddingHorizontal: Theme.spacing.l,
     paddingTop: Theme.spacing.m,
-    paddingBottom: 120,
   },
   greeting: {
     fontSize: Theme.typography.title,
-    fontWeight: 'bold',
+    fontWeight: '800',
     color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.m,
+    marginBottom: Theme.spacing.s,
   },
-  mainCard: {
+  moodChip: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: Theme.spacing.xl,
-    borderRadius: 8,
+    alignSelf: 'flex-start',
+    marginBottom: Theme.spacing.m,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Theme.borderRadius.round,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    backgroundColor: Theme.colors.calendarCell,
   },
-  mainCardSubtitle: {
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
+  moodEmoji: {
+    fontSize: 22,
+  },
+  moodTime: {
+    fontSize: Theme.typography.caption,
     color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.xs,
+    marginLeft: 8,
+    fontWeight: '700',
   },
-  mainCardTime: {
-    fontSize: Theme.typography.huge,
+  heroTime: {
+    fontSize: Theme.typography.largeTitle,
     fontWeight: '900',
     color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.xs,
+    lineHeight: 36,
   },
-  mainCardDetails: {
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
-    color: Theme.colors.textDark,
-  },
-  mainCardDetailsMuted: {
-    fontSize: Theme.typography.body,
-    color: Theme.colors.textLight,
-  },
-  infoCard: {
-    borderRadius: 8,
-    marginTop: Theme.spacing.m,
-  },
-  infoCardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  infoCardText: {
+  alertRowTitle: {
+    color: Theme.colors.accentOrange,
     flex: 1,
-    fontSize: Theme.typography.body,
-    fontWeight: '600',
-    color: Theme.colors.textDark,
-    paddingRight: Theme.spacing.m,
-  },
-  infoCardBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    marginTop: Theme.spacing.m,
-  },
-  setupText: {
-    color: Theme.colors.success,
-    fontWeight: 'bold',
-    fontSize: Theme.typography.body,
-  },
-  sectionTitle: {
-    fontSize: Theme.typography.body,
-    fontWeight: '700',
-    color: Theme.colors.textDark,
-    marginTop: Theme.spacing.xl,
-    marginBottom: Theme.spacing.m,
-  },
-  scheduleCard: {
-    borderRadius: 8,
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.s,
-  },
-  emptyCard: {
-    padding: Theme.spacing.m,
-    alignItems: 'center',
-  },
-  emptyText: {
-    color: Theme.colors.textLight,
-  },
-  activeScheduleCard: {
-    borderRadius: 8,
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.s,
-  },
-  scheduleHead: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  activityIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: Theme.spacing.m,
-  },
-  scheduleTime: {
-    fontSize: Theme.typography.body,
-    fontWeight: '700',
-    color: Theme.colors.textDark,
-  },
-  scheduleItemName: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textLight,
-    marginTop: 2,
-  },
-  scheduleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: Theme.spacing.s,
-  },
-  alertCard: {
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.s,
-    borderColor: Theme.colors.accentOrange,
-    borderWidth: 2,
-  },
-  alertTitle: {
-    fontSize: Theme.typography.body,
-    fontWeight: '800',
-    color: Theme.colors.accentOrange,
-  },
-  alertText: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.accentOrange,
-    marginLeft: Theme.spacing.s,
-    fontWeight: '700',
-  },
-  statusPill: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
   },
   statusPillPast: {
     backgroundColor: Theme.colors.surfaceGrey,
@@ -422,29 +322,23 @@ const styles = StyleSheet.create({
   statusPillNext: {
     backgroundColor: Theme.colors.primaryLimeDark,
   },
-  statusPillText: {
-    fontSize: Theme.typography.small,
-    fontWeight: '700',
-    color: Theme.colors.textDark,
-  },
   statusPillSuccess: {
-    backgroundColor: Theme.colors.badgeSuccessBackground || '#e8f5e9',
-    borderColor: Theme.colors.success || '#4caf50',
+    backgroundColor: Theme.colors.badgeSuccessBackground,
+    borderColor: Theme.colors.success,
     borderWidth: 1,
   },
   statusPillLate: {
-    backgroundColor: Theme.colors.surfaceSoftOrange || '#fff3e0',
-    borderColor: Theme.colors.accentOrange || '#ff9800',
+    backgroundColor: Theme.colors.surfaceSoftOrange,
+    borderColor: Theme.colors.accentOrange,
     borderWidth: 1,
   },
   statusPillMissed: {
-    backgroundColor: Theme.colors.badgeWarningBackground || '#ffebee',
-    borderColor: Theme.colors.accentOrange || '#ff9800',
+    backgroundColor: Theme.colors.badgeWarningBackground,
+    borderColor: Theme.colors.accentOrange,
     borderWidth: 1,
   },
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
     right: Theme.spacing.xl,
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
@@ -452,7 +346,15 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     borderColor: Theme.colors.primaryLimeDark,
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  fabPressed: {
+    transform: [{ scale: 0.95 }],
   },
 });
