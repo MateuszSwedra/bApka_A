@@ -163,10 +163,13 @@ export interface TimeScrollPickerProps {
   minute: number;
   onHourChange: (hour: number) => void;
   onMinuteChange: (minute: number) => void;
+  /** Kolor wygaszania przy krawędziach koła (np. tło karty). */
+  surfaceColor?: string;
 }
 
 export const TimeScrollPicker = forwardRef<TimeScrollPickerRef, TimeScrollPickerProps>(
-  function TimeScrollPicker({ hour, minute, onHourChange, onMinuteChange }, ref) {
+  function TimeScrollPicker({ hour, minute, onHourChange, onMinuteChange, surfaceColor }, ref) {
+    const fadeColor = surfaceColor ?? Theme.colors.background;
     const { t } = useTranslation();
     const [activeColumn, setActiveColumn] = useState<ActiveColumn>('hour');
     const hourRef = useRef(clampIndex(hour, 23));
@@ -267,8 +270,8 @@ export const TimeScrollPicker = forwardRef<TimeScrollPickerRef, TimeScrollPicker
           </Text>
         </View>
 
-        <View style={[styles.fade, styles.fadeTop]} pointerEvents="none" />
-        <View style={[styles.fade, styles.fadeBottom]} pointerEvents="none" />
+        <View style={[styles.fade, styles.fadeTop, { backgroundColor: fadeColor }]} pointerEvents="none" />
+        <View style={[styles.fade, styles.fadeBottom, { backgroundColor: fadeColor }]} pointerEvents="none" />
       </View>
     );
   },
@@ -422,12 +425,10 @@ const styles = StyleSheet.create({
   },
   fadeTop: {
     top: 28,
-    backgroundColor: Theme.colors.background,
     opacity: 0.94,
   },
   fadeBottom: {
     bottom: 0,
-    backgroundColor: Theme.colors.background,
     opacity: 0.94,
   },
 });

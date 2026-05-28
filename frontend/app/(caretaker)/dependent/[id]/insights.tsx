@@ -10,6 +10,7 @@ import { useMeds } from '../../../../context/MedsContext';
 import { SimpleBarChart } from '../../../../components/insights/SimpleBarChart';
 import { StackedBarChart } from '../../../../components/insights/StackedBarChart';
 import { SimpleLineChart } from '../../../../components/insights/SimpleLineChart';
+import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 
 type RangeKey = 'today' | 'week' | 'month';
 
@@ -44,6 +45,7 @@ export default function DependentInsightsScreen() {
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
   const { targetUserId } = useMeds();
+  const topInset = useDependentTabTopInset();
 
   const dependentId = useMemo(
     () =>
@@ -249,7 +251,10 @@ export default function DependentInsightsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}
+      >
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
 
         <View style={styles.rangeSwitcher}>

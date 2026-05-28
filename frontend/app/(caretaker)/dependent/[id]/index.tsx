@@ -13,6 +13,7 @@ import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
 import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { useTranslation } from 'react-i18next';
+import { DependentProfileHeader } from '../../../../components/caretaker/DependentProfileHeader';
 
 interface DependentInfo {
   id: string;
@@ -152,6 +153,7 @@ export default function DependentTodayDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+      <DependentProfileHeader />
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         <Text style={styles.greeting}>{greeting}</Text>
         {renderMood()}

@@ -15,6 +15,7 @@ import {
 import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
+import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 
@@ -24,6 +25,7 @@ export default function DependentTreatmentsScreen() {
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
   const fabBottom = useFabBottomOffset();
+  const topInset = useDependentTabTopInset();
   const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
 
   const dependentId = useMemo(
@@ -51,7 +53,7 @@ export default function DependentTreatmentsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 

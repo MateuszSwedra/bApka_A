@@ -1,7 +1,7 @@
-import { Tabs, router } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
-import { View, Pressable, Text, Platform } from 'react-native';
+import { View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 
@@ -13,27 +13,6 @@ export default function DependentTabsLayout() {
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      {/* Header wspólny dla wszystkich zakładek */}
-      <View style={{
-        flexDirection: 'row',
-        alignItems: 'center',
-        padding: Theme.spacing.l,
-        paddingTop: Theme.spacing.xxl,
-        backgroundColor: Theme.colors.surfaceWhite,
-        borderBottomWidth: 1,
-        borderBottomColor: Theme.colors.border,
-      }}>
-        <Pressable onPress={() => router.push('/(caretaker)')} style={{ padding: 4 }}>
-          <MaterialIcons name="arrow-back" size={28} color={Theme.colors.textDark} />
-        </Pressable>
-        <Text style={{
-          fontSize: Theme.typography.title,
-          fontWeight: '800',
-          color: Theme.colors.textDark,
-          marginLeft: Theme.spacing.m,
-        }}>{t('caretaker.dependentHeader')}</Text>
-      </View>
-
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -51,7 +30,7 @@ export default function DependentTabsLayout() {
           tabBarLabelStyle: {
             fontSize: Theme.typography.small,
             fontWeight: '600',
-          }
+          },
         }}
       >
         <Tabs.Screen
