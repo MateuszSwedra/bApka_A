@@ -1,17 +1,10 @@
 import { addDays, differenceInCalendarDays, format } from 'date-fns';
 import { Theme } from '../constants/theme';
 
+export { parseYmdLocal, compareYmd } from './ymdDate';
+import { parseYmdLocal } from './ymdDate';
+
 export const WEEKDAY_IDS = [1, 2, 3, 4, 5, 6, 7] as const;
-
-/** yyyy-MM-dd → data w lokalnej strefie (unika błędów parseISO / UTC). */
-export function parseYmdLocal(ymd: string): Date {
-  const [y, m, d] = ymd.split('-').map(Number);
-  return new Date(y, m - 1, d);
-}
-
-export function compareYmd(a: string, b: string): number {
-  return parseYmdLocal(a).getTime() - parseYmdLocal(b).getTime();
-}
 
 export function parseDaysOfWeekParam(raw?: string): number[] {
   if (!raw?.trim()) return [];

@@ -19,6 +19,7 @@ import { scheduleAPI, usersAPI } from '../../services/api';
 import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { format } from 'date-fns';
+import { useOnCalendarDayChange, useTickingNow } from '../../hooks/useTickingNow';
 import { timeToMinutes } from '../../utils/scheduleHelpers';
 import {
   schedulesForDateSorted,
@@ -30,6 +31,7 @@ import {
   getCompletedScheduleIdsForDate,
   markScheduleCompletedForDate,
 } from '../../services/seniorScheduleCompletion';
+import { mergeDoseLogsIntoCompletionSets } from '../../utils/doseLogDay';
 import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { MoodIcon } from '../../components/mood/MoodIcon';
 import type { MoodValue } from '../../constants/moodVisual';
@@ -42,19 +44,13 @@ export default function DependentDashboard() {
   const insets = useSafeAreaInsets();
   const { colors } = useDependentDisplay();
   const { treatments, schedules, inventory, refetchFromServer } = useMeds();
-  const [now, setNow] = useState(() => new Date());
+  const { now, todayStr, refresh } = useTickingNow({ tickMs: 15_000 });
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [missedIds, setMissedIds] = useState<Set<string>>(new Set());
   const [userId, setUserId] = useState<string | null>(null);
-  const todayStr = format(now, 'yyyy-MM-dd');
 
   const [moodPhase, setMoodPhase] = useState<'pick' | 'thanks' | 'hidden'>('pick');
   const [highlightMood, setHighlightMood] = useState(false);
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(id);
-  }, []);
 
   const syncTodayFromServer = useCallback(async () => {
     const localIds = await getCompletedScheduleIdsForDate(todayStr);
@@ -63,18 +59,9 @@ export default function DependentDashboard() {
 
     if (userId) {
       try {
-        const logs = await scheduleAPI.getTodayLogs(userId);
+        const logs = await scheduleAPI.getTodayLogs(userId, todayStr);
         if (Array.isArray(logs)) {
-          for (const log of logs) {
-            if (!log?.scheduleId) continue;
-            const sid = String(log.scheduleId);
-            if (log.status === 'TAKEN' || log.status === 'LATE' || log.status === 'MISSED') {
-              completed.add(sid);
-            }
-            if (log.status === 'MISSED') {
-              missed.add(sid);
-            }
-          }
+          mergeDoseLogsIntoCompletionSets(logs, todayStr, completed, missed);
         }
       } catch {
         /* lokalny stan wystarczy offline */
@@ -85,12 +72,24 @@ export default function DependentDashboard() {
     setMissedIds(missed);
   }, [todayStr, userId]);
 
+  useOnCalendarDayChange(
+    todayStr,
+    useCallback(() => {
+      setCompletedIds(new Set());
+      setMissedIds(new Set());
+      void refetchFromServer();
+      void syncTodayFromServer();
+    }, [refetchFromServer, syncTodayFromServer]),
+  );
+
   const [moodEnabled, setMoodEnabled] = useState(true);
   const [displayName, setDisplayName] = useState<string | null>(null);
 
   useFocusEffect(
     useCallback(() => {
+      refresh();
       void refetchFromServer();
+      void syncTodayFromServer();
       usersAPI.getMe().then(me => {
         if (!me) return;
         if (typeof me.moodEnabled === 'boolean') {
@@ -100,7 +99,7 @@ export default function DependentDashboard() {
         setDisplayName(name.length > 0 ? name : null);
         if (me.id) setUserId(String(me.id));
       }).catch(() => {});
-    }, [refetchFromServer]),
+    }, [refresh, refetchFromServer, syncTodayFromServer]),
   );
 
   useEffect(() => {

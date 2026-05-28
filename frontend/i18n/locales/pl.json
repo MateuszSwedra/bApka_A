@@ -293,7 +293,7 @@
     "sosMessage": "Naciśnięto przycisk SOS. W tej wersji powiadomienie do opiekuna nie zostało wysłane.",
     "todayTitle": "Dzisiejsze aktywności",
     "todayEmpty": "Brak zaplanowanych aktywności na dziś.",
-    "calendarCta": "Otwórz kalendarz — inne dni",
+    "calendarCta": "Plan na ten tydzień",
     "inventoryTitle": "Leki w domu",
     "inventoryEmpty": "Nie dodano jeszcze żadnych opakowań.",
     "inventoryDoses": "{{count}} dawek pozostało",
@@ -344,6 +344,13 @@
       "saved": "Zapisano pomiar."
     },
     "calendar": {
+      "screenTitle": "Plan tygodnia",
+      "weekPlanTitle": "Od dziś — 7 dni",
+      "prevWeek": "Poprzednie 7 dni",
+      "nextWeek": "Kolejne 7 dni",
+      "thisWeek": "Od dzisiaj",
+      "todayBadge": "Dziś",
+      "emptyDay": "Brak aktywności",
       "alertDepletion": "Kończy się zapas leku",
       "alertBuyPack": "Kup nową paczkę: {{name}}",
       "activityLegend": "Kolorowe pole — w tym dniu coś jest zaplanowane"

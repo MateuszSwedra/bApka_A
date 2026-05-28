@@ -342,6 +342,13 @@
       "saved": "Measurement saved."
     },
     "calendar": {
+      "screenTitle": "Weekly plan",
+      "weekPlanTitle": "From today — 7 days",
+      "prevWeek": "Previous 7 days",
+      "nextWeek": "Next 7 days",
+      "thisWeek": "From today",
+      "todayBadge": "Today",
+      "emptyDay": "No activities",
       "alertDepletion": "Medicine running low",
       "alertBuyPack": "Buy a new pack: {{name}}",
       "activityLegend": "Colored box — something is planned that day"

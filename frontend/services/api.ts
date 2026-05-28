@@ -360,9 +360,13 @@ export const scheduleAPI = {
       body: JSON.stringify({ status: 'MISSED' })
     });
   },
-  getTodayLogs: async (userId: string) => {
+  getTodayLogs: async (userId: string, dateYmd?: string) => {
     try {
-      return await fetchApi(`/schedules/user/${userId}/logs`);
+      const q =
+        dateYmd && /^\d{4}-\d{2}-\d{2}$/.test(dateYmd)
+          ? `?date=${encodeURIComponent(dateYmd)}`
+          : '';
+      return await fetchApi(`/schedules/user/${userId}/logs${q}`);
     } catch {
       return [];
     }

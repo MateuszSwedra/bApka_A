@@ -1,24 +1,20 @@
-import { getDay, isBefore, isSameDay, parseISO } from 'date-fns';
 import type { ScheduleItem } from '../context/MedsContext';
+import { compareYmd, parseYmdLocal } from './ymdDate';
 
-/** ISO weekday (1=Pn ... 7=Nd) z napisu YYYY-MM-DD. */
+/** ISO weekday (1=Pn ... 7=Nd) z napisu YYYY-MM-DD (lokalna data). */
 export function isoWeekdayFromDateString(dateStr: string): number {
-  const d = parseISO(dateStr);
-  const day = getDay(d);
+  const d = parseYmdLocal(dateStr);
+  const day = d.getDay();
   return day === 0 ? 7 : day;
 }
 
 /** Czy harmonogram obowiązuje w danym dniu. Wspólne dla „Today” i „Kalendarz”. */
 export function scheduleAppliesToDate(s: ScheduleItem, dateStr: string): boolean {
-  const day = parseISO(dateStr);
-
   if (s.type === 'ONCE') {
     return s.startDate === dateStr;
   }
 
-  const start = parseISO(s.startDate);
-  const afterStart = !isBefore(day, start) || isSameDay(day, start);
-  if (!afterStart) return false;
+  if (compareYmd(dateStr, s.startDate) < 0) return false;
 
   const dow = isoWeekdayFromDateString(dateStr);
   // Puste daysOfWeek w TEMPORARY znaczy „codziennie w okresie”.
@@ -26,8 +22,7 @@ export function scheduleAppliesToDate(s: ScheduleItem, dateStr: string): boolean
   if (!everyDay && !s.daysOfWeek.includes(dow)) return false;
 
   if (s.type === 'TEMPORARY' && s.endDate) {
-    const end = parseISO(s.endDate);
-    return !isBefore(end, day) || isSameDay(day, end);
+    return compareYmd(dateStr, s.endDate) <= 0;
   }
   return true;
 }

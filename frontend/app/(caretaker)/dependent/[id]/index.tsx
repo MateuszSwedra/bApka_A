@@ -8,6 +8,7 @@ import { useLocalSearchParams, useFocusEffect, useGlobalSearchParams, useSegment
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
 import { format } from 'date-fns';
+import { useOnCalendarDayChange, useTickingNow } from '../../../../hooks/useTickingNow';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
@@ -20,6 +21,7 @@ import {
   resolveTodayScheduleUiKind,
   todayStatsBucketFromKind,
 } from '../../../../utils/todayScheduleStatus';
+import { findDoseLogForScheduleOnDate } from '../../../../utils/doseLogDay';
 
 interface DependentInfo {
   id: string;
@@ -55,7 +57,7 @@ export default function DependentTodayDashboard() {
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
 
-  const { schedules, treatments, depletionAlerts, targetUserId } = useMeds();
+  const { schedules, treatments, depletionAlerts, targetUserId, refetchFromServer } = useMeds();
 
   const dependentId = useMemo(
     () =>
@@ -68,12 +70,7 @@ export default function DependentTodayDashboard() {
     [localParams.id, globalParams.id, segments, targetUserId],
   );
   const [dependent, setDependent] = useState<DependentInfo | null>(null);
-  const [now, setNow] = useState(new Date());
-
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60_000);
-    return () => clearInterval(timer);
-  }, []);
+  const { now, todayStr } = useTickingNow({ tickMs: 60_000 });
 
   const [logs, setLogs] = useState<any[]>([]);
 
@@ -83,12 +80,12 @@ export default function DependentTodayDashboard() {
       const all = (await usersAPI.getDependents()) as DependentInfo[];
       const found = all?.find?.(d => String(d.id) === String(dependentId));
       if (found) setDependent(found);
-      const todayLogs = await scheduleAPI.getTodayLogs(dependentId);
+      const todayLogs = await scheduleAPI.getTodayLogs(dependentId, todayStr);
       setLogs(todayLogs);
     } catch (e) {
       console.warn('Nie udało się pobrać danych podopiecznego', e);
     }
-  }, [dependentId]);
+  }, [dependentId, todayStr]);
 
   useFocusEffect(
     useCallback(() => {
@@ -96,7 +93,14 @@ export default function DependentTodayDashboard() {
     }, [fetchDependent]),
   );
 
-  const todayStr = format(now, 'yyyy-MM-dd');
+  useOnCalendarDayChange(
+    todayStr,
+    useCallback(() => {
+      void refetchFromServer();
+      void fetchDependent();
+    }, [fetchDependent, refetchFromServer]),
+  );
+
   const todayLabel = format(now, 'd.MM.yyyy');
 
   const todaysSchedules = useMemo(() => {
@@ -140,7 +144,7 @@ export default function DependentTodayDashboard() {
     let missed = 0;
     let pending = 0;
     for (const sch of todaysSchedules) {
-      const log = logs.find(l => l.scheduleId === sch.id);
+      const log = findDoseLogForScheduleOnDate(logs, sch.id, todayStr);
       const isNext = nextSchedule?.id === sch.id;
       const kind = resolveTodayScheduleUiKind(log, timeToMinutes(sch.time), currentMinutes, isNext);
       const bucket = todayStatsBucketFromKind(kind);
@@ -183,7 +187,7 @@ export default function DependentTodayDashboard() {
   };
 
   const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {
-    const log = logs.find(l => l.scheduleId === sch.id);
+    const log = findDoseLogForScheduleOnDate(logs, sch.id, todayStr);
     const kind = resolveTodayScheduleUiKind(log, minutes, currentMinutes, isNext);
     switch (kind) {
       case 'taken':

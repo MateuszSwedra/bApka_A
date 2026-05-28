@@ -66,9 +66,23 @@ export class SchedulesService {
     });
   }
 
-  async getTodayDoseLogs(userId: string) {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  /** Zakres [początek dnia, początek następnego) dla yyyy-MM-dd z klienta. */
+  private calendarDayRange(dateYmd?: string): { start: Date; end: Date } {
+    const fallback = new Date();
+    fallback.setHours(0, 0, 0, 0);
+    if (!dateYmd || !/^\d{4}-\d{2}-\d{2}$/.test(dateYmd)) {
+      const end = new Date(fallback);
+      end.setDate(end.getDate() + 1);
+      return { start: fallback, end };
+    }
+    const [y, m, d] = dateYmd.split('-').map((x) => Number(x));
+    const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+    const end = new Date(y, m - 1, d + 1, 0, 0, 0, 0);
+    return { start, end };
+  }
+
+  async getTodayDoseLogs(userId: string, dateYmd?: string) {
+    const { start, end } = this.calendarDayRange(dateYmd);
 
     return this.prisma.doseLog.findMany({
       where: {
@@ -76,7 +90,8 @@ export class SchedulesService {
           userId: userId,
         },
         scheduledAt: {
-          gte: today,
+          gte: start,
+          lt: end,
         },
       },
     });

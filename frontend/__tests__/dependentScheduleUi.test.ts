@@ -3,16 +3,21 @@ jest.mock('../context/MedsContext', () => ({
     s.treatmentId ?? s.inventoryId,
 }));
 
-jest.mock('../i18n', () => ({
-  __esModule: true,
-  default: {
-    t: (key: string, opts?: { count?: string }) => {
-      if (key === 'schedule.activityFallback') return 'Activity';
-      if (key === 'schedule.dosagePieces') return ` (${opts?.count} pcs.)`;
-      return key;
+jest.mock('../i18n', () => {
+  const t = (key: string, opts?: { count?: string }) => {
+    if (key === 'schedule.activityFallback') return 'Activity';
+    if (key === 'schedule.dosagePieces') return ` (${opts?.count} pcs.)`;
+    if (key === 'treatment.type.medication.defaultName') return 'Lek';
+    return key;
+  };
+  return {
+    __esModule: true,
+    default: {
+      t,
+      getFixedT: () => t,
     },
-  },
-}));
+  };
+});
 
 import type { ScheduleItem, Treatment } from '../context/MedsContext';
 import {
@@ -40,7 +45,7 @@ describe('dependentScheduleUi', () => {
 
   it('schedulesForDateSorted includes dosage suffix', () => {
     const rows = schedulesForDateSorted([baseSchedule], treatments, '2026-05-22');
-    expect(rows[0].name).toBe('Aspirin (2 pcs.)');
+    expect(rows[0].name).toBe('Aspirin (2 szt.)');
   });
 
   it('computeDependentMainScheduleState returns empty when no schedules', () => {

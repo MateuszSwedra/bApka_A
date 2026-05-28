@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import { addDays, format } from 'date-fns';
 import { parseDosagePills, scheduleAppliesToDate } from '../utils/scheduleHelpers';
+import { normalizeYmd } from '../utils/ymdDate';
 import { getStoredAuthToken, inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
 import { assertCaretakerDependent } from '../utils/assertCaretakerDependent';
 import { useGlobalSearchParams, useSegments } from 'expo-router';
@@ -206,8 +207,8 @@ export function MedsProvider({ children }: { children: ReactNode }) {
             type: sch.type as MedScheduleType,
             time: sch.time,
             dosage: sch.dosage || '1',
-            startDate: sch.startDate,
-            endDate: sch.endDate,
+            startDate: normalizeYmd(sch.startDate) ?? sch.startDate,
+            endDate: normalizeYmd(sch.endDate) ?? sch.endDate,
             daysOfWeek: sch.daysOfWeek || [1, 2, 3, 4, 5, 6, 7],
           }))
           .filter((sch: ScheduleItem) => {

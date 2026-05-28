@@ -31,8 +31,8 @@ export class SchedulesController {
   }
 
   @Get('user/:userId/logs')
-  getTodayDoseLogs(@Param('userId') userId: string) {
-    return this.schedulesService.getTodayDoseLogs(userId);
+  getTodayDoseLogs(@Param('userId') userId: string, @Query('date') date?: string) {
+    return this.schedulesService.getTodayDoseLogs(userId, date);
   }
 
   @Get('user/:userId/stats')

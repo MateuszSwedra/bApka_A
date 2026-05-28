@@ -44,6 +44,11 @@ describe('scheduleHelpers', () => {
       expect(scheduleAppliesToDate(s, '2026-05-19')).toBe(false);
     });
 
+    it('ONCE from yesterday does not apply today', () => {
+      const s = sched({ type: 'ONCE', startDate: '2026-05-27' });
+      expect(scheduleAppliesToDate(s, '2026-05-28')).toBe(false);
+    });
+
     it('TEMPORARY with empty daysOfWeek applies every day in range', () => {
       const s = sched({
         type: 'TEMPORARY',

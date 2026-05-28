@@ -1,11 +1,10 @@
-import { format } from 'date-fns';
+import { formatLocalYmd } from './localCalendarDay';
 import type { ScheduleItem } from '../context/MedsContext';
-import { getScheduleTreatmentId } from '../context/MedsContext';
 import type { Treatment } from '../context/MedsContext';
 import { scheduleAppliesToDate } from './scheduleHelpers';
 import { timeToMinutes } from './scheduleHelpers';
 import { DOSE_ON_TIME_WINDOW_MINUTES } from './todayScheduleStatus';
-import i18n from '../i18n';
+import { seniorActivityNameForSchedule } from './seniorActivityLabel';
 
 export type DependentMainScheduleState =
   | { kind: 'empty' }
@@ -15,17 +14,7 @@ export type DependentMainScheduleState =
   | { kind: 'missed'; scheduleId: string; name: string };
 
 function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]): string {
-  let name = i18n.t('schedule.activityFallback');
-  if (sch.customName) {
-    name = sch.customName;
-  } else {
-    const tid = getScheduleTreatmentId(sch);
-    if (tid) name = treatments.find(t => t.id === tid)?.name ?? i18n.t('schedule.activityFallback');
-  }
-  if (sch.dosage && sch.dosage !== '1') {
-    name += i18n.t('schedule.dosagePieces', { count: sch.dosage });
-  }
-  return name;
+  return seniorActivityNameForSchedule(sch, treatments);
 }
 
 /** Today’s calendar entries sorted by time. */
@@ -61,7 +50,7 @@ export function computeDependentMainScheduleState(
   completedIds: Set<string>,
   now: Date,
 ): DependentMainScheduleState {
-  const dateStr = format(now, 'yyyy-MM-dd');
+  const dateStr = formatLocalYmd(now);
   const rows = schedulesForDateSorted(schedules, treatments, dateStr);
   if (rows.length === 0) return { kind: 'empty' };
 
@@ -88,6 +77,11 @@ export function computeDependentMainScheduleState(
     return { kind: 'upcoming', nextTime: upcomingRow.sch.time, nextName: upcomingRow.name };
   }
 
+  if (incomplete.length > 0) {
+    const next = incomplete[0];
+    return { kind: 'upcoming', nextTime: next.sch.time, nextName: next.name };
+  }
+
   return { kind: 'all_done' };
 }
 
@@ -98,7 +92,7 @@ export function schedulesPastConfirmationWindow(
   completedIds: Set<string>,
   now: Date,
 ): { sch: ScheduleItem; name: string }[] {
-  const dateStr = format(now, 'yyyy-MM-dd');
+  const dateStr = formatLocalYmd(now);
   const nowM = now.getHours() * 60 + now.getMinutes();
   return schedulesForDateSorted(schedules, treatments, dateStr)
     .filter(r => !completedIds.has(r.sch.id) && isPastDoseConfirmationWindow(r.minutes, nowM))
