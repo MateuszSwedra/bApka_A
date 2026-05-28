@@ -1,9 +1,28 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+
+const DOSE_CONFIRMATION_WINDOW_MINUTES = 15;
 
 @Injectable()
 export class SchedulesService {
   constructor(private prisma: PrismaService) {}
+
+  private scheduledAtToday(time: string | null | undefined): Date {
+    const planned = new Date();
+    planned.setHours(0, 0, 0, 0);
+    if (time && /^\d{2}:\d{2}$/.test(time)) {
+      const [hh, mm] = time.split(':').map((x) => Number(x));
+      planned.setHours(hh, mm, 0, 0);
+    }
+    return planned;
+  }
+
+  private assertCanMarkTaken(scheduledAt: Date, now: Date) {
+    const msWindow = DOSE_CONFIRMATION_WINDOW_MINUTES * 60 * 1000;
+    if (now.getTime() > scheduledAt.getTime() + msWindow) {
+      throw new BadRequestException('Dose confirmation window has expired');
+    }
+  }
 
   async create(userId: string, data: any) {
     return this.prisma.schedule.create({
@@ -151,8 +170,9 @@ export class SchedulesService {
     });
 
     const now = new Date();
-    const WINDOW_MINUTES = 15;
-    const msWindow = WINDOW_MINUTES * 60 * 1000;
+    const msWindow = DOSE_CONFIRMATION_WINDOW_MINUTES * 60 * 1000;
+
+    const schedule = await this.prisma.schedule.findUnique({ where: { id: scheduleId } });
 
     const computeTakenStatus = (scheduledAt: Date | null | undefined) => {
       const scheduledMs = scheduledAt instanceof Date ? scheduledAt.getTime() : NaN;
@@ -164,6 +184,13 @@ export class SchedulesService {
     };
 
     const isCompletionStatus = (s: string) => s === 'TAKEN' || s === 'LATE';
+
+    if (status === 'TAKEN') {
+      const scheduledAt =
+        existingLog?.scheduledAt ??
+        this.scheduledAtToday(schedule?.time ?? undefined);
+      this.assertCanMarkTaken(scheduledAt, now);
+    }
 
     if (existingLog) {
       const newStatus = status === 'TAKEN' ? computeTakenStatus(existingLog.scheduledAt) : status;
@@ -202,14 +229,7 @@ export class SchedulesService {
 
       return updatedLog;
     } else {
-      // Jeśli log nie został wcześniej wygenerowany (np. backend był wyłączony o czasie dawki),
-      // wyliczamy scheduledAt z Schedule.time, żeby poprawnie oznaczyć LATE.
-      const schedule = await this.prisma.schedule.findUnique({ where: { id: scheduleId } });
-      const planned = new Date(now);
-      if (schedule?.time && /^\d{2}:\d{2}$/.test(schedule.time)) {
-        const [hh, mm] = schedule.time.split(':').map((x) => Number(x));
-        planned.setHours(hh, mm, 0, 0);
-      }
+      const planned = this.scheduledAtToday(schedule?.time ?? undefined);
       const newStatus = status === 'TAKEN' ? computeTakenStatus(planned) : status;
       const createdLog = await this.prisma.doseLog.create({
         data: {

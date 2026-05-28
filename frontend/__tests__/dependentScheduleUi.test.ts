@@ -18,6 +18,9 @@ import type { ScheduleItem, Treatment } from '../context/MedsContext';
 import {
   schedulesForDateSorted,
   computeDependentMainScheduleState,
+  canConfirmDoseAtTime,
+  isPastDoseConfirmationWindow,
+  schedulesPastConfirmationWindow,
 } from '../utils/dependentScheduleUi';
 
 const treatments: Treatment[] = [
@@ -45,8 +48,8 @@ describe('dependentScheduleUi', () => {
     expect(state).toEqual({ kind: 'empty' });
   });
 
-  it('returns due when time passed and not completed', () => {
-    const now = new Date('2026-05-22T10:00:00');
+  it('returns due within ±15 min window', () => {
+    const now = new Date('2026-05-22T08:10:00');
     const state = computeDependentMainScheduleState(
       [baseSchedule],
       treatments,
@@ -59,6 +62,28 @@ describe('dependentScheduleUi', () => {
     }
   });
 
+  it('returns missed after 15 min past scheduled time', () => {
+    const now = new Date('2026-05-22T08:16:00');
+    const state = computeDependentMainScheduleState(
+      [baseSchedule],
+      treatments,
+      new Set(),
+      now,
+    );
+    expect(state).toEqual({ kind: 'missed', scheduleId: 's1', name: expect.stringContaining('Aspirin') });
+  });
+
+  it('returns upcoming before confirmation window opens', () => {
+    const now = new Date('2026-05-22T07:40:00');
+    const state = computeDependentMainScheduleState(
+      [baseSchedule],
+      treatments,
+      new Set(),
+      now,
+    );
+    expect(state.kind).toBe('upcoming');
+  });
+
   it('returns all_done when every item completed', () => {
     const now = new Date('2026-05-22T10:00:00');
     const state = computeDependentMainScheduleState(
@@ -68,5 +93,20 @@ describe('dependentScheduleUi', () => {
       now,
     );
     expect(state).toEqual({ kind: 'all_done' });
+  });
+
+  it('canConfirmDoseAtTime and isPastDoseConfirmationWindow', () => {
+    const scheduleM = 8 * 60;
+    expect(canConfirmDoseAtTime(scheduleM, scheduleM)).toBe(true);
+    expect(canConfirmDoseAtTime(scheduleM, scheduleM + 15)).toBe(true);
+    expect(canConfirmDoseAtTime(scheduleM, scheduleM + 16)).toBe(false);
+    expect(isPastDoseConfirmationWindow(scheduleM, scheduleM + 16)).toBe(true);
+  });
+
+  it('schedulesPastConfirmationWindow lists overdue doses', () => {
+    const now = new Date('2026-05-22T09:00:00');
+    const past = schedulesPastConfirmationWindow([baseSchedule], treatments, new Set(), now);
+    expect(past).toHaveLength(1);
+    expect(past[0].sch.id).toBe('s1');
   });
 });

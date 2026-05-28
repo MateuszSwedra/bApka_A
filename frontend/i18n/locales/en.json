@@ -238,10 +238,24 @@
     "today": {
       "nextActivitySection": "Next activity",
       "nextActivity": "Next activity:",
+      "nextBadge": "Up next",
       "allDone": "All done for today",
       "allDoneHint": "No more activities scheduled for today.",
       "plan": "Today's plan",
-      "empty": "No activities scheduled for today."
+      "empty": "No activities scheduled for today.",
+      "progress": "{{done}} of {{total}} completed",
+      "statTaken": "Taken",
+      "statLate": "Late",
+      "statMissed": "Missed",
+      "statPending": "Planned",
+      "summaryTaken": "{{count}} taken",
+      "summaryLate": "{{count}} late",
+      "summaryMissed": "{{count}} missed",
+      "summaryPending": "{{count}} planned",
+      "inMinutes": "in {{count}} min",
+      "inHours": "in {{count}} h",
+      "deviceOnline": "Device online",
+      "dayOverview": "Day overview"
     },
     "device": {
       "synced": "Device synced correctly",
@@ -265,9 +279,14 @@
     "moodTitle": "How do you feel today?",
     "moodThanks": "Thank you for letting us know.",
     "mainDue": "Take your medicine or do your exercises — it's time from your calendar.",
+    "mainDueCta": "Confirm",
     "mainUpcoming": "Next medicine or activity at: {{time}}",
     "mainEmpty": "No activity is required by your caretaker's calendar right now.",
     "mainAllDone": "That's all for today — no more planned activities.",
+    "mainMissed": "Not taken on time",
+    "mainMissedHint": "15 minutes have passed since the scheduled time. This activity was marked as missed.",
+    "activityMissed": "Missed",
+    "errorMarkMissed": "Could not mark this activity as missed.",
     "sosTitle": "SOS",
     "sosMessage": "You tapped the SOS button. No notification was sent to your caretaker in this version.",
     "todayTitle": "Today's activities",
@@ -324,7 +343,8 @@
     },
     "calendar": {
       "alertDepletion": "Medicine running low",
-      "alertBuyPack": "Buy a new pack: {{name}}"
+      "alertBuyPack": "Buy a new pack: {{name}}",
+      "activityLegend": "Colored box — something is planned that day"
     }
   },
   "hybrid": {

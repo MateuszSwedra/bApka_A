@@ -20,6 +20,7 @@ import { usersAPI } from '../../services/api';
 import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
 import { useTranslation } from 'react-i18next';
 import { HugeButton } from '../../components/HugeButton';
+import { MoodBadge } from '../../components/mood/MoodBadge';
 
 interface Dependent {
   id: string;
@@ -51,13 +52,13 @@ function SeniorProfileCard({
   dependent,
   accentIndex,
   onPress,
-  moodLabel,
+  moodSubtitle,
   profileHint,
 }: {
   dependent: Dependent;
   accentIndex: number;
   onPress: () => void;
-  moodLabel: string | null;
+  moodSubtitle: string | null;
   profileHint: string;
 }) {
   const accent = AVATAR_PALETTE[accentIndex % AVATAR_PALETTE.length];
@@ -87,10 +88,8 @@ function SeniorProfileCard({
               {dependent.email}
             </Text>
           ) : null}
-          {moodLabel ? (
-            <View style={styles.moodChip}>
-              <Text style={styles.moodChipText}>{moodLabel}</Text>
-            </View>
+          {dependent.lastMood && moodSubtitle ? (
+            <MoodBadge mood={dependent.lastMood} subtitle={moodSubtitle} style={styles.moodBadge} />
           ) : (
             <Text style={styles.profileHint}>{profileHint}</Text>
           )}
@@ -174,13 +173,11 @@ export default function CaretakerDashboard() {
     }
   };
 
-  const moodLabelFor = (dependent: Dependent) => {
+  const moodSubtitleFor = (dependent: Dependent) => {
     if (!dependent.lastMood || !dependent.lastMoodAt) return null;
-    const moodEmoji =
-      dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
     const date = new Date(dependent.lastMoodAt);
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-    return `${moodEmoji} ${t('caretaker.moodAt', { time: timeStr })}`;
+    return t('caretaker.moodAt', { time: timeStr });
   };
 
   const headerTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 8);
@@ -259,7 +256,7 @@ export default function CaretakerDashboard() {
                 dependent={dependent}
                 accentIndex={index}
                 onPress={() => handleDependentPress(dependent.id)}
-                moodLabel={moodLabelFor(dependent)}
+                moodSubtitle={moodSubtitleFor(dependent)}
                 profileHint={t('caretaker.dashboard.profileHint')}
               />
             ))}
@@ -456,18 +453,8 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
     fontWeight: '500',
   },
-  moodChip: {
-    alignSelf: 'flex-start',
+  moodBadge: {
     marginTop: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: Theme.borderRadius.round,
-    backgroundColor: Theme.colors.surfaceGrey,
-  },
-  moodChipText: {
-    fontSize: Theme.typography.small,
-    fontWeight: '700',
-    color: Theme.colors.textDark,
   },
   goCircle: {
     width: 44,

@@ -6,7 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 
-export function DependentProfileHeader() {
+type DependentProfileHeaderProps = {
+  title?: string;
+  subtitle?: string;
+};
+
+export function DependentProfileHeader({ title, subtitle }: DependentProfileHeaderProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 0) + Theme.spacing.m;
@@ -19,11 +24,18 @@ export function DependentProfileHeader() {
         accessibilityRole="button"
         accessibilityLabel={t('common.back')}
       >
-        <MaterialIcons name="arrow-back" size={28} color={Theme.colors.textDark} />
+        <MaterialIcons name="arrow-back" size={26} color={Theme.colors.textDark} />
       </Pressable>
-      <Text style={styles.title} numberOfLines={1}>
-        {t('caretaker.dependentHeader')}
-      </Text>
+      <View style={styles.titleWrap}>
+        <Text style={styles.title} numberOfLines={1}>
+          {title?.trim() || t('caretaker.dependentHeader')}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -33,10 +45,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: Theme.spacing.m,
-    paddingBottom: Theme.spacing.s,
-    backgroundColor: Theme.colors.background,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: Theme.colors.border,
+    paddingBottom: Theme.spacing.m,
+    backgroundColor: 'transparent',
+  },
+  titleWrap: {
+    flex: 1,
+    minWidth: 0,
+    marginRight: 48,
+    alignItems: 'center',
   },
   backBtn: {
     minWidth: 48,
@@ -45,11 +61,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   title: {
-    flex: 1,
     textAlign: 'center',
     fontSize: Theme.typography.title,
     fontWeight: '800',
     color: Theme.colors.textDark,
-    marginRight: 48,
+    letterSpacing: -0.2,
+  },
+  subtitle: {
+    marginTop: 2,
+    textAlign: 'center',
+    fontSize: Theme.typography.caption,
+    fontWeight: '500',
+    color: Theme.colors.textLight,
   },
 });

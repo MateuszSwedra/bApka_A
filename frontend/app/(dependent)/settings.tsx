@@ -25,6 +25,7 @@ import {
 } from '../../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../../services/notificationSoundPreview';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
+import { SeniorScreenBackground } from '../../components/senior/SeniorScreenBackground';
 import { usersAPI } from '../../services/api';
 
 type ConfirmPayload = {
@@ -103,7 +104,8 @@ export default function DependentSettingsScreen() {
   const bodySize = 22;
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.surfaceGrey }]}>
+    <SeniorScreenBackground colors={colors}>
+    <View style={styles.root}>
       <View style={[styles.topBar, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
         <Pressable
           onPress={goHome}
@@ -422,6 +424,7 @@ export default function DependentSettingsScreen() {
         </View>
       </Modal>
     </View>
+    </SeniorScreenBackground>
   );
 }
 

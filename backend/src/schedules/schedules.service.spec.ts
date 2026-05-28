@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { createPrismaMock } from '../../test/helpers/prisma.mock';
@@ -38,7 +39,10 @@ describe('SchedulesService', () => {
 
   describe('markDose', () => {
     it('updates existing log for today', async () => {
-      prisma.doseLog.findFirst.mockResolvedValue({ id: 'log-1' });
+      const scheduled = new Date();
+      scheduled.setHours(new Date().getHours(), new Date().getMinutes(), 0, 0);
+      prisma.doseLog.findFirst.mockResolvedValue({ id: 'log-1', scheduledAt: scheduled });
+      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'TAKEN' });
 
       await service.markDose('sched-1', 'TAKEN');
@@ -53,6 +57,7 @@ describe('SchedulesService', () => {
 
     it('creates log when none exists today', async () => {
       prisma.doseLog.findFirst.mockResolvedValue(null);
+      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
       prisma.doseLog.create.mockResolvedValue({ id: 'log-new' });
 
       await service.markDose('sched-1', 'MISSED');
@@ -63,6 +68,26 @@ describe('SchedulesService', () => {
           source: 'APP_SENIOR',
         }),
       });
+    });
+
+    it('rejects TAKEN after confirmation window', async () => {
+      const scheduled = new Date();
+      scheduled.setHours(8, 0, 0, 0);
+      const twoHoursLater = new Date(scheduled.getTime() + 2 * 60 * 60 * 1000);
+
+      jest.useFakeTimers();
+      jest.setSystemTime(twoHoursLater);
+
+      prisma.doseLog.findFirst.mockResolvedValue({
+        id: 'log-1',
+        scheduledAt: scheduled,
+        status: 'PENDING',
+      });
+      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
+
+      await expect(service.markDose('sched-1', 'TAKEN')).rejects.toBeInstanceOf(BadRequestException);
+
+      jest.useRealTimers();
     });
   });
 

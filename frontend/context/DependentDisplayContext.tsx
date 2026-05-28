@@ -18,6 +18,8 @@ import {
 export type SeniorSurfaceColors = typeof Theme.colors & {
   moodBorder?: string;
   mainButtonBorderWidth?: number;
+  calendarCell?: string;
+  surfaceWarmHighlight?: string;
 };
 
 interface DependentDisplayContextValue {

@@ -240,10 +240,24 @@
     "today": {
       "nextActivitySection": "Następna aktywność",
       "nextActivity": "Następna aktywność:",
+      "nextBadge": "Następna",
       "allDone": "Wszystko na dziś zrobione",
       "allDoneHint": "Brak kolejnych aktywności w harmonogramie na dziś.",
       "plan": "Plan na dziś",
-      "empty": "Brak aktywności na dziś w harmonogramie."
+      "empty": "Brak aktywności na dziś w harmonogramie.",
+      "progress": "{{done}} z {{total}} zrealizowane",
+      "statTaken": "Przyjęte",
+      "statLate": "Spóźnione",
+      "statMissed": "Pominięte",
+      "statPending": "Zaplanowane",
+      "summaryTaken": "{{count}} przyjęte",
+      "summaryLate": "{{count}} spóźnione",
+      "summaryMissed": "{{count}} pominięte",
+      "summaryPending": "{{count}} zaplanowane",
+      "inMinutes": "za {{count}} min",
+      "inHours": "za {{count}} h",
+      "deviceOnline": "Urządzenie online",
+      "dayOverview": "Przegląd dnia"
     },
     "device": {
       "synced": "Urządzenie poprawnie zsynchronizowane",
@@ -267,9 +281,14 @@
     "moodTitle": "Jak się dziś czujesz?",
     "moodThanks": "Dziękujemy za informację.",
     "mainDue": "Czas na leki lub ćwiczenia — zgodnie z kalendarzem.",
+    "mainDueCta": "Potwierdź",
     "mainUpcoming": "Następna aktywność o: {{time}}",
     "mainEmpty": "Kalendarz opiekuna nie wymaga teraz żadnej aktywności.",
     "mainAllDone": "To wszystko na dziś — brak zaplanowanych aktywności.",
+    "mainMissed": "Nie przyjęto na czas",
+    "mainMissedHint": "Minęło 15 minut od planowanej godziny. Ta aktywność została oznaczona jako pominięta.",
+    "activityMissed": "Pominięte",
+    "errorMarkMissed": "Nie udało się oznaczyć aktywności jako pominiętej.",
     "sosTitle": "SOS",
     "sosMessage": "Naciśnięto przycisk SOS. W tej wersji powiadomienie do opiekuna nie zostało wysłane.",
     "todayTitle": "Dzisiejsze aktywności",
@@ -326,7 +345,8 @@
     },
     "calendar": {
       "alertDepletion": "Kończy się zapas leku",
-      "alertBuyPack": "Kup nową paczkę: {{name}}"
+      "alertBuyPack": "Kup nową paczkę: {{name}}",
+      "activityLegend": "Kolorowe pole — w tym dniu coś jest zaplanowane"
     }
   },
   "hybrid": {

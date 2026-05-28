@@ -12,20 +12,47 @@ import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
 import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { useTranslation } from 'react-i18next';
+import { SeniorScreenBackground } from '../../components/senior/SeniorScreenBackground';
+import { buildActivityDotMarks } from '../../utils/seniorCalendarMarks';
 
 export default function DependentCalendarScreen() {
   const { t } = useTranslation();
   const { colors } = useDependentDisplay();
   const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
+  const [visibleMonth, setVisibleMonth] = useState(format(new Date(), 'yyyy-MM-dd'));
   const { depletionAlerts, schedules, treatments } = useMeds();
 
-  const dynamicMarks = depletionAlerts.reduce(
-    (acc, alert) => {
-      acc[alert.date] = { marked: true, dotColor: colors.accentOrange };
-      return acc;
-    },
-    {} as Record<string, { marked: boolean; dotColor: string }>,
+  const activityMarks = useMemo(
+    () => buildActivityDotMarks(schedules, visibleMonth, colors.primaryLimeDark),
+    [schedules, visibleMonth, colors.primaryLimeDark],
   );
+
+  const depletionMarks = useMemo(
+    () =>
+      depletionAlerts.reduce(
+        (acc, alert) => {
+          acc[alert.date] = {
+            ...(acc[alert.date] ?? {}),
+            marked: true,
+            dotColor: colors.accentOrange,
+          };
+          return acc;
+        },
+        {} as Record<string, { marked: boolean; dotColor: string }>,
+      ),
+    [depletionAlerts, colors.accentOrange],
+  );
+
+  const markedDates = useMemo(() => {
+    const merged = { ...activityMarks, ...depletionMarks };
+    merged[selectedDate] = {
+      ...merged[selectedDate],
+      selected: true,
+      selectedColor: colors.primaryLime,
+      selectedTextColor: colors.textDark,
+    };
+    return merged;
+  }, [activityMarks, depletionMarks, selectedDate, colors.primaryLime, colors.textDark]);
 
   const todayAlerts = depletionAlerts.filter(a => a.date === selectedDate);
 
@@ -37,13 +64,13 @@ export default function DependentCalendarScreen() {
   const labelForSchedule = (sch: ScheduleItem) => {
     if (sch.customName) return sch.customName;
     const tid = getScheduleTreatmentId(sch);
-    if (tid) return treatments.find(t => t.id === tid)?.name ?? t('schedule.activityFallback');
+    if (tid) return treatments.find(tr => tr.id === tid)?.name ?? t('schedule.activityFallback');
     return t('schedule.activityFallback');
   };
 
   const typeForSchedule = (sch: ScheduleItem) => {
     const tid = getScheduleTreatmentId(sch);
-    return treatments.find(t => t.id === tid)?.type;
+    return treatments.find(tr => tr.id === tid)?.type;
   };
 
   const typeLabel = (sch: ScheduleItem) => {
@@ -53,98 +80,94 @@ export default function DependentCalendarScreen() {
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
-        <Pressable onPress={() => router.back()} style={styles.backBtn}>
-          <MaterialIcons name="arrow-back" size={32} color={colors.textDark} />
-        </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textDark }]}>{t('calendar.title')}</Text>
-        <View style={{ width: 32 }} />
-      </View>
-
-      <ScrollView style={styles.scroll}>
-        <View style={[styles.calendarContainer, { backgroundColor: colors.surfaceWhite }]}>
-          <Calendar
-            current={selectedDate}
-            onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
-            markedDates={{
-              ...dynamicMarks,
-              [selectedDate]: {
-                ...dynamicMarks[selectedDate],
-                selected: true,
-                selectedColor: colors.primaryLime,
-              },
-            }}
-            theme={{
-              backgroundColor: colors.surfaceWhite,
-              calendarBackground: colors.surfaceWhite,
-              textSectionTitleColor: colors.textLight,
-              selectedDayBackgroundColor: colors.primaryLime,
-              selectedDayTextColor: colors.textDark,
-              todayTextColor: colors.primaryLimeDark,
-              dayTextColor: colors.textDark,
-              textDisabledColor: colors.border,
-              dotColor: colors.primaryLimeDark,
-              selectedDotColor: colors.textDark,
-              arrowColor: colors.textDark,
-              monthTextColor: colors.textDark,
-              indicatorColor: colors.primaryLime,
-              textDayFontWeight: '600',
-              textMonthFontWeight: 'bold',
-              textDayHeaderFontWeight: '700',
-              textDayFontSize: 18,
-              textMonthFontSize: 22,
-            }}
-          />
+    <SeniorScreenBackground colors={colors}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
+          <Pressable onPress={() => router.back()} style={styles.backBtn}>
+            <MaterialIcons name="arrow-back" size={32} color={colors.textDark} />
+          </Pressable>
+          <Text style={[styles.headerTitle, { color: colors.textDark }]}>{t('calendar.title')}</Text>
+          <View style={{ width: 32 }} />
         </View>
 
-        <View style={styles.scheduleSection}>
-          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>
-            {t('calendar.daySection', { date: selectedDate })}
-          </Text>
+        <ScrollView style={styles.scroll}>
+          <View style={[styles.calendarContainer, { backgroundColor: colors.surfaceWhite }]}>
+            <Calendar
+              current={selectedDate}
+              onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
+              onMonthChange={(month: { dateString: string }) => setVisibleMonth(month.dateString)}
+              markedDates={markedDates}
+              theme={{
+                backgroundColor: colors.surfaceWhite,
+                calendarBackground: colors.surfaceWhite,
+                textSectionTitleColor: colors.textLight,
+                selectedDayBackgroundColor: colors.primaryLime,
+                selectedDayTextColor: colors.textDark,
+                todayTextColor: colors.primaryLimeDark,
+                dayTextColor: colors.textDark,
+                textDisabledColor: colors.border,
+                dotColor: colors.primaryLimeDark,
+                selectedDotColor: colors.textDark,
+                arrowColor: colors.textDark,
+                monthTextColor: colors.textDark,
+                indicatorColor: colors.primaryLime,
+                textDayFontWeight: '600',
+                textMonthFontWeight: 'bold',
+                textDayHeaderFontWeight: '700',
+                textDayFontSize: 18,
+                textMonthFontSize: 22,
+              }}
+            />
+          </View>
 
-          {todayAlerts.map((alert, idx) => (
-            <Card
-              key={`warn-${idx}`}
-              variant="white"
-              style={{ ...styles.scheduleCardWarning, borderColor: colors.accentOrange }}
-            >
-              <Text style={[styles.scheduleTimeWarning, { color: colors.accentOrange }]}>
-                {t('dependent.calendar.alertDepletion')}
-              </Text>
-              <View style={styles.scheduleRow}>
-                <MaterialIcons name="shopping-cart" size={28} color={colors.accentOrange} />
-                <Text style={[styles.scheduleItemWarning, { color: colors.accentOrange }]}>
-                  {t('dependent.calendar.alertBuyPack', { name: alert.inventoryItemName })}
-                </Text>
-              </View>
-            </Card>
-          ))}
+          <View style={styles.scheduleSection}>
+            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>
+              {t('calendar.daySection', { date: selectedDate })}
+            </Text>
 
-          {scheduledForDay.map(sch => {
-            const name = labelForSchedule(sch);
-            const tType = typeForSchedule(sch);
-            const icon =
-              tType && TREATMENT_VISUAL[tType] ? TREATMENT_VISUAL[tType].icon : ('event' as const);
-            return (
-              <Card key={sch.id} variant="grey" style={{ ...styles.scheduleCard, borderColor: colors.border }}>
-                <Text style={[styles.scheduleTime, { color: colors.textDark }]}>
-                  {sch.time} · {typeLabel(sch)}
+            {todayAlerts.map((alert, idx) => (
+              <Card
+                key={`warn-${idx}`}
+                variant="white"
+                style={{ ...styles.scheduleCardWarning, borderColor: colors.accentOrange }}
+              >
+                <Text style={[styles.scheduleTimeWarning, { color: colors.accentOrange }]}>
+                  {t('dependent.calendar.alertDepletion')}
                 </Text>
                 <View style={styles.scheduleRow}>
-                  <MaterialIcons name={icon} size={26} color={colors.success} />
-                  <Text style={[styles.scheduleItemDone, { color: colors.textDark }]}>{name}</Text>
+                  <MaterialIcons name="shopping-cart" size={28} color={colors.accentOrange} />
+                  <Text style={[styles.scheduleItemWarning, { color: colors.accentOrange }]}>
+                    {t('dependent.calendar.alertBuyPack', { name: alert.inventoryItemName })}
+                  </Text>
                 </View>
               </Card>
-            );
-          })}
+            ))}
 
-          {scheduledForDay.length === 0 && todayAlerts.length === 0 && (
-            <Text style={[styles.emptyDay, { color: colors.textLight }]}>{t('calendar.emptyDay')}</Text>
-          )}
-        </View>
-      </ScrollView>
-    </View>
+            {scheduledForDay.map(sch => {
+              const name = labelForSchedule(sch);
+              const tType = typeForSchedule(sch);
+              const icon =
+                tType && TREATMENT_VISUAL[tType] ? TREATMENT_VISUAL[tType].icon : ('event' as const);
+              return (
+                <Card key={sch.id} variant="grey" style={{ ...styles.scheduleCard, borderColor: colors.border }}>
+                  <Text style={[styles.scheduleTime, { color: colors.textDark }]}>
+                    {sch.time} · {typeLabel(sch)}
+                  </Text>
+                  <View style={styles.scheduleRow}>
+                    <MaterialIcons name={icon} size={26} color={colors.success} />
+                    <Text style={[styles.scheduleItemDone, { color: colors.textDark }]}>{name}</Text>
+                  </View>
+                </Card>
+              );
+            })}
+
+            {scheduledForDay.length === 0 && todayAlerts.length === 0 && (
+              <Text style={[styles.emptyDay, { color: colors.textLight }]}>{t('calendar.emptyDay')}</Text>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </SeniorScreenBackground>
   );
 }
 

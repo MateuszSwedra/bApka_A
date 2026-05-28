@@ -1,8 +1,8 @@
 import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
-import { CaretakerFlowStyles as Flow } from '../../../../constants/caretakerFlowStyles';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useLocalSearchParams, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
@@ -14,12 +14,38 @@ import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/schedule
 import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { useTranslation } from 'react-i18next';
 import { DependentProfileHeader } from '../../../../components/caretaker/DependentProfileHeader';
+import { DependentTodayHeroCard } from '../../../../components/caretaker/DependentTodayHeroCard';
 import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
+import {
+  resolveTodayScheduleUiKind,
+  todayStatsBucketFromKind,
+} from '../../../../utils/todayScheduleStatus';
 
 interface DependentInfo {
   id: string;
   email?: string;
   name?: string | null;
+}
+
+const AVATAR_PALETTE = [
+  { solid: Theme.colors.primaryLimeDark, soft: 'rgba(69, 104, 130, 0.14)' },
+  { solid: Theme.colors.accentOrange, soft: 'rgba(233, 164, 61, 0.2)' },
+  { solid: '#5B8FA8', soft: 'rgba(91, 143, 168, 0.16)' },
+  { solid: '#6B8E6B', soft: 'rgba(107, 142, 107, 0.16)' },
+] as const;
+
+function getInitials(nameOrEmail: string) {
+  const trimmed = nameOrEmail.trim();
+  if (!trimmed) return '??';
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return trimmed.substring(0, 2).toUpperCase();
+}
+
+function accentIndexFromId(id: string) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) hash = (hash + id.charCodeAt(i)) % 997;
+  return hash % AVATAR_PALETTE.length;
 }
 
 export default function DependentTodayDashboard() {
@@ -71,6 +97,7 @@ export default function DependentTodayDashboard() {
   );
 
   const todayStr = format(now, 'yyyy-MM-dd');
+  const todayLabel = format(now, 'd.MM.yyyy');
 
   const todaysSchedules = useMemo(() => {
     return [...schedules]
@@ -102,23 +129,53 @@ export default function DependentTodayDashboard() {
     [todaysSchedules, currentMinutes],
   );
 
-  const greeting = dependent?.name?.trim() || dependent?.email || t('caretaker.dependentFallbackName');
+  const displayName = dependent?.name?.trim() || dependent?.email || t('caretaker.dependentFallbackName');
+  const accent = AVATAR_PALETTE[accentIndexFromId(dependentId ?? displayName)];
 
-  const renderMood = () => {
+  const headerSubtitle = todayLabel;
+
+  const todayDoseStats = useMemo(() => {
+    let taken = 0;
+    let late = 0;
+    let missed = 0;
+    let pending = 0;
+    for (const sch of todaysSchedules) {
+      const log = logs.find(l => l.scheduleId === sch.id);
+      const isNext = nextSchedule?.id === sch.id;
+      const kind = resolveTodayScheduleUiKind(log, timeToMinutes(sch.time), currentMinutes, isNext);
+      const bucket = todayStatsBucketFromKind(kind);
+      if (bucket === 'taken') taken += 1;
+      else if (bucket === 'late') late += 1;
+      else if (bucket === 'missed') missed += 1;
+      else pending += 1;
+    }
+    return { taken, late, missed, pending, total: todaysSchedules.length };
+  }, [todaysSchedules, logs, currentMinutes, nextSchedule?.id]);
+
+  const greetingLine = useMemo(() => {
+    const hour = now.getHours();
+    if (hour < 12) return t('dependent.greetingMorning');
+    if (hour < 18) return t('dependent.greetingAfternoon');
+    return t('dependent.greetingEvening');
+  }, [now, t]);
+
+  const countdownLabel = useMemo(() => {
+    if (!nextSchedule) return null;
+    const diff = timeToMinutes(nextSchedule.time) - currentMinutes;
+    if (diff <= 0 || diff <= 5) return null;
+    if (diff < 60) return t('caretaker.today.inMinutes', { count: diff });
+    const hours = Math.round(diff / 60);
+    return t('caretaker.today.inHours', { count: hours });
+  }, [nextSchedule, currentMinutes, t]);
+
+  const moodSubtitle = useMemo(() => {
     // @ts-expect-error — lastMood z API
     if (!dependent?.lastMood || !dependent?.lastMoodAt) return null;
     // @ts-expect-error
-    const moodEmoji = dependent.lastMood === 'happy' ? '🙂' : dependent.lastMood === 'neutral' ? '😐' : '🙁';
-    // @ts-expect-error
     const date = new Date(dependent.lastMoodAt);
     const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-    return (
-      <View style={styles.moodChip}>
-        <Text style={styles.moodEmoji}>{moodEmoji}</Text>
-        <Text style={styles.moodTime}>{t('caretaker.moodAt', { time: timeStr })}</Text>
-      </View>
-    );
-  };
+    return t('caretaker.moodAt', { time: timeStr });
+  }, [dependent, t]);
 
   const handleAdd = () => {
     if (!dependentId) return;
@@ -127,100 +184,151 @@ export default function DependentTodayDashboard() {
 
   const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {
     const log = logs.find(l => l.scheduleId === sch.id);
-    if (log) {
-      if (log.status === 'TAKEN')
+    const kind = resolveTodayScheduleUiKind(log, minutes, currentMinutes, isNext);
+    switch (kind) {
+      case 'taken':
         return { label: t('schedule.status.taken'), pill: styles.statusPillSuccess, textColor: Theme.colors.success };
-      if (log.status === 'LATE')
+      case 'late':
         return { label: t('schedule.status.late'), pill: styles.statusPillLate, textColor: Theme.colors.accentOrange };
-      if (log.status === 'MISSED')
-        return { label: t('schedule.status.skipped'), pill: styles.statusPillMissed, textColor: Theme.colors.accentOrange };
+      case 'missed':
+        return { label: t('schedule.status.skipped'), pill: styles.statusPillMissed, textColor: '#C23D3D' };
+      case 'now':
+        return { label: t('schedule.status.now'), pill: styles.statusPillNext, textColor: Theme.colors.surfaceWhite };
+      case 'next':
+        return { label: t('schedule.status.next'), pill: styles.statusPillUpcoming, textColor: Theme.colors.textDark };
+      default:
+        return { label: t('schedule.status.planned'), pill: styles.statusPillUpcoming, textColor: Theme.colors.textDark };
     }
-    const diff = minutes - currentMinutes;
-    if (Math.abs(diff) <= 5)
-      return { label: t('schedule.status.now'), pill: styles.statusPillNext, textColor: Theme.colors.surfaceWhite };
-    if (diff < -5)
-      return { label: t('schedule.status.past'), pill: styles.statusPillPast, textColor: Theme.colors.textLight };
-    if (isNext)
-      return { label: t('schedule.status.next'), pill: styles.statusPillUpcoming, textColor: Theme.colors.textDark };
-    return { label: t('schedule.status.planned'), pill: styles.statusPillUpcoming, textColor: Theme.colors.textDark };
+  };
+
+  const nextVis = useMemo(() => {
+    if (!nextSchedule) return null;
+    const tType = typeFor(nextSchedule);
+    return tType ? TREATMENT_VISUAL[tType] : null;
+  }, [nextSchedule, treatments]);
+
+  const statLabelKey = (key: string) => {
+    if (key === 'taken') return t('caretaker.today.statTaken');
+    if (key === 'late') return t('caretaker.today.statLate');
+    if (key === 'missed') return t('caretaker.today.statMissed');
+    return t('caretaker.today.statPending');
   };
 
   return (
-    <View style={Flow.screen}>
-      <DependentProfileHeader />
+    <View style={styles.screen}>
+      <LinearGradient
+        colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]}
+        locations={[0, 0.4, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[styles.decorOrb, { backgroundColor: accent.soft }]} />
+
+      <DependentProfileHeader title={displayName} subtitle={headerSubtitle} />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: fabBottomOffset + 80 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={styles.greeting}>{greeting}</Text>
-        {renderMood()}
+        <DependentTodayHeroCard
+          initials={getInitials(displayName)}
+          greeting={greetingLine}
+          accent={accent}
+          // @ts-expect-error — lastMood z API
+          mood={dependent?.lastMood}
+          moodSubtitle={moodSubtitle}
+          stats={todayDoseStats}
+          statLabel={statLabelKey}
+          overviewLabel={t('caretaker.today.dayOverview')}
+          emptyDayLabel={t('caretaker.today.empty')}
+        />
 
-        <Text style={Flow.sectionLabel}>{t('caretaker.today.nextActivitySection')}</Text>
-        {nextSchedule ? (
-          <View style={[Flow.cardRow, Flow.cardRowHighlight]}>
-            <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.primaryLime }]}>
-              <MaterialIcons name="schedule" size={26} color={Theme.colors.primaryLimeDark} />
-            </View>
-            <View style={Flow.rowText}>
-              <Text style={styles.heroTime}>{nextSchedule.time}</Text>
-              <Text style={Flow.rowSubtitle} numberOfLines={2}>
-                {labelFor(nextSchedule)}
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View style={Flow.cardRow}>
-            <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.badgeSuccessBackground }]}>
-              <MaterialIcons name="check-circle" size={26} color={Theme.colors.success} />
-            </View>
-            <View style={Flow.rowText}>
-              <Text style={Flow.rowTitle}>{t('caretaker.today.allDone')}</Text>
-              <Text style={Flow.rowSubtitle}>{t('caretaker.today.allDoneHint')}</Text>
-            </View>
-          </View>
-        )}
-
-        <Text style={Flow.sectionLabel}>{t('caretaker.device.synced')}</Text>
-        <View style={Flow.cardRow}>
-          <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.badgeSuccessBackground }]}>
-            <MaterialIcons name="phonelink" size={24} color={Theme.colors.success} />
-          </View>
-          <View style={Flow.rowText}>
-            <Text style={Flow.rowTitle}>{t('caretaker.device.statusOk')}</Text>
-            <Text style={Flow.rowSubtitle}>{t('caretaker.device.synced')}</Text>
-          </View>
-          <MaterialIcons name="check-circle" size={28} color={Theme.colors.success} />
+        <View style={styles.sectionHead}>
+          <MaterialIcons name="upcoming" size={20} color={Theme.colors.primaryLimeDark} />
+          <Text style={styles.sectionTitle}>{t('caretaker.today.nextActivitySection')}</Text>
         </View>
 
-        {todaysDepletion.length > 0 && (
+        {nextSchedule ? (
+          <LinearGradient
+            colors={[Theme.colors.surfaceWarmHighlight, Theme.colors.surfaceWhite]}
+            style={[styles.nextCard, { borderColor: accent.solid }]}
+          >
+            <View style={styles.nextTop}>
+              <View style={[styles.nextPill, { backgroundColor: accent.soft }]}>
+                <Text style={[styles.nextPillText, { color: accent.solid }]}>{t('caretaker.today.nextBadge')}</Text>
+              </View>
+              {countdownLabel ? (
+                <View style={styles.countdownChip}>
+                  <MaterialIcons name="timer" size={16} color={Theme.colors.primaryLimeDark} />
+                  <Text style={styles.countdownText}>{countdownLabel}</Text>
+                </View>
+              ) : null}
+            </View>
+            <View style={styles.nextBody}>
+              <Text style={styles.nextTime}>{nextSchedule.time}</Text>
+              <View style={styles.nextDetails}>
+                <Text style={styles.nextLabel} numberOfLines={2}>
+                  {labelFor(nextSchedule)}
+                </Text>
+              </View>
+              {nextVis ? (
+                <View style={[styles.nextIcon, { backgroundColor: nextVis.accent + '22' }]}>
+                  <MaterialIcons name={nextVis.icon} size={28} color={nextVis.accent} />
+                </View>
+              ) : (
+                <View style={[styles.nextIcon, { backgroundColor: Theme.colors.primaryLime }]}>
+                  <MaterialIcons name="medication" size={28} color={Theme.colors.primaryLimeDark} />
+                </View>
+              )}
+            </View>
+          </LinearGradient>
+        ) : (
+          <LinearGradient
+            colors={[Theme.colors.badgeSuccessBackground, Theme.colors.surfaceWhite]}
+            style={styles.allDoneCard}
+          >
+            <View style={styles.allDoneIcon}>
+              <MaterialIcons name="check-circle" size={32} color={Theme.colors.success} />
+            </View>
+            <View style={styles.allDoneText}>
+              <Text style={styles.allDoneTitle}>{t('caretaker.today.allDone')}</Text>
+              <Text style={styles.allDoneHint}>{t('caretaker.today.allDoneHint')}</Text>
+            </View>
+          </LinearGradient>
+        )}
+
+        {todaysDepletion.length > 0 ? (
           <>
-            <Text style={Flow.sectionLabel}>{t('caretaker.alerts.title')}</Text>
-            <View style={Flow.list}>
+            <View style={styles.sectionHead}>
+              <MaterialIcons name="warning-amber" size={20} color={Theme.colors.accentOrange} />
+              <Text style={styles.sectionTitle}>{t('caretaker.alerts.title')}</Text>
+            </View>
+            <View style={styles.cardList}>
               {todaysDepletion.map((alert, idx) => (
-                <View key={`alert-${idx}`} style={[Flow.cardRow, Flow.cardRowAlert]}>
-                  <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.badgeWarningBackground }]}>
-                    <MaterialIcons name="inventory-2" size={24} color={Theme.colors.accentOrange} />
+                <View key={`alert-${idx}`} style={styles.alertCard}>
+                  <View style={styles.alertIconWrap}>
+                    <MaterialIcons name="inventory-2" size={22} color={Theme.colors.accentOrange} />
                   </View>
-                  <Text style={[Flow.rowTitle, styles.alertRowTitle]} numberOfLines={2}>
+                  <Text style={styles.alertText} numberOfLines={2}>
                     {t('caretaker.calendar.alertDepletionWithName', { name: alert.inventoryItemName })}
                   </Text>
                 </View>
               ))}
             </View>
           </>
-        )}
+        ) : null}
 
-        <Text style={Flow.sectionLabel}>{t('caretaker.today.plan')}</Text>
+        <View style={styles.sectionHead}>
+          <MaterialIcons name="view-agenda" size={20} color={Theme.colors.primaryLimeDark} />
+          <Text style={styles.sectionTitle}>{t('caretaker.today.plan')}</Text>
+        </View>
+
         {todaysSchedules.length === 0 ? (
-          <View style={Flow.cardRow}>
-            <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.surfaceGrey }]}>
-              <MaterialIcons name="event-busy" size={24} color={Theme.colors.textLight} />
-            </View>
-            <Text style={Flow.rowSubtitle}>{t('caretaker.today.empty')}</Text>
+          <View style={styles.emptyCard}>
+            <MaterialIcons name="event-available" size={28} color={Theme.colors.textLight} />
+            <Text style={styles.emptyText}>{t('caretaker.today.empty')}</Text>
           </View>
         ) : (
-          <View style={Flow.list}>
+          <View style={styles.cardList}>
             {todaysSchedules.map(sch => {
               const label = labelFor(sch);
               const tType = typeFor(sch);
@@ -228,27 +336,28 @@ export default function DependentTodayDashboard() {
               const minutes = timeToMinutes(sch.time);
               const isNext = nextSchedule?.id === sch.id;
               const display = getStatusDisplay(sch, minutes, isNext);
+              const log = logs.find(l => l.scheduleId === sch.id);
+              const isTaken = log?.status === 'TAKEN';
 
               return (
-                <View
-                  key={sch.id}
-                  style={[Flow.cardRow, isNext && Flow.cardRowHighlight]}
-                >
+                <View key={sch.id} style={[styles.planCard, isNext && styles.planCardNext]}>
+                  <Text style={[styles.planTime, isNext && styles.planTimeNext]}>{sch.time}</Text>
                   {vis ? (
-                    <View style={[Flow.iconCircle, { backgroundColor: vis.accent + '22' }]}>
+                    <View style={[styles.planIcon, { backgroundColor: vis.accent + '22' }]}>
                       <MaterialIcons name={vis.icon} size={24} color={vis.accent} />
                     </View>
                   ) : (
-                    <View style={[Flow.iconCircle, { backgroundColor: Theme.colors.primaryLime }]}>
+                    <View style={[styles.planIcon, { backgroundColor: Theme.colors.primaryLime }]}>
                       <MaterialIcons name="medication" size={24} color={Theme.colors.primaryLimeDark} />
                     </View>
                   )}
-                  <View style={Flow.rowText}>
-                    <Text style={Flow.rowTitle}>{label}</Text>
-                    <Text style={Flow.rowSubtitle}>{sch.time}</Text>
+                  <View style={styles.planBody}>
+                    <Text style={[styles.planLabel, isTaken && styles.planLabelDone]} numberOfLines={2}>
+                      {label}
+                    </Text>
                   </View>
-                  <View style={[Flow.statusPill, display.pill]}>
-                    <Text style={[Flow.statusPillText, { color: display.textColor }]}>{display.label}</Text>
+                  <View style={[styles.statusPill, display.pill]}>
+                    <Text style={[styles.statusPillText, { color: display.textColor }]}>{display.label}</Text>
                   </View>
                 </View>
               );
@@ -269,52 +378,250 @@ export default function DependentTodayDashboard() {
 }
 
 const styles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    backgroundColor: Theme.colors.background,
+  },
+  decorOrb: {
+    position: 'absolute',
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    top: 48,
+    right: -48,
+    opacity: 0.65,
+  },
   scroll: {
     flex: 1,
   },
   content: {
     paddingHorizontal: Theme.spacing.l,
-    paddingTop: Theme.spacing.m,
+    paddingTop: Theme.spacing.s,
   },
-  greeting: {
-    fontSize: Theme.typography.title,
-    fontWeight: '800',
-    color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.s,
-  },
-  moodChip: {
+  sectionHead: {
     flexDirection: 'row',
     alignItems: 'center',
-    alignSelf: 'flex-start',
+    gap: Theme.spacing.s,
+    marginTop: Theme.spacing.l,
     marginBottom: Theme.spacing.m,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Theme.colors.textDark,
+    letterSpacing: -0.2,
+  },
+  nextCard: {
+    borderRadius: Theme.borderRadius.xlarge,
+    padding: Theme.spacing.l,
+    borderWidth: 2,
+    overflow: 'hidden',
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    elevation: 3,
+  },
+  nextTop: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: Theme.spacing.m,
+  },
+  nextPill: {
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 5,
     borderRadius: Theme.borderRadius.round,
+  },
+  nextPillText: {
+    fontSize: Theme.typography.small,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  countdownChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: Theme.borderRadius.round,
+    backgroundColor: Theme.colors.surfaceWhite,
     borderWidth: 1,
     borderColor: Theme.colors.border,
-    backgroundColor: Theme.colors.calendarCell,
   },
-  moodEmoji: {
-    fontSize: 22,
-  },
-  moodTime: {
-    fontSize: Theme.typography.caption,
-    color: Theme.colors.textDark,
-    marginLeft: 8,
+  countdownText: {
+    fontSize: Theme.typography.small,
     fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
   },
-  heroTime: {
-    fontSize: Theme.typography.largeTitle,
+  nextBody: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.m,
+  },
+  nextTime: {
+    fontSize: 40,
     fontWeight: '900',
     color: Theme.colors.textDark,
-    lineHeight: 36,
+    fontVariant: ['tabular-nums'],
+    lineHeight: 44,
+    minWidth: 100,
   },
-  alertRowTitle: {
-    color: Theme.colors.accentOrange,
+  nextDetails: {
     flex: 1,
+    minWidth: 0,
   },
-  statusPillPast: {
-    backgroundColor: Theme.colors.surfaceGrey,
+  nextLabel: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Theme.colors.textDark,
+    lineHeight: 24,
+  },
+  nextIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  allDoneCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.xlarge,
+    padding: Theme.spacing.l,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  allDoneIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: Theme.colors.surfaceWhite,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  allDoneText: {
+    flex: 1,
+    minWidth: 0,
+  },
+  allDoneTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: Theme.colors.textDark,
+  },
+  allDoneHint: {
+    marginTop: 4,
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.textLight,
+    lineHeight: 20,
+  },
+  cardList: {
+    gap: Theme.spacing.s,
+  },
+  planCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    paddingVertical: 16,
+    paddingHorizontal: Theme.spacing.m,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    gap: Theme.spacing.m,
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  planCardNext: {
+    borderColor: Theme.colors.primaryLimeDark,
+    borderWidth: 2,
+    backgroundColor: Theme.colors.surfaceWarmHighlight,
+  },
+  planTime: {
+    width: 52,
+    fontSize: 16,
+    fontWeight: '800',
+    color: Theme.colors.textLight,
+    fontVariant: ['tabular-nums'],
+  },
+  planTimeNext: {
+    color: Theme.colors.primaryLimeDark,
+  },
+  planIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  planBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  planLabel: {
+    fontSize: 17,
+    fontWeight: '700',
+    color: Theme.colors.textDark,
+    lineHeight: 22,
+  },
+  planLabelDone: {
+    color: Theme.colors.textLight,
+    textDecorationLine: 'line-through',
+  },
+  emptyCard: {
+    alignItems: 'center',
+    padding: Theme.spacing.xl,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    gap: Theme.spacing.s,
+  },
+  emptyText: {
+    fontSize: Theme.typography.body,
+    color: Theme.colors.textLight,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  alertCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.m,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    padding: Theme.spacing.m,
+    borderWidth: 1.5,
+    borderColor: 'rgba(233, 164, 61, 0.4)',
+  },
+  alertIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: Theme.colors.badgeWarningBackground,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  alertText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.accentOrange,
+    lineHeight: 22,
+  },
+  statusPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+    maxWidth: 96,
+  },
+  statusPillText: {
+    fontSize: Theme.typography.small,
+    fontWeight: '700',
+    textAlign: 'center',
   },
   statusPillUpcoming: {
     backgroundColor: Theme.colors.primaryLime,
