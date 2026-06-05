@@ -7,11 +7,10 @@ import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { useMeds } from '../../../../context/MedsContext';
-import { SimpleBarChart } from '../../../../components/insights/SimpleBarChart';
-import { StackedBarChart } from '../../../../components/insights/StackedBarChart';
-import { SimpleLineChart } from '../../../../components/insights/SimpleLineChart';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsInsightsCharts';
+import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
+import { SimpleLineChart } from '../../../../components/insights/SimpleLineChart';
 
 type RangeKey = 'today' | 'week' | 'month';
 
@@ -28,6 +27,7 @@ interface DoseStatsResponse {
     takenTotal: number;
   }>;
   onTime: { takenOnTime: number; percentOfTaken: number; windowMinutes: number };
+  byMedication?: Array<{ medKey: string; name: string; taken: number; late: number; missed: number; pending: number }>;
 }
 
 interface MoodHistogram {
@@ -191,62 +191,6 @@ export default function DependentInsightsScreen() {
     return <SimpleLineChart data={chartData} height={200} strokeColor={Theme.colors.accentOrange} />;
   };
 
-  const renderDoseChart = () => {
-    if (!doseStats?.daily?.length) return null;
-    const daily = doseStats.daily;
-    const maxPoints = range === 'today' ? 1 : range === 'week' ? 7 : 10; // dla miesiąca pokażmy ~10 punktów (co kilka dni) później dopracujemy
-    const slice = daily.slice(-maxPoints);
-    const chartData = slice.map((d) => ({
-      label: d.date.slice(5),
-      segments: [
-        // TAKEN = on-time
-        { value: d.takenOnTime, color: Theme.colors.success },
-        // LATE
-        { value: d.late ?? Math.max(0, d.taken - d.takenOnTime), color: Theme.colors.accentOrange },
-        // MISSED (inna barwa niż "late", żeby nie mylić)
-        { value: d.missed, color: '#D15C5C' },
-      ],
-    }));
-
-    return <StackedBarChart data={chartData} height={220} />;
-  };
-
-  const renderDoseSummary = () => {
-    if (!doseStats) {
-      return <Text style={styles.emptyText}>{t('caretaker.insights.dosesEmpty')}</Text>;
-    }
-    const { counts, onTime } = doseStats;
-    return (
-      <View>
-        {renderDoseChart()}
-        <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>{t('caretaker.insights.dosesTaken')}</Text>
-          <Text style={styles.metricValue}>{counts.taken}</Text>
-        </View>
-        <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>{t('caretaker.insights.dosesLate')}</Text>
-          <Text style={styles.metricValue}>{counts.late ?? 0}</Text>
-        </View>
-        <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>{t('caretaker.insights.dosesMissed')}</Text>
-          <Text style={styles.metricValue}>{counts.missed}</Text>
-        </View>
-        <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>{t('caretaker.insights.dosesPlanned')}</Text>
-          <Text style={styles.metricValue}>{counts.totalPlanned}</Text>
-        </View>
-        <View style={styles.metricRow}>
-          <Text style={styles.metricLabel}>
-            {t('caretaker.insights.dosesOnTime', { window: onTime.windowMinutes })}
-          </Text>
-          <Text style={styles.metricValue}>
-            {onTime.percentOfTaken}%
-          </Text>
-        </View>
-      </View>
-    );
-  };
-
   const currentRangeLabel = useMemo(() => {
     if (!doseStats) return '';
     const from = new Date(doseStats.range.from);
@@ -310,10 +254,7 @@ export default function DependentInsightsScreen() {
 
         {!loading && !error && (
           <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('caretaker.insights.sectionDoses')}</Text>
-              {renderDoseSummary()}
-            </View>
+            <DoseInsightsCard doseStats={doseStats} />
 
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{t('caretaker.insights.sectionMood')}</Text>

@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import Animated from 'react-native-reanimated';
@@ -11,6 +11,7 @@ import type { ScheduleItem } from '../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../context/MedsContext';
 import { useTranslation } from 'react-i18next';
 import { AndroidStyleDayView } from '../../../../components/caretaker/AndroidStyleDayView';
+import { ScheduleEventSheet } from '../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
 import {
@@ -27,6 +28,7 @@ export default function HybridCalendarDayScreen() {
   const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
   const dateStr = typeof dateParam === 'string' ? dateParam : Array.isArray(dateParam) ? dateParam[0] : '';
+  const [selectedSchedule, setSelectedSchedule] = useState<ScheduleItem | null>(null);
   const { depletionAlerts, schedules, treatments, refetchFromServer } = useMeds();
 
   useFocusEffect(
@@ -45,6 +47,11 @@ export default function HybridCalendarDayScreen() {
     [treatments, t],
   );
 
+  const selectedLabel = useMemo(() => {
+    if (!selectedSchedule) return '';
+    return labelForSchedule(selectedSchedule);
+  }, [selectedSchedule, labelForSchedule]);
+
   if (!dateStr) {
     router.back();
     return null;
@@ -62,8 +69,15 @@ export default function HybridCalendarDayScreen() {
             treatments={treatments}
             depletionAlerts={depletionAlerts}
             labelForSchedule={labelForSchedule}
+            onEventPress={sch => setSelectedSchedule(sch)}
           />
         </View>
+        <ScheduleEventSheet
+          schedule={selectedSchedule}
+          label={selectedLabel}
+          visible={selectedSchedule != null}
+          onClose={() => setSelectedSchedule(null)}
+        />
         <Pressable
           style={[styles.fab, { bottom: fabBottomOffset }]}
           onPress={() => {

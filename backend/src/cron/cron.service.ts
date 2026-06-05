@@ -32,25 +32,33 @@ export class CronService {
       this.logger.log(`Wykryto lek do wzięcia: ${schedule.medication || schedule.inventoryId} o ${currentTime}`);
       
       // Sprawdzamy czy już wygenerowano dzisiaj log
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const dayStart = new Date(now);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(dayStart);
+      dayEnd.setDate(dayEnd.getDate() + 1);
 
       const existingLog = await this.prisma.doseLog.findFirst({
         where: {
           scheduleId: schedule.id,
           scheduledAt: {
-            gte: today,
+            gte: dayStart,
+            lt: dayEnd,
           },
         },
       });
 
       if (!existingLog) {
+        const planned = new Date(dayStart);
+        if (schedule.time && /^\d{2}:\d{2}$/.test(schedule.time)) {
+          const [hh, mm] = schedule.time.split(':').map((x) => Number(x));
+          planned.setHours(hh, mm, 0, 0);
+        }
         // Zapisujemy nowy PENDING log do bazy
         await this.prisma.doseLog.create({
           data: {
             scheduleId: schedule.id,
             status: 'PENDING',
-            scheduledAt: now,
+            scheduledAt: planned,
           },
         });
         this.logger.log(`Utworzono log PENDING dla harmonogramu ${schedule.id}`);

@@ -6,7 +6,6 @@ import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useLocalSearchParams, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
-import { openAddMedForDependent } from '../../../../utils/caretakerNavigation';
 import { format } from 'date-fns';
 import { useOnCalendarDayChange, useTickingNow } from '../../../../hooks/useTickingNow';
 import { getScheduleTreatmentId, useMeds } from '../../../../context/MedsContext';
@@ -16,7 +15,6 @@ import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { useTranslation } from 'react-i18next';
 import { DependentProfileHeader } from '../../../../components/caretaker/DependentProfileHeader';
 import { DependentTodayHeroCard } from '../../../../components/caretaker/DependentTodayHeroCard';
-import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import {
   resolveTodayScheduleUiKind,
   todayStatsBucketFromKind,
@@ -52,7 +50,6 @@ function accentIndexFromId(id: string) {
 
 export default function DependentTodayDashboard() {
   const { t } = useTranslation();
-  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -90,6 +87,8 @@ export default function DependentTodayDashboard() {
   useFocusEffect(
     useCallback(() => {
       void fetchDependent();
+      const pollId = setInterval(() => void fetchDependent(), 10_000);
+      return () => clearInterval(pollId);
     }, [fetchDependent]),
   );
 
@@ -181,11 +180,6 @@ export default function DependentTodayDashboard() {
     return t('caretaker.moodAt', { time: timeStr });
   }, [dependent, t]);
 
-  const handleAdd = () => {
-    if (!dependentId) return;
-    openAddMedForDependent(dependentId);
-  };
-
   const getStatusDisplay = (sch: ScheduleItem, minutes: number, isNext: boolean) => {
     const log = findDoseLogForScheduleOnDate(logs, sch.id, todayStr);
     const kind = resolveTodayScheduleUiKind(log, minutes, currentMinutes, isNext);
@@ -230,7 +224,7 @@ export default function DependentTodayDashboard() {
       <DependentProfileHeader title={displayName} subtitle={headerSubtitle} />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: fabBottomOffset + 80 }]}
+        contentContainerStyle={[styles.content, { paddingBottom: Theme.spacing.xl }]}
         showsVerticalScrollIndicator={false}
       >
         <DependentTodayHeroCard
@@ -315,6 +309,7 @@ export default function DependentTodayDashboard() {
                   <Text style={styles.alertText} numberOfLines={2}>
                     {t('caretaker.calendar.alertDepletionWithName', { name: alert.inventoryItemName })}
                   </Text>
+                  <Text style={styles.alertStockMargin}>{alert.pillsLeft}</Text>
                 </View>
               ))}
             </View>
@@ -369,14 +364,6 @@ export default function DependentTodayDashboard() {
           </View>
         )}
       </ScrollView>
-
-      <Pressable
-        style={({ pressed }) => [styles.fab, { bottom: fabBottomOffset }, pressed && styles.fabPressed]}
-        onPress={handleAdd}
-        accessibilityLabel={t('schedule.add.pickActivityTitle')}
-      >
-        <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
-      </Pressable>
     </View>
   );
 }
@@ -616,6 +603,13 @@ const styles = StyleSheet.create({
     color: Theme.colors.accentOrange,
     lineHeight: 22,
   },
+  alertStockMargin: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: Theme.colors.accentOrange,
+    minWidth: 32,
+    textAlign: 'center',
+  },
   statusPill: {
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -647,25 +641,5 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.badgeWarningBackground,
     borderColor: Theme.colors.accentOrange,
     borderWidth: 1,
-  },
-  fab: {
-    position: 'absolute',
-    right: Theme.spacing.xl,
-    backgroundColor: Theme.colors.primaryLime,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: Theme.colors.primaryLimeDark,
-    shadowColor: Theme.colors.shadowNeutral,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  fabPressed: {
-    transform: [{ scale: 0.95 }],
   },
 });

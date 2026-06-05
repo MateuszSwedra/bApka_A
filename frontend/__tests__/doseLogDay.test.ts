@@ -1,5 +1,6 @@
 import {
   doseLogMatchesLocalDate,
+  findDoseLogForScheduleOnDate,
   mergeDoseLogsIntoCompletionSets,
 } from '../utils/doseLogDay';
 
@@ -34,5 +35,14 @@ describe('doseLogDay', () => {
     );
     expect(completed.has('a')).toBe(true);
     expect(missed.has('a')).toBe(false);
+  });
+
+  it('prefers TAKEN log over PENDING for the same schedule', () => {
+    const logs = [
+      { scheduleId: 's1', status: 'PENDING', scheduledAt: new Date(2026, 4, 29, 22, 24, 0) },
+      { scheduleId: 's1', status: 'TAKEN', scheduledAt: new Date(2026, 4, 29, 22, 24, 0) },
+    ];
+    const found = findDoseLogForScheduleOnDate(logs, 's1', '2026-05-29');
+    expect(found?.status).toBe('TAKEN');
   });
 });

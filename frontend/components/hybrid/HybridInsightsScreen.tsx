@@ -5,10 +5,10 @@ import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { usersAPI, scheduleAPI } from '../../services/api';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
-import { StackedBarChart } from '../insights/StackedBarChart';
+import { DoseInsightsCard } from '../caretaker/DoseInsightsCard';
+import { VitalsInsightsCharts } from '../caretaker/VitalsInsightsCharts';
 import { useDependentTabTopInset } from '../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
-import { VitalsInsightsCharts } from '../caretaker/VitalsInsightsCharts';
 
 type RangeKey = 'today' | 'week' | 'month';
 
@@ -65,20 +65,6 @@ export default function HybridInsightsScreen() {
     return t('caretaker.insights.range.month');
   };
 
-  const renderDoseChart = () => {
-    if (!doseStats?.daily?.length) return null;
-    const maxPoints = range === 'today' ? 1 : range === 'week' ? 7 : 10;
-    const chartData = doseStats.daily.slice(-maxPoints).map((d: any) => ({
-      label: d.date.slice(5),
-      segments: [
-        { value: d.takenOnTime, color: Theme.colors.success },
-        { value: d.late ?? Math.max(0, d.taken - d.takenOnTime), color: Theme.colors.accentOrange },
-        { value: d.missed, color: '#D15C5C' },
-      ],
-    }));
-    return <StackedBarChart data={chartData} height={220} />;
-  };
-
   const currentRangeLabel = useMemo(() => {
     if (!doseStats) return '';
     const from = new Date(doseStats.range.from);
@@ -109,18 +95,7 @@ export default function HybridInsightsScreen() {
         {error && !loading ? <Text style={styles.errorText}>{error}</Text> : null}
         {!loading && !error ? (
           <>
-            <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('caretaker.insights.sectionDoses')}</Text>
-              {doseStats ? (
-                <>
-                  {renderDoseChart()}
-                  <View style={styles.metricRow}><Text style={styles.metricLabel}>{t('caretaker.insights.dosesTaken')}</Text><Text style={styles.metricValue}>{doseStats.counts.taken}</Text></View>
-                  <View style={styles.metricRow}><Text style={styles.metricLabel}>{t('caretaker.insights.dosesMissed')}</Text><Text style={styles.metricValue}>{doseStats.counts.missed}</Text></View>
-                </>
-              ) : (
-                <Text style={styles.emptyText}>{t('caretaker.insights.dosesEmpty')}</Text>
-              )}
-            </View>
+            <DoseInsightsCard doseStats={doseStats} />
             <VitalsInsightsCharts
               userId={selfUserId}
               fromIso={rangeBounds.fromIso}
@@ -147,10 +122,4 @@ const styles = StyleSheet.create({
   loadingBox: { flexDirection: 'row', alignItems: 'center', paddingVertical: Theme.spacing.m },
   loadingText: { marginLeft: Theme.spacing.s, color: Theme.colors.textLight },
   errorText: { color: '#b00020', marginVertical: Theme.spacing.m },
-  card: { backgroundColor: Theme.colors.surfaceWhite, borderRadius: 12, padding: Theme.spacing.m, marginBottom: Theme.spacing.m, borderWidth: 1, borderColor: Theme.colors.border },
-  cardTitle: { fontSize: Theme.typography.body, fontWeight: '700', color: Theme.colors.textDark, marginBottom: Theme.spacing.s },
-  metricRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
-  metricLabel: { fontSize: Theme.typography.small, color: Theme.colors.textLight },
-  metricValue: { fontSize: Theme.typography.small, fontWeight: '700', color: Theme.colors.textDark },
-  emptyText: { fontSize: Theme.typography.small, color: Theme.colors.textLight },
 });

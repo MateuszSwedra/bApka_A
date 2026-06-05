@@ -25,6 +25,7 @@ import {
   getCompletedScheduleIdsForDate,
   markScheduleCompletedForDate,
 } from '../../services/seniorScheduleCompletion';
+import { mergeDoseLogsIntoCompletionSets } from '../../utils/doseLogDay';
 import {
   getCompletedMoodSlotsForDate,
   markMoodSlotCompletedForDate,
@@ -35,7 +36,7 @@ import { VitalsMetricModal } from '../../components/senior/VitalsMetricModal';
 import { MoodIcon } from '../../components/mood/MoodIcon';
 import { useFocusEffect } from '@react-navigation/native';
 import { treatmentTypeForSchedule } from '../../utils/scheduleTreatmentType';
-import { applySeniorProfileSettings } from '../../services/seniorProfileSync';
+import { seniorActionTileContent } from '../../utils/seniorActionTile';
 
 const DEFAULT_TILE_COLORS = {
   medActive: '#2E7D32',
@@ -50,7 +51,7 @@ export default function DependentDashboard() {
   const { t } = useTranslation();
   const { logout } = useAuth();
   const { colors, colorBlindFriendly, highContrast, reload } = useDependentDisplay();
-  const { schedules, treatments, depletionAlerts, refetchFromServer } = useMeds();
+  const { schedules, treatments, refetchFromServer } = useMeds();
   const [now, setNow] = useState(() => new Date());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [completedMoodSlots, setCompletedMoodSlots] = useState<Set<string>>(new Set());
@@ -90,7 +91,18 @@ export default function DependentDashboard() {
       getCompletedScheduleIdsForDate(todayStr),
       getCompletedMoodSlotsForDate(todayStr),
     ]);
-    setCompletedIds(new Set(ids));
+    const completed = new Set(ids);
+    const missed = new Set<string>();
+    try {
+      const me = await usersAPI.getMe();
+      if (me?.id) {
+        const logs = await scheduleAPI.getTodayLogs(me.id, todayStr);
+        mergeDoseLogsIntoCompletionSets(logs, todayStr, completed, missed);
+      }
+    } catch {
+      /* offline — zostaje lokalny stan */
+    }
+    setCompletedIds(completed);
     setCompletedMoodSlots(new Set(moodSlots));
   }, [todayStr]);
 
@@ -125,21 +137,24 @@ export default function DependentDashboard() {
     [moodEnabled, completedMoodSlots, now],
   );
 
+  const lowStockMeds = useMemo(
+    () =>
+      treatments.filter(
+        t =>
+          t.type === 'MEDICATION' &&
+          (t.currentPills ?? t.totalPills ?? 999) <= 10,
+      ),
+    [treatments],
+  );
+
   const lowMedWarning = useMemo(() => {
-    const todayAlerts = depletionAlerts.filter(a => a.date === todayStr);
-    if (todayAlerts.length > 0) {
+    if (lowStockMeds.length > 0) {
       return t('dependent.home.lowMedToday', {
-        names: todayAlerts.map(a => a.inventoryItemName).join(', '),
+        names: lowStockMeds.map(a => a.name).join(', '),
       });
     }
-    const upcoming = depletionAlerts
-      .filter(a => a.date >= todayStr)
-      .sort((a, b) => a.date.localeCompare(b.date));
-    if (upcoming.length > 0) {
-      return t('dependent.home.lowMedSoon', { name: upcoming[0].inventoryItemName });
-    }
     return null;
-  }, [depletionAlerts, todayStr, t]);
+  }, [lowStockMeds, t]);
 
   const handleLogout = async () => {
     await logout();
@@ -174,6 +189,7 @@ export default function DependentDashboard() {
     try {
       await scheduleAPI.markTaken(scheduleId);
       await markScheduleCompletedForDate(todayStr, scheduleId);
+      await refetchFromServer();
       await loadCompleted();
       maybeShowVitalsForm(scheduleId);
     } catch {
@@ -206,11 +222,14 @@ export default function DependentDashboard() {
   const medActive = mainState.kind === 'due' || mainState.kind === 'missed';
   const moodActive = moodState.kind === 'active';
 
+  const actionTile = useMemo(
+    () => seniorActionTileContent(mainState, schedules, treatments, t),
+    [mainState, schedules, treatments, t],
+  );
+
   const medTitle = medActive
-    ? mainState.kind === 'missed'
-      ? t('dependent.home.medLate')
-      : t('dependent.home.medDue')
-    : t('dependent.home.medIdle');
+    ? actionTile.title
+    : actionTile.idleTitle;
   const medLine1 =
     mainState.kind === 'due' || mainState.kind === 'missed'
       ? mainState.name
@@ -249,6 +268,18 @@ export default function DependentDashboard() {
           {lowMedWarning ? (
             <Text style={[styles.lowMedWarning, { color: colors.accentOrange }]}>{lowMedWarning}</Text>
           ) : null}
+          {lowStockMeds.length > 0 ? (
+            <View style={styles.stockMarginRow}>
+              {lowStockMeds.map(med => (
+                <Text
+                  key={med.id}
+                  style={[styles.stockMarginBadge, { color: colors.accentOrange, borderColor: colors.accentOrange }]}
+                >
+                  {med.currentPills ?? med.totalPills ?? 0}
+                </Text>
+              ))}
+            </View>
+          ) : null}
         </View>
         <View style={styles.headerActions}>
           <Pressable
@@ -269,11 +300,11 @@ export default function DependentDashboard() {
             styles.tile,
             !moodEnabled && styles.tileFullWidth,
             {
-              backgroundColor: medActive ? tileColors.medActive : tileColors.medInactive,
+              backgroundColor: medActive ? actionTile.accent : tileColors.medInactive,
               borderColor: medActive
                 ? colorBlindFriendly || highContrast
                   ? colors.border
-                  : '#1B5E20'
+                  : actionTile.accent
                 : '#90A4AE',
               borderWidth: colors.mainButtonBorderWidth ?? 3,
             },
@@ -282,7 +313,7 @@ export default function DependentDashboard() {
           ]}
         >
           <MaterialIcons
-            name="medication"
+            name={actionTile.icon}
             size={48}
             color={medActive ? '#FFFFFF' : '#546E7A'}
           />
@@ -414,6 +445,23 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     marginTop: 4,
+  },
+  stockMarginRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 6,
+    marginTop: 6,
+    justifyContent: 'flex-end',
+  },
+  stockMarginBadge: {
+    fontSize: 16,
+    fontWeight: '900',
+    borderWidth: 2,
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    minWidth: 32,
+    textAlign: 'center',
   },
   headerActions: {
     flexDirection: 'row',

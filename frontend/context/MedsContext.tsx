@@ -8,8 +8,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
-import { addDays, format } from 'date-fns';
-import { parseDosagePills, scheduleAppliesToDate } from '../utils/scheduleHelpers';
+import { format } from 'date-fns';
 import { normalizeYmd } from '../utils/ymdDate';
 import { getStoredAuthToken, inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
 import { assertCaretakerDependent } from '../utils/assertCaretakerDependent';
@@ -28,7 +27,11 @@ export interface Treatment {
   name: string;
   description?: string;
   totalPills?: number;
+  currentPills?: number;
 }
+
+/** Próg alertu „kończy się lek” — liczba tabletek w apteczce. */
+export const LOW_STOCK_PILL_THRESHOLD = 10;
 
 export interface InventoryItem {
   id: string;
@@ -64,6 +67,7 @@ export function getScheduleTreatmentId(s: ScheduleItem): string | undefined {
 export interface DepletionAlert {
   date: string;
   inventoryItemName: string;
+  pillsLeft: number;
 }
 
 interface MedsContextType {
@@ -192,6 +196,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
               type: (it.type as TreatmentType) || 'MEDICATION',
               name: it.name,
               totalPills: it.totalPills,
+              currentPills: it.currentPills ?? it.totalPills,
               description: it.description,
             }))
           : [];
@@ -401,53 +406,25 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // ALGORYTM: Przewidywanie zużycia na podstawie kalendarza
   const depletionAlerts = useMemo(() => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     const alerts: DepletionAlert[] = [];
-    
-    // Tylko leki (MEDICATION) — zużycie tabletek i alerty końca zapasu
+
     treatments
       .filter(t => t.type === 'MEDICATION')
       .forEach(med => {
-      const relatedSchedules = schedules.filter(s => {
-        const tid = getScheduleTreatmentId(s);
-        if (tid !== med.id) return false;
-        return true;
-      });
-      if (relatedSchedules.length === 0) return;
-
-      let remainingPills = med.totalPills ?? 0;
-      let currentDate = new Date(); // Zaczynamy symulację od dzisiaj
-      let emergencyBreak = 0; // Zabezpieczenie przed nieskończoną pętlą (np. leki na 10 lat)
-
-      while (remainingPills > 0 && emergencyBreak < 1000) {
-        const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-
-        let pillsTakenToday = 0;
-
-        for (const sch of relatedSchedules) {
-          if (sch.type === 'ONCE') continue;
-          if (!scheduleAppliesToDate(sch, currentDateStr)) continue;
-          pillsTakenToday += parseDosagePills(sch.dosage);
-        }
-
-        remainingPills -= pillsTakenToday;
-
-        if (remainingPills <= 0 && pillsTakenToday > 0) {
+        const pillsLeft = med.currentPills ?? med.totalPills ?? 0;
+        if (pillsLeft <= LOW_STOCK_PILL_THRESHOLD) {
           alerts.push({
-            date: currentDateStr,
-            inventoryItemName: med.name
+            date: todayStr,
+            inventoryItemName: med.name,
+            pillsLeft,
           });
-          break; // Koniec zapasu dla tego leku
         }
+      });
 
-        currentDate = addDays(currentDate, 1);
-        emergencyBreak++;
-      }
-    });
-
-    return alerts;
-  }, [treatments, schedules]);
+    return alerts.sort((a, b) => a.inventoryItemName.localeCompare(b.inventoryItemName));
+  }, [treatments]);
 
   const setManagedUserId = useCallback((userId: string | null) => {
     setScopedDependentUserId(userId);

@@ -1,22 +1,20 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, Treatment } from '../../../context/MedsContext';
 import { Card } from '../../../components/Card';
 import { useFocusEffect } from 'expo-router';
-import { useFabBottomOffset } from '../../../utils/useFabBottomOffset';
 import { useDependentTabTopInset } from '../../../utils/useDependentTabTopInset';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { useSelfUserId } from '../../../hooks/useSelfUserId';
-import { openAddTreatment, openEditTreatment } from '../../../utils/medsFlowNavigation';
+import { openEditTreatment } from '../../../utils/medsFlowNavigation';
 
 export default function HybridTreatmentsScreen() {
   const { t } = useTranslation();
   const selfUserId = useSelfUserId();
-  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
   const { treatments, removeTreatment, refetchFromServer } = useMeds();
 
@@ -62,18 +60,6 @@ export default function HybridTreatmentsScreen() {
           ))
         )}
       </ScrollView>
-      <Pressable
-        style={[styles.fab, { bottom: fabBottomOffset }]}
-        onPress={() => {
-          if (!selfUserId) {
-            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
-            return;
-          }
-          openAddTreatment(selfUserId, 'hybrid');
-        }}
-      >
-        <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
-      </Pressable>
     </View>
   );
 }
@@ -138,18 +124,4 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center' },
   actionBtn: { padding: 4, marginLeft: 4 },
   emptyText: { textAlign: 'center', color: Theme.colors.textLight, marginTop: Theme.spacing.xl, lineHeight: 22 },
-  fab: {
-    position: 'absolute',
-    right: Theme.spacing.xl,
-    zIndex: 10,
-    elevation: 8,
-    backgroundColor: Theme.colors.primaryLime,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Theme.colors.primaryLimeDark,
-  },
 });

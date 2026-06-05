@@ -217,6 +217,7 @@
       "loading": "Loading insights…",
       "errorGeneric": "Could not load insights.",
       "sectionDoses": "Medication doses",
+      "allMedications": "All medications",
       "sectionMood": "Senior's mood",
       "dosesTaken": "Taken doses",
       "dosesLate": "Late doses",
@@ -297,7 +298,7 @@
       "buyPack": "Buy a new pack: {{name}}"
     },
     "calendar": {
-      "alertDepletionWithName": "supply ended: {{name}}"
+      "alertDepletionWithName": "Running low: {{name}}"
     }
   },
   "dependent": {
@@ -331,6 +332,33 @@
       "medDue": "TAKE MEDICINE",
       "medLate": "TAKE MEDICINE (LATE)",
       "medIdle": "Medicine",
+      "action": {
+        "medication": {
+          "title": "TAKE MEDICINE",
+          "titleLate": "TAKE MEDICINE (LATE)",
+          "idle": "Medicine"
+        },
+        "bloodSugar": {
+          "title": "CHECK BLOOD SUGAR",
+          "titleLate": "CHECK BLOOD SUGAR (LATE)",
+          "idle": "Blood sugar"
+        },
+        "bloodPressure": {
+          "title": "CHECK BLOOD PRESSURE",
+          "titleLate": "CHECK BLOOD PRESSURE (LATE)",
+          "idle": "Blood pressure"
+        },
+        "exercise": {
+          "title": "TIME TO EXERCISE",
+          "titleLate": "TIME TO EXERCISE (LATE)",
+          "idle": "Exercise"
+        },
+        "custom": {
+          "title": "DO ACTIVITY",
+          "titleLate": "DO ACTIVITY (LATE)",
+          "idle": "Activities"
+        }
+      },
       "medAt": "At {{time}}",
       "medNoPlan": "No plan",
       "moodDue": "LOG MOOD",

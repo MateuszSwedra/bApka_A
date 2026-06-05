@@ -27,7 +27,7 @@ import type { ScheduleItem } from '../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
 
-export type CalendarDepletionAlert = { date: string; inventoryItemName: string };
+export type CalendarDepletionAlert = { date: string; inventoryItemName: string; pillsLeft?: number };
 
 type DayChip = {
   id: string;
@@ -96,9 +96,11 @@ export function AndroidStyleMonthCalendar({
     };
 
     depletionAlerts.forEach(alert => {
+      const countLabel =
+        typeof alert.pillsLeft === 'number' ? String(alert.pillsLeft) : undefined;
       push(alert.date, {
         id: `alert-${alert.date}-${alert.inventoryItemName}`,
-        label: t('caretaker.calendar.alertDepletionWithName', {
+        label: countLabel ?? t('caretaker.calendar.alertDepletionWithName', {
           name: alert.inventoryItemName,
         }),
         color: Theme.colors.accentOrange,

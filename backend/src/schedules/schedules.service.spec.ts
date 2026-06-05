@@ -39,10 +39,15 @@ describe('SchedulesService', () => {
 
   describe('markDose', () => {
     it('updates existing log for today', async () => {
-      const scheduled = new Date();
-      scheduled.setHours(new Date().getHours(), new Date().getMinutes(), 0, 0);
-      prisma.doseLog.findFirst.mockResolvedValue({ id: 'log-1', scheduledAt: scheduled });
-      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
+      const now = new Date();
+      const hh = String(now.getHours()).padStart(2, '0');
+      const mm = String(now.getMinutes()).padStart(2, '0');
+      const time = `${hh}:${mm}`;
+      const scheduled = new Date(now);
+      scheduled.setSeconds(0, 0);
+
+      prisma.doseLog.findFirst.mockResolvedValue({ id: 'log-1', scheduledAt: scheduled, status: 'PENDING' });
+      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'TAKEN' });
 
       await service.markDose('sched-1', 'TAKEN');
@@ -68,6 +73,31 @@ describe('SchedulesService', () => {
           source: 'APP_SENIOR',
         }),
       });
+    });
+
+    it('marks early confirmation as TAKEN (before scheduled time)', async () => {
+      const scheduled = new Date();
+      scheduled.setHours(14, 0, 0, 0);
+      const thirtyMinBefore = new Date(scheduled.getTime() - 30 * 60 * 1000);
+
+      jest.useFakeTimers();
+      jest.setSystemTime(thirtyMinBefore);
+
+      prisma.doseLog.findFirst.mockResolvedValue({
+        id: 'log-early',
+        scheduledAt: scheduled,
+        status: 'PENDING',
+      });
+      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '14:00' });
+      prisma.doseLog.update.mockResolvedValue({ id: 'log-early', status: 'TAKEN' });
+
+      await service.markDose('sched-1', 'TAKEN');
+      expect(prisma.doseLog.update).toHaveBeenCalledWith({
+        where: { id: 'log-early' },
+        data: expect.objectContaining({ status: 'TAKEN' }),
+      });
+
+      jest.useRealTimers();
     });
 
     it('marks TAKEN as LATE after confirmation window', async () => {

@@ -77,18 +77,48 @@ export function AndroidStyleDayView({
   }, [dateStr]);
 
   const positionedEvents = useMemo(() => {
-    return daySchedules.map(sch => {
-      const startMin = timeToMinutes(sch.time);
+    const byTime = new Map<string, ScheduleItem[]>();
+    for (const sch of daySchedules) {
+      const list = byTime.get(sch.time) ?? [];
+      list.push(sch);
+      byTime.set(sch.time, list);
+    }
+
+    const result: {
+      sch: ScheduleItem;
+      top: number;
+      height: number;
+      accent: string;
+      label: string;
+      columnIndex: number;
+      columnCount: number;
+    }[] = [];
+
+    byTime.forEach(group => {
+      const startMin = timeToMinutes(group[0].time);
       const top = (startMin / 60) * HOUR_HEIGHT;
       const height = Math.max((EVENT_DURATION_MIN / 60) * HOUR_HEIGHT, 40);
-      const tid = getScheduleTreatmentId(sch);
-      const treatmentType = treatments.find(tr => tr.id === tid)?.type;
-      const accent =
-        treatmentType && TREATMENT_VISUAL[treatmentType]
-          ? TREATMENT_VISUAL[treatmentType].accent
-          : Theme.colors.primaryLimeDark;
-      return { sch, top, height, accent, label: labelForSchedule(sch) };
+      const columnCount = group.length;
+      group.forEach((sch, columnIndex) => {
+        const tid = getScheduleTreatmentId(sch);
+        const treatmentType = treatments.find(tr => tr.id === tid)?.type;
+        const accent =
+          treatmentType && TREATMENT_VISUAL[treatmentType]
+            ? TREATMENT_VISUAL[treatmentType].accent
+            : Theme.colors.primaryLimeDark;
+        result.push({
+          sch,
+          top,
+          height,
+          accent,
+          label: labelForSchedule(sch),
+          columnIndex,
+          columnCount,
+        });
+      });
     });
+
+    return result;
   }, [daySchedules, treatments, labelForSchedule]);
 
   return (
@@ -130,9 +160,11 @@ export function AndroidStyleDayView({
               {dayAlerts.map((alert, i) => (
                 <View key={`alert-${i}`} style={[styles.allDayChip, styles.allDayChipAlert]}>
                   <Text style={styles.allDayChipText} numberOfLines={1} ellipsizeMode="tail">
-                    {t('caretaker.calendar.alertDepletionWithName', {
-                      name: alert.inventoryItemName,
-                    })}
+                    {typeof alert.pillsLeft === 'number'
+                      ? `${alert.inventoryItemName} · ${alert.pillsLeft}`
+                      : t('caretaker.calendar.alertDepletionWithName', {
+                          name: alert.inventoryItemName,
+                        })}
                   </Text>
                 </View>
               ))}
@@ -152,7 +184,11 @@ export function AndroidStyleDayView({
           ))}
 
           <View style={[styles.eventsLayer, { marginLeft: TIME_GUTTER }]}>
-            {positionedEvents.map(({ sch, top, height, accent, label }) => (
+            {positionedEvents.map(({ sch, top, height, accent, label, columnIndex, columnCount }) => {
+              const gap = 2;
+              const widthPct = 100 / columnCount;
+              const leftPct = columnIndex * widthPct;
+              return (
               <Pressable
                 key={sch.id}
                 style={[
@@ -161,6 +197,10 @@ export function AndroidStyleDayView({
                     top,
                     height,
                     backgroundColor: accent,
+                    left: `${leftPct}%`,
+                    width: `${widthPct}%`,
+                    paddingRight: columnIndex < columnCount - 1 ? gap : 4,
+                    paddingLeft: columnIndex > 0 ? gap : 4,
                   },
                 ]}
                 onPress={() => onEventPress?.(sch)}
@@ -173,7 +213,8 @@ export function AndroidStyleDayView({
                   {sch.time}
                 </Text>
               </Pressable>
-            ))}
+            );
+            })}
           </View>
         </View>
       </ScrollView>
@@ -312,10 +353,8 @@ const styles = StyleSheet.create({
   },
   timedEvent: {
     position: 'absolute',
-    left: 4,
-    right: 4,
     borderRadius: 6,
-    paddingHorizontal: 8,
+    paddingHorizontal: 6,
     paddingVertical: 4,
     justifyContent: 'center',
     overflow: 'hidden',

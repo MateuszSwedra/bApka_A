@@ -1,25 +1,36 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import type { DependentMainScheduleState } from '../../utils/dependentScheduleUi';
+import type { ScheduleItem, Treatment } from '../../context/MedsContext';
+import { seniorActionTileContent } from '../../utils/seniorActionTile';
 
 type HybridTakeMedCardProps = {
   mainState: DependentMainScheduleState;
+  schedules: ScheduleItem[];
+  treatments: Treatment[];
   onPress: () => void;
   disabled?: boolean;
 };
 
-export function HybridTakeMedCard({ mainState, onPress, disabled }: HybridTakeMedCardProps) {
+export function HybridTakeMedCard({
+  mainState,
+  schedules,
+  treatments,
+  onPress,
+  disabled,
+}: HybridTakeMedCardProps) {
   const { t } = useTranslation();
 
   const active = mainState.kind === 'due' || mainState.kind === 'missed';
-  const title = active
-    ? mainState.kind === 'missed'
-      ? t('dependent.home.medLate')
-      : t('dependent.home.medDue')
-    : t('hybrid.takeMedIdle');
+  const actionTile = useMemo(
+    () => seniorActionTileContent(mainState, schedules, treatments, t),
+    [mainState, schedules, treatments, t],
+  );
+
+  const title = active ? actionTile.title : t('hybrid.takeMedIdle');
   const line1 =
     mainState.kind === 'due' || mainState.kind === 'missed'
       ? mainState.name
@@ -42,12 +53,13 @@ export function HybridTakeMedCard({ mainState, onPress, disabled }: HybridTakeMe
       style={({ pressed }) => [
         styles.card,
         active ? styles.cardActive : styles.cardIdle,
+        active && { backgroundColor: actionTile.accent, borderColor: actionTile.accent },
         pressed && active && styles.pressed,
         (!active || disabled) && { opacity: active ? 1 : 0.92 },
       ]}
     >
       <MaterialIcons
-        name="medication"
+        name={actionTile.icon}
         size={40}
         color={active ? Theme.colors.surfaceWhite : Theme.colors.textLight}
       />

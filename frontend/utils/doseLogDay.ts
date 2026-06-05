@@ -28,9 +28,21 @@ export function findDoseLogForScheduleOnDate(
   scheduleId: string,
   dateStr: string,
 ): DoseLogLike | undefined {
-  return logs.find(
-    l => String(l.scheduleId) === String(scheduleId) && doseLogMatchesLocalDate(l, dateStr),
+  const forSchedule = logs.filter(l => String(l.scheduleId) === String(scheduleId));
+  if (forSchedule.length === 0) return undefined;
+
+  const completed = forSchedule.filter(
+    l => l.status === 'TAKEN' || l.status === 'LATE' || l.status === 'MISSED',
   );
+  if (completed.length > 0) {
+    const takenLike = completed.find(l => l.status === 'TAKEN' || l.status === 'LATE');
+    return takenLike ?? completed[0];
+  }
+
+  const dated = forSchedule.find(l => doseLogMatchesLocalDate(l, dateStr));
+  if (dated) return dated;
+  if (forSchedule.length === 1) return forSchedule[0];
+  return forSchedule[0];
 }
 
 /** Scala logi z API tylko z podanego dnia kalendarzowego. */

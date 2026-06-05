@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -15,9 +15,7 @@ import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { HybridProfileHeader } from './HybridProfileHeader';
 import { HybridTakeMedCard } from './HybridTakeMedCard';
 import { DependentTodayHeroCard } from '../caretaker/DependentTodayHeroCard';
-import { useFabBottomOffset } from '../../utils/useFabBottomOffset';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
-import { openAddMed } from '../../utils/medsFlowNavigation';
 import { computeDependentMainScheduleState } from '../../utils/dependentScheduleUi';
 import {
   getCompletedScheduleIdsForDate,
@@ -32,7 +30,7 @@ import {
   resolveTodayScheduleUiKind,
   todayStatsBucketFromKind,
 } from '../../utils/todayScheduleStatus';
-import { findDoseLogForScheduleOnDate } from '../../utils/doseLogDay';
+import { findDoseLogForScheduleOnDate, mergeDoseLogsIntoCompletionSets } from '../../utils/doseLogDay';
 
 const AVATAR_PALETTE = [
   { solid: Theme.colors.primaryLimeDark, soft: 'rgba(69, 104, 130, 0.14)' },
@@ -43,7 +41,6 @@ export default function HybridTodayScreen() {
   const { t } = useTranslation();
   const { colors, reload } = useDependentDisplay();
   const selfUserId = useSelfUserId();
-  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const { schedules, treatments, depletionAlerts, refetchFromServer } = useMeds();
   const { now, todayStr } = useTickingNow({ tickMs: 60_000 });
 
@@ -56,37 +53,50 @@ export default function HybridTodayScreen() {
 
   const vitalsEntryEnabled = profile?.vitalsEntryEnabled ?? false;
 
-  const loadLocal = useCallback(async () => {
+  const syncCompletionAndLogs = useCallback(async () => {
     const ids = await getCompletedScheduleIdsForDate(todayStr);
-    setCompletedIds(new Set(ids));
-  }, [todayStr]);
+    const completed = new Set(ids);
+    const missed = new Set<string>();
+    if (!selfUserId) {
+      setCompletedIds(completed);
+      return;
+    }
+    try {
+      const todayLogs = await scheduleAPI.getTodayLogs(selfUserId, todayStr);
+      setLogs(todayLogs);
+      mergeDoseLogsIntoCompletionSets(todayLogs, todayStr, completed, missed);
+    } catch {
+      /* ignore */
+    }
+    setCompletedIds(completed);
+  }, [selfUserId, todayStr]);
 
-  const fetchData = useCallback(async () => {
+  const fetchProfile = useCallback(async () => {
     if (!selfUserId) return;
     try {
       const me = await usersAPI.getMe();
       setProfile(me);
       void applySeniorProfileSettings(me ?? {});
-      const todayLogs = await scheduleAPI.getTodayLogs(selfUserId, todayStr);
-      setLogs(todayLogs);
     } catch {
       /* ignore */
     }
-  }, [selfUserId, todayStr]);
+  }, [selfUserId]);
 
   useFocusEffect(
     useCallback(() => {
       void refetchFromServer();
-      void loadLocal();
+      void syncCompletionAndLogs();
       void reload();
-      void fetchData();
-    }, [refetchFromServer, loadLocal, reload, fetchData]),
+      void fetchProfile();
+      const pollId = setInterval(() => void syncCompletionAndLogs(), 30_000);
+      return () => clearInterval(pollId);
+    }, [refetchFromServer, syncCompletionAndLogs, reload, fetchProfile]),
   );
 
   useOnCalendarDayChange(todayStr, useCallback(() => {
     void refetchFromServer();
-    void fetchData();
-  }, [fetchData, refetchFromServer]));
+    void syncCompletionAndLogs();
+  }, [syncCompletionAndLogs, refetchFromServer]));
 
   const mainState = useMemo(
     () => computeDependentMainScheduleState(schedules, treatments, completedIds, now),
@@ -140,8 +150,8 @@ export default function HybridTodayScreen() {
     try {
       await scheduleAPI.markTaken(scheduleId);
       await markScheduleCompletedForDate(todayStr, scheduleId);
-      await loadLocal();
-      await fetchData();
+      await refetchFromServer();
+      await syncCompletionAndLogs();
       maybeShowVitals(scheduleId);
     } catch {
       Alert.alert(t('common.error'), t('dependent.errorMarkTaken'));
@@ -164,8 +174,13 @@ export default function HybridTodayScreen() {
     <View style={styles.screen}>
       <LinearGradient colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} />
-      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: fabBottomOffset + 88 }]} showsVerticalScrollIndicator={false}>
-        <HybridTakeMedCard mainState={mainState} onPress={() => setMedConfirmVisible(true)} />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <HybridTakeMedCard
+          mainState={mainState}
+          schedules={schedules}
+          treatments={treatments}
+          onPress={() => setMedConfirmVisible(true)}
+        />
         <DependentTodayHeroCard
           initials={displayName.substring(0, 2).toUpperCase()}
           greeting={greetingLine}
@@ -207,12 +222,10 @@ export default function HybridTodayScreen() {
           <View key={idx} style={styles.alertCard}>
             <MaterialIcons name="warning-amber" size={22} color={Theme.colors.accentOrange} />
             <Text style={styles.alertText}>{t('caretaker.calendar.alertDepletionWithName', { name: alert.inventoryItemName })}</Text>
+            <Text style={styles.alertStockMargin}>{alert.pillsLeft}</Text>
           </View>
         ))}
       </ScrollView>
-      <Pressable style={[styles.fab, { bottom: fabBottomOffset }]} onPress={() => selfUserId && openAddMed(selfUserId, 'hybrid')}>
-        <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
-      </Pressable>
       <SeniorConfirmModal visible={medConfirmVisible} title={t('dependent.home.confirmTitle')} message={medConfirmMessage} onConfirm={() => void confirmMed()} onCancel={() => setMedConfirmVisible(false)} confirmColor={Theme.colors.primaryLimeDark} />
       <VitalsMetricModal visible={vitalsModalVisible} type={vitalsModalType} colors={colors} onClose={() => setVitalsModalVisible(false)} />
     </View>
@@ -222,7 +235,7 @@ export default function HybridTodayScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Theme.colors.background },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: Theme.spacing.l, paddingTop: Theme.spacing.s },
+  content: { paddingHorizontal: Theme.spacing.l, paddingTop: Theme.spacing.s, paddingBottom: Theme.spacing.xl },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, marginTop: Theme.spacing.l, marginBottom: Theme.spacing.m },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.textDark },
   planCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, padding: Theme.spacing.m, marginBottom: Theme.spacing.s, borderWidth: 1, borderColor: Theme.colors.border },
@@ -233,5 +246,5 @@ const styles = StyleSheet.create({
   emptyText: { textAlign: 'center', color: Theme.colors.textLight, padding: Theme.spacing.l },
   alertCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, padding: Theme.spacing.m, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, borderWidth: 1, borderColor: 'rgba(233,164,61,0.4)', marginTop: Theme.spacing.s },
   alertText: { flex: 1, color: Theme.colors.accentOrange, fontWeight: '600' },
-  fab: { position: 'absolute', right: Theme.spacing.xl, backgroundColor: Theme.colors.primaryLime, width: 64, height: 64, borderRadius: 32, justifyContent: 'center', alignItems: 'center', borderWidth: 1.5, borderColor: Theme.colors.primaryLimeDark, elevation: 6 },
+  alertStockMargin: { fontSize: 20, fontWeight: '900', color: Theme.colors.accentOrange, minWidth: 32, textAlign: 'center' },
 });

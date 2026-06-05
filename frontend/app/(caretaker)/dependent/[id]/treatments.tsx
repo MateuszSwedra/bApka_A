@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
@@ -12,9 +12,7 @@ import {
   useGlobalSearchParams,
   useSegments,
 } from 'expo-router';
-import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
-import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
@@ -24,7 +22,6 @@ export default function DependentTreatmentsScreen() {
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
-  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
   const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
 
@@ -83,19 +80,6 @@ export default function DependentTreatmentsScreen() {
           </View>
         ))}
       </ScrollView>
-
-      <Pressable
-        style={[styles.fab, { bottom: fabBottomOffset }]}
-        onPress={() => {
-          if (!dependentId) {
-            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
-            return;
-          }
-          openAddTreatmentForDependent(dependentId);
-        }}
-      >
-        <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
-      </Pressable>
     </View>
   );
 }
@@ -117,11 +101,12 @@ function TreatmentCard({
       <View style={styles.itemHeader}>
         <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
           <Text style={styles.itemName}>{item.name}</Text>
-          {item.type === 'MEDICATION' && typeof item.totalPills === 'number' && (
+          {item.type === 'MEDICATION' &&
+          (item.currentPills ?? item.totalPills ?? 999) <= 10 ? (
             <Text style={[styles.itemMeta, { color: accent }]}>
-              {t('treatment.list.stock', { count: item.totalPills })}
+              {t('dependent.home.lowMedToday', { names: item.name })}
             </Text>
-          )}
+          ) : null}
           {item.description ? (
             <Text style={styles.itemDescription}>{item.description}</Text>
           ) : (
@@ -129,6 +114,16 @@ function TreatmentCard({
           )}
         </View>
         <View style={styles.actions}>
+          {item.type === 'MEDICATION' ? (
+            <Text
+              style={[
+                styles.stockMarginBadge,
+                (item.currentPills ?? item.totalPills ?? 999) <= 10 && styles.stockMarginBadgeLow,
+              ]}
+            >
+              {item.currentPills ?? item.totalPills ?? 0}
+            </Text>
+          ) : null}
           <Pressable onPress={onEdit} style={styles.actionBtn} hitSlop={8}>
             <MaterialIcons name="edit" size={22} color={Theme.colors.primaryLimeDark} />
           </Pressable>
@@ -228,24 +223,21 @@ const styles = StyleSheet.create({
     padding: 4,
     marginLeft: 4,
   },
+  stockMarginBadge: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Theme.colors.textDark,
+    minWidth: 36,
+    textAlign: 'center',
+    marginRight: Theme.spacing.xs,
+  },
+  stockMarginBadgeLow: {
+    color: Theme.colors.accentOrange,
+  },
   emptyText: {
     textAlign: 'center',
     color: Theme.colors.textLight,
     marginTop: Theme.spacing.xl,
     lineHeight: 22,
-  },
-  fab: {
-    position: 'absolute',
-    right: Theme.spacing.xl,
-    zIndex: 10,
-    elevation: 8,
-    backgroundColor: Theme.colors.primaryLime,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Theme.colors.primaryLimeDark,
   },
 });

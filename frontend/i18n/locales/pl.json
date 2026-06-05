@@ -219,6 +219,7 @@
       "loading": "Ładowanie statystyk…",
       "errorGeneric": "Nie udało się pobrać statystyk.",
       "sectionDoses": "Dawki leków",
+      "allMedications": "Wszystkie leki",
       "sectionMood": "Humor seniora",
       "dosesTaken": "Przyjęte dawki",
       "dosesLate": "Spóźnione dawki",
@@ -299,7 +300,7 @@
       "buyPack": "Kup nową paczkę: {{name}}"
     },
     "calendar": {
-      "alertDepletionWithName": "koniec zapasu: {{name}}"
+      "alertDepletionWithName": "Kończy się lek: {{name}}"
     }
   },
   "dependent": {
@@ -333,6 +334,33 @@
       "medDue": "WEŹ LEK",
       "medLate": "WEŹ LEK (SPÓŹNIONE)",
       "medIdle": "Leki",
+      "action": {
+        "medication": {
+          "title": "WEŹ LEK",
+          "titleLate": "WEŹ LEK (SPÓŹNIONE)",
+          "idle": "Leki"
+        },
+        "bloodSugar": {
+          "title": "ZMIERZ CUKIER",
+          "titleLate": "ZMIERZ CUKIER (SPÓŹNIONE)",
+          "idle": "Cukier"
+        },
+        "bloodPressure": {
+          "title": "ZMIERZ CIŚNIENIE",
+          "titleLate": "ZMIERZ CIŚNIENIE (SPÓŹNIONE)",
+          "idle": "Ciśnienie"
+        },
+        "exercise": {
+          "title": "CZAS NA ĆWICZENIA",
+          "titleLate": "CZAS NA ĆWICZENIA (SPÓŹNIONE)",
+          "idle": "Ćwiczenia"
+        },
+        "custom": {
+          "title": "WYKONAJ CZYNNOŚĆ",
+          "titleLate": "WYKONAJ CZYNNOŚĆ (SPÓŹNIONE)",
+          "idle": "Aktywności"
+        }
+      },
       "medAt": "O {{time}}",
       "medNoPlan": "Brak planu",
       "moodDue": "ZAZNACZ HUMOR",

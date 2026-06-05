@@ -120,8 +120,6 @@ export function VitalsInsightsCharts({
           <NumericLineChart
             series={[{ points: glucoseSeries, strokeColor: Theme.colors.accentOrange }]}
             unit="mg/dL"
-            yMin={50}
-            yMax={250}
           />
         </View>
       ) : null}
@@ -146,8 +144,6 @@ export function VitalsInsightsCharts({
                 : []),
             ]}
             unit="mmHg"
-            yMin={60}
-            yMax={180}
           />
         </View>
       ) : null}

@@ -101,6 +101,17 @@ export class SchedulesService {
           lt: to,
         },
       },
+      include: {
+        schedule: {
+          select: {
+            id: true,
+            medication: true,
+            time: true,
+            inventoryId: true,
+            inventory: { select: { name: true } },
+          },
+        },
+      },
     });
 
     const takenCount = logs.filter((l) => l.status === 'TAKEN' || l.status === 'LATE').length;
@@ -143,6 +154,29 @@ export class SchedulesService {
     }
     const daily = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
 
+    const medMap = new Map<
+      string,
+      { medKey: string; name: string; taken: number; late: number; missed: number; pending: number }
+    >();
+    for (const l of logs) {
+      const sch = l.schedule;
+      const medKey = sch.inventoryId ?? sch.medication ?? sch.id;
+      const name =
+        sch.inventory?.name?.trim() ||
+        sch.medication?.trim() ||
+        `${sch.time}`;
+      const row =
+        medMap.get(medKey) ?? { medKey, name, taken: 0, late: 0, missed: 0, pending: 0 };
+      if (l.status === 'TAKEN') row.taken += 1;
+      else if (l.status === 'LATE') {
+        row.taken += 1;
+        row.late += 1;
+      } else if (l.status === 'MISSED') row.missed += 1;
+      else row.pending += 1;
+      medMap.set(medKey, row);
+    }
+    const byMedication = Array.from(medMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+
     return {
       range: {
         from: from.toISOString(),
@@ -156,6 +190,7 @@ export class SchedulesService {
         totalPlanned,
       },
       daily,
+      byMedication,
       onTime: {
         takenOnTime: onTimeTakenCount,
         percentOfTaken: onTimePercent,
@@ -165,36 +200,35 @@ export class SchedulesService {
   }
 
   async markDose(scheduleId: string, status: 'TAKEN' | 'MISSED') {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const todayYmd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const { start, end } = this.calendarDayRange(todayYmd);
+
+    const schedule = await this.prisma.schedule.findUnique({ where: { id: scheduleId } });
+    const planned = this.scheduledAtToday(schedule?.time ?? undefined);
 
     const existingLog = await this.prisma.doseLog.findFirst({
       where: {
         scheduleId,
         scheduledAt: {
-          gte: today,
+          gte: start,
+          lt: end,
         },
       },
+      orderBy: { scheduledAt: 'desc' },
     });
 
-    const now = new Date();
     const msWindow = DOSE_CONFIRMATION_WINDOW_MINUTES * 60 * 1000;
 
-    const schedule = await this.prisma.schedule.findUnique({ where: { id: scheduleId } });
-
-    const computeTakenStatus = (scheduledAt: Date | null | undefined) => {
-      const scheduledMs = scheduledAt instanceof Date ? scheduledAt.getTime() : NaN;
-      // Jeśli z jakiegoś powodu nie znamy scheduledAt (np. stary log / niepełny mock),
-      // traktujemy jako "TAKEN" żeby nie blokować zapisu dawki.
-      if (Number.isNaN(scheduledMs)) return 'TAKEN';
-      const diff = Math.abs(now.getTime() - scheduledMs);
-      return diff <= msWindow ? 'TAKEN' : 'LATE';
+    const computeTakenStatus = (scheduledAt: Date) => {
+      const lateAfterMs = scheduledAt.getTime() + msWindow;
+      return now.getTime() > lateAfterMs ? 'LATE' : 'TAKEN';
     };
 
     const isCompletionStatus = (s: string) => s === 'TAKEN' || s === 'LATE';
 
     if (existingLog) {
-      const newStatus = status === 'TAKEN' ? computeTakenStatus(existingLog.scheduledAt) : status;
+      const newStatus = status === 'TAKEN' ? computeTakenStatus(planned) : status;
       const wasCompleted = isCompletionStatus(existingLog.status);
       const willBeCompleted = isCompletionStatus(newStatus);
 
@@ -202,8 +236,9 @@ export class SchedulesService {
         where: { id: existingLog.id },
         data: {
           status: newStatus,
+          scheduledAt: planned,
           takenAt: status === 'TAKEN' ? now : null,
-          source: 'APP_SENIOR'
+          source: 'APP_SENIOR',
         },
       });
 
