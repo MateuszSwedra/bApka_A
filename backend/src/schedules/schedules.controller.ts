@@ -10,26 +10,6 @@ export class SchedulesController {
     return this.schedulesService.create(userId, createScheduleDto);
   }
 
-  @Get('user/:userId')
-  findAll(@Param('userId') userId: string) {
-    return this.schedulesService.findAll(userId);
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.schedulesService.findOne(id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateScheduleDto: any) {
-    return this.schedulesService.update(id, updateScheduleDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.schedulesService.remove(id);
-  }
-
   @Get('user/:userId/logs')
   getTodayDoseLogs(@Param('userId') userId: string, @Query('date') date?: string) {
     return this.schedulesService.getTodayDoseLogs(userId, date);
@@ -46,15 +26,34 @@ export class SchedulesController {
     const start = from ? new Date(from) : new Date(end.getTime());
 
     if (!from) {
-      // domyślnie ostatnie 24h, jeśli zakres nie został podany z klienta
       start.setDate(start.getDate() - 1);
     }
 
     return this.schedulesService.getDoseStats(userId, start, end);
   }
 
+  @Get('user/:userId')
+  findAll(@Param('userId') userId: string) {
+    return this.schedulesService.findAll(userId);
+  }
+
   @Patch('logs/:scheduleId/mark')
   markDose(@Param('scheduleId') scheduleId: string, @Body('status') status: 'TAKEN' | 'MISSED') {
     return this.schedulesService.markDose(scheduleId, status);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.schedulesService.findOne(id);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateScheduleDto: any) {
+    return this.schedulesService.update(id, updateScheduleDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.schedulesService.remove(id);
   }
 }

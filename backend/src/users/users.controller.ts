@@ -65,6 +65,20 @@ export class UsersController {
     return this.usersService.updateSettings(req.user.userId, body);
   }
 
+  @Patch(':dependentId/settings')
+  @ApiOperation({ summary: 'Caretaker updates dependent settings' })
+  updateDependentSettings(
+    @Request() req: any,
+    @Param('dependentId') dependentId: string,
+    @Body() body: any,
+  ) {
+    return this.usersService.updateDependentSettingsByCaretaker(
+      req.user.userId,
+      dependentId,
+      body,
+    );
+  }
+
   @Get(':id/moods')
   @ApiOperation({ summary: 'Get mood history for a user in given range' })
   getMoodHistory(

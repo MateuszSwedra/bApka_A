@@ -128,22 +128,6 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const text = await response.text();
 
   if (!response.ok) {
-    // #region agent log
-    if (path.includes('/inventory/')) {
-      fetch('http://127.0.0.1:7440/ingest/0d678d3a-7dc4-4153-b52b-ba4140534c07', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Debug-Session-Id': '9e4a7a' },
-        body: JSON.stringify({
-          sessionId: '9e4a7a',
-          location: 'api.ts:fetchApi',
-          message: 'inventory API error',
-          data: { url, status: response.status, bodyPreview: text.slice(0, 300) },
-          hypothesisId: 'H-D',
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-    // #endregion
     let detail = `Serwer zwrócił błąd ${response.status}.`;
     if (text) {
       try {
@@ -182,7 +166,13 @@ export const authAPI = {
       method: 'POST',
       body: JSON.stringify(data)
     });
-  }
+  },
+  loginGoogle: async (idToken: string) => {
+    return fetchApi('/auth/google', {
+      method: 'POST',
+      body: JSON.stringify({ idToken }),
+    });
+  },
 };
 
 export const usersAPI = {
@@ -254,9 +244,23 @@ export const usersAPI = {
       body: JSON.stringify(settings),
     });
   },
+  updateDependentSettings: async (dependentId: string, settings: Record<string, unknown>) => {
+    return fetchApi(`/users/${dependentId}/settings`, {
+      method: 'PATCH',
+      body: JSON.stringify(settings),
+    });
+  },
   getMoodHistory: async (userId: string, from: string, to: string) => {
     const params = new URLSearchParams({ from, to }).toString();
-    return fetchApi(`/users/${userId}/moods?${params}`);
+    try {
+      return await fetchApi(`/users/${userId}/moods?${params}`);
+    } catch {
+      return {
+        range: { from, to },
+        items: [],
+        histogram: {},
+      };
+    }
   },
   createSos: async (note?: string) => {
     return fetchApi('/users/me/sos', {
@@ -375,9 +379,13 @@ export const scheduleAPI = {
     const params = new URLSearchParams({ from, to }).toString();
     try {
       return await fetchApi(`/schedules/user/${userId}/stats?${params}`);
-    } catch (error) {
-      console.warn('Error fetching schedule stats', error);
-      return null;
+    } catch {
+      return {
+        range: { from, to },
+        counts: { taken: 0, late: 0, missed: 0, pending: 0, totalPlanned: 0 },
+        daily: [],
+        onTime: { takenOnTime: 0, percentOfTaken: 0, windowMinutes: 5 },
+      };
     }
-  }
+  },
 };

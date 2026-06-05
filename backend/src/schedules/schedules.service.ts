@@ -1,7 +1,7 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-const DOSE_CONFIRMATION_WINDOW_MINUTES = 15;
+const DOSE_CONFIRMATION_WINDOW_MINUTES = 5;
 
 @Injectable()
 export class SchedulesService {
@@ -15,13 +15,6 @@ export class SchedulesService {
       planned.setHours(hh, mm, 0, 0);
     }
     return planned;
-  }
-
-  private assertCanMarkTaken(scheduledAt: Date, now: Date) {
-    const msWindow = DOSE_CONFIRMATION_WINDOW_MINUTES * 60 * 1000;
-    if (now.getTime() > scheduledAt.getTime() + msWindow) {
-      throw new BadRequestException('Dose confirmation window has expired');
-    }
   }
 
   async create(userId: string, data: any) {
@@ -116,7 +109,7 @@ export class SchedulesService {
     const pendingCount = logs.filter((l) => l.status === 'PENDING').length;
     const totalPlanned = takenCount + missedCount + pendingCount;
 
-    const WINDOW_MINUTES = 15;
+    const WINDOW_MINUTES = DOSE_CONFIRMATION_WINDOW_MINUTES;
     const msWindow = WINDOW_MINUTES * 60 * 1000;
 
     const onTimeTakenCount = logs.filter((l) => l.status === 'TAKEN').length;
@@ -199,13 +192,6 @@ export class SchedulesService {
     };
 
     const isCompletionStatus = (s: string) => s === 'TAKEN' || s === 'LATE';
-
-    if (status === 'TAKEN') {
-      const scheduledAt =
-        existingLog?.scheduledAt ??
-        this.scheduledAtToday(schedule?.time ?? undefined);
-      this.assertCanMarkTaken(scheduledAt, now);
-    }
 
     if (existingLog) {
       const newStatus = status === 'TAKEN' ? computeTakenStatus(existingLog.scheduledAt) : status;

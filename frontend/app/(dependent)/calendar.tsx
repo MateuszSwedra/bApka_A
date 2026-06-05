@@ -4,29 +4,33 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../constants/theme';
 import { addDays, format } from 'date-fns';
-import { pl } from 'date-fns/locale';
+import { pl, enUS } from 'date-fns/locale';
+import { useTranslation } from 'react-i18next';
 import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
 import type { ScheduleItem, Treatment } from '../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
 import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
+import type { AppLanguage } from '../../i18n/resolveLanguage';
 
 const DAYS_AHEAD = 60;
 
-function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]) {
+function labelForSchedule(sch: ScheduleItem, treatments: Treatment[], fallback: string) {
   if (sch.customName) return sch.customName;
   const tid = getScheduleTreatmentId(sch);
-  if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Aktywność';
-  return 'Aktywność';
-}
-
-function doseLabel(sch: ScheduleItem): string {
-  if (!sch.dosage || sch.dosage === '1') return '1 dawka';
-  return `${sch.dosage} szt.`;
+  if (tid) return treatments.find(t => t.id === tid)?.name ?? fallback;
+  return fallback;
 }
 
 export default function DependentCalendarScreen() {
+  const { t, i18n } = useTranslation();
   const { colors } = useDependentDisplay();
+  const dateLocale = (i18n.language as AppLanguage) === 'en' ? enUS : pl;
+
+  const doseLabel = (sch: ScheduleItem) => {
+    if (!sch.dosage || sch.dosage === '1') return t('dependent.calendar.doseOne');
+    return t('dependent.calendar.dosePieces', { count: sch.dosage });
+  };
   const { depletionAlerts, schedules, treatments } = useMeds();
   const [expandedDate, setExpandedDate] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'));
 
@@ -53,7 +57,9 @@ export default function DependentCalendarScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={32} color={colors.textDark} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textDark }]}>Harmonogram</Text>
+        <Text style={[styles.headerTitle, { color: colors.textDark }]}>
+          {t('dependent.calendar.screenTitle')}
+        </Text>
         <View style={{ width: 32 }} />
       </View>
 
@@ -61,7 +67,7 @@ export default function DependentCalendarScreen() {
         {dayList.map(({ dateStr, date, daySchedules, alerts }) => {
           const expanded = expandedDate === dateStr;
           const isToday = dateStr === format(new Date(), 'yyyy-MM-dd');
-          const dayLabel = format(date, 'EEEE, d MMMM', { locale: pl });
+          const dayLabel = format(date, 'EEEE, d MMMM', { locale: dateLocale });
           const count = daySchedules.length;
 
           return (
@@ -79,10 +85,14 @@ export default function DependentCalendarScreen() {
               >
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.dayTitle, { color: colors.textDark }]}>
-                    {isToday ? `Dziś · ${dayLabel}` : dayLabel}
+                    {isToday
+                      ? t('dependent.calendar.todayPrefix', { day: dayLabel })
+                      : dayLabel}
                   </Text>
                   <Text style={[styles.dayMeta, { color: colors.textLight }]}>
-                    {count === 0 ? 'Brak leków' : `${count} ${count === 1 ? 'pozycja' : 'pozycji'}`}
+                    {count === 0
+                      ? t('dependent.calendar.noMeds')
+                      : t('dependent.calendar.items', { count })}
                   </Text>
                 </View>
                 <MaterialIcons
@@ -100,17 +110,23 @@ export default function DependentCalendarScreen() {
                       style={[styles.alertRow, { borderColor: colors.accentOrange }]}
                     >
                       <MaterialIcons name="warning" size={24} color="#D32F2F" />
-                      <Text style={styles.alertText}>Kończy się lek: {alert.inventoryItemName}</Text>
+                      <Text style={styles.alertText}>
+                        {t('dependent.calendar.alertDepletion', { name: alert.inventoryItemName })}
+                      </Text>
                     </View>
                   ))}
 
                   {daySchedules.length === 0 && alerts.length === 0 ? (
                     <Text style={[styles.emptyDay, { color: colors.textLight }]}>
-                      Brak zaplanowanych leków w tym dniu.
+                      {t('dependent.calendar.emptyDay')}
                     </Text>
                   ) : (
                     daySchedules.map(sch => {
-                      const name = labelForSchedule(sch, treatments);
+                      const name = labelForSchedule(
+                        sch,
+                        treatments,
+                        t('dependent.calendar.activityFallback'),
+                      );
                       const tid = getScheduleTreatmentId(sch);
                       const tType = tid ? treatments.find(t => t.id === tid)?.type : undefined;
                       const icon =

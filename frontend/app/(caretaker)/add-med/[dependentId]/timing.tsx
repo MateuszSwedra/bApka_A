@@ -9,7 +9,8 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { format } from 'date-fns';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useSegments } from 'expo-router';
+import { addMedRoute, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../../../constants/theme';
 import type { MedScheduleType } from '../../../../context/MedsContext';
@@ -121,26 +122,30 @@ export default function PickScheduleTimingScreen() {
     setTempRangeComplete(false);
   };
 
+  const segments = useSegments();
+  const flowScope = resolveMedsFlowScope(segments as string[]);
+  const schedulePath = addMedRoute(flowScope, 'schedule');
+
   const handleContinue = () => {
     if (!canContinue || !dependentId || !treatmentId || !medType) return;
 
     const base = { dependentId, treatmentId, medType } as const;
     if (medType === 'ONCE') {
       router.push({
-        pathname: '/(caretaker)/add-med/[dependentId]/schedule',
+        pathname: schedulePath,
         params: { ...base, startDate: selectedDate },
       } as never);
       return;
     }
     if (medType === 'REGULAR') {
       router.push({
-        pathname: '/(caretaker)/add-med/[dependentId]/schedule',
+        pathname: schedulePath,
         params: { ...base, daysOfWeek: selectedDays.join(',') },
       } as never);
       return;
     }
     router.push({
-      pathname: '/(caretaker)/add-med/[dependentId]/schedule',
+      pathname: schedulePath,
       params: {
         ...base,
         startDate: tempStart,

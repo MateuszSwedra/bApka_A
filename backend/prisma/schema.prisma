@@ -28,7 +28,8 @@ enum LogSource {
 model User {
   id        String   @id @default(uuid())
   email     String   @unique
-  password  String?  
+  password  String?
+  googleId  String?  @unique
   role      Role
   fcmToken  String?
   name      String?  
@@ -37,6 +38,11 @@ model User {
   lastMood    String?
   lastMoodAt  DateTime?
   moodEnabled Boolean @default(true)
+  vitalsEntryEnabled Boolean @default(false)
+  highContrast Boolean @default(false)
+  colorBlindFriendly Boolean @default(false)
+  appLanguage String @default("pl")
+  medicationSoundChoice String @default("default")
 
   // Relacje połączeń (opiekun <-> podopieczny)
   caretakerConnections Connection[] @relation("CaretakerConnections")

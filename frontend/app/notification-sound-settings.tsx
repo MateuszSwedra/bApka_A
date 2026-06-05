@@ -37,7 +37,7 @@ function exitSettings(userRole: string | null) {
   }
   if (userRole === 'CARETAKER') router.replace('/(caretaker)');
   else if (userRole === 'DEPENDENT') router.replace('/(dependent)');
-  else if (userRole === 'HYBRID') router.replace('/(hybrid)');
+  else if (userRole === 'HYBRID') router.replace('/(hybrid)/(tabs)');
   else router.replace('/login');
 }
 

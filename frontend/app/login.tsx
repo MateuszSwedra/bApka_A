@@ -25,6 +25,7 @@ import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
+import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 
 type AuthMode = 'pick' | 'register' | 'signIn';
 
@@ -70,7 +71,7 @@ export default function LoginScreen() {
       } else if (userRole === 'DEPENDENT') {
         router.replace('/(dependent)');
       } else if (userRole === 'HYBRID') {
-        router.replace('/(hybrid)');
+        router.replace('/(hybrid)/(tabs)');
       } else {
         router.replace('/role-selection');
       }
@@ -99,6 +100,38 @@ export default function LoginScreen() {
     setPassword('');
     setPasswordRepeat('');
   }, []);
+
+  const markNeedsDisplayName = async () => {
+    if (Platform.OS === 'web') {
+      localStorage.setItem('needsDisplayName', 'true');
+    } else {
+      await SecureStore.setItemAsync('needsDisplayName', 'true');
+    }
+  };
+
+  const handleGoogleIdToken = useCallback(
+    async (idToken: string) => {
+      setLoading('login');
+      try {
+        const response = await authAPI.loginGoogle(idToken);
+        if (!response.user?.name?.trim()) {
+          await markNeedsDisplayName();
+        }
+        await setUserSession(response.access_token, response.user.role);
+        if (!response.user?.name?.trim()) {
+          router.replace('/onboarding-name');
+          return;
+        }
+      } catch (e) {
+        const msg =
+          e instanceof Error ? e.message : t('auth.google.errorFallback');
+        showAlert(t('auth.errorLoginTitle'), msg);
+      } finally {
+        setLoading('idle');
+      }
+    },
+    [setUserSession, t],
+  );
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
@@ -327,6 +360,12 @@ export default function LoginScreen() {
               >
                 <Text style={styles.outlineCtaText}>{t('auth.pick.signIn')}</Text>
               </Pressable>
+
+              <GoogleSignInButton
+                onIdToken={handleGoogleIdToken}
+                disabled={isBusy}
+                loading={loading === 'login'}
+              />
             </View>
           </View>
         )}
@@ -435,6 +474,12 @@ export default function LoginScreen() {
                 </LinearGradient>
               </Pressable>
             </View>
+
+            <GoogleSignInButton
+              onIdToken={handleGoogleIdToken}
+              disabled={isBusy}
+              loading={loading === 'login'}
+            />
 
             <Pressable onPress={goRegister} style={styles.switchModeLink}>
               <Text style={styles.switchModeText}>

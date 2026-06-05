@@ -70,7 +70,7 @@ describe('SchedulesService', () => {
       });
     });
 
-    it('rejects TAKEN after confirmation window', async () => {
+    it('marks TAKEN as LATE after confirmation window', async () => {
       const scheduled = new Date();
       scheduled.setHours(8, 0, 0, 0);
       const twoHoursLater = new Date(scheduled.getTime() + 2 * 60 * 60 * 1000);
@@ -84,8 +84,13 @@ describe('SchedulesService', () => {
         status: 'PENDING',
       });
       prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
+      prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'LATE' });
 
-      await expect(service.markDose('sched-1', 'TAKEN')).rejects.toBeInstanceOf(BadRequestException);
+      await service.markDose('sched-1', 'TAKEN');
+      expect(prisma.doseLog.update).toHaveBeenCalledWith({
+        where: { id: 'log-1' },
+        data: expect.objectContaining({ status: 'LATE' }),
+      });
 
       jest.useRealTimers();
     });

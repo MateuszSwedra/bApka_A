@@ -48,7 +48,7 @@ export function schedulesForDateSorted(
     .sort((a, b) => a.minutes - b.minutes);
 }
 
-/** Senior może potwierdzić dawkę w oknie ±15 min od planowanej godziny. */
+/** Senior może potwierdzić dawkę w oknie ±5 min od planowanej godziny. */
 export function canConfirmDoseAtTime(scheduleMinutes: number, nowMinutes: number): boolean {
   const w = DOSE_ON_TIME_WINDOW_MINUTES;
   return scheduleMinutes - w <= nowMinutes && nowMinutes <= scheduleMinutes + w;

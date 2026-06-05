@@ -26,6 +26,12 @@ import { DosageStepper } from '../../../../components/caretaker/DosageStepper';
 import { formatTimeParts } from '../../../../components/TimeScrollPicker';
 import { HugeButton } from '../../../../components/HugeButton';
 import { useTranslation } from 'react-i18next';
+import {
+  addMedRoute,
+  addMedStepPath,
+  resolveMedsFlowScope,
+  returnAfterScheduleSaved,
+} from '../../../../utils/medsFlowNavigation';
 
 function paramString(v?: string | string[]): string | undefined {
   if (v == null) return undefined;
@@ -91,15 +97,17 @@ export default function AddScheduleDetailsScreen() {
   const [dosage, setDosage] = useState('1');
   const [saving, setSaving] = useState(false);
 
+  const flowScope = resolveMedsFlowScope(segments as string[]);
+
   useEffect(() => {
     if (!dependentId) return;
     if (!treatmentId) {
-      router.replace(`/(caretaker)/add-med/${dependentId}` as const);
+      router.replace(addMedStepPath(flowScope, dependentId, 'index') as any);
       return;
     }
     if (medTypeParam !== 'ONCE' && medTypeParam !== 'REGULAR' && medTypeParam !== 'TEMPORARY') {
       router.replace({
-        pathname: '/(caretaker)/add-med/[dependentId]/frequency',
+        pathname: addMedRoute(flowScope, 'frequency'),
         params: { dependentId, treatmentId },
       } as never);
       return;
@@ -110,11 +118,11 @@ export default function AddScheduleDetailsScreen() {
       (medType === 'TEMPORARY' && (!paramString(localParams.startDate) || !endDate));
     if (missingTiming) {
       router.replace({
-        pathname: '/(caretaker)/add-med/[dependentId]/timing',
+        pathname: addMedRoute(flowScope, 'timing'),
         params: { dependentId, treatmentId, medType },
       } as never);
     }
-  }, [dependentId, treatmentId, medTypeParam, medType, localParams.startDate, endDate, daysOfWeek.length]);
+  }, [dependentId, treatmentId, medTypeParam, medType, localParams.startDate, endDate, daysOfWeek.length, flowScope]);
 
   const selectedTreatment = useMemo(
     () => treatments.find(tr => tr.id === treatmentId) ?? null,
@@ -157,7 +165,7 @@ export default function AddScheduleDetailsScreen() {
         },
         dependentId,
       );
-      router.replace(`/(caretaker)/dependent/${dependentId}/calendar` as const);
+      returnAfterScheduleSaved(dependentId, flowScope);
     } catch {
       setSaving(false);
     }

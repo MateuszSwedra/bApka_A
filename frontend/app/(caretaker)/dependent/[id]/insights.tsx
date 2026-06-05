@@ -11,6 +11,7 @@ import { SimpleBarChart } from '../../../../components/insights/SimpleBarChart';
 import { StackedBarChart } from '../../../../components/insights/StackedBarChart';
 import { SimpleLineChart } from '../../../../components/insights/SimpleLineChart';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
+import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsInsightsCharts';
 
 type RangeKey = 'today' | 'week' | 'month';
 
@@ -63,6 +64,7 @@ export default function DependentInsightsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [doseStats, setDoseStats] = useState<DoseStatsResponse | null>(null);
   const [moodHistory, setMoodHistory] = useState<MoodHistoryResponse | null>(null);
+  const [vitalsEntryEnabled, setVitalsEntryEnabled] = useState(false);
 
   const computeRange = useCallback(
     (key: RangeKey) => {
@@ -84,6 +86,8 @@ export default function DependentInsightsScreen() {
     [],
   );
 
+  const rangeBounds = useMemo(() => computeRange(range), [computeRange, range]);
+
   const loadData = useCallback(
     async (currentRange: RangeKey) => {
       if (!dependentId) return;
@@ -91,13 +95,18 @@ export default function DependentInsightsScreen() {
       setError(null);
       try {
         const { fromIso, toIso } = computeRange(currentRange);
-        const [statsResult, moodResult] = await Promise.allSettled([
+        const [statsResult, moodResult, depsResult] = await Promise.allSettled([
           scheduleAPI.getStats(dependentId, fromIso, toIso),
           usersAPI.getMoodHistory(dependentId, fromIso, toIso),
+          usersAPI.getDependents(),
         ]);
 
         setDoseStats(statsResult.status === 'fulfilled' ? statsResult.value : null);
         setMoodHistory(moodResult.status === 'fulfilled' ? moodResult.value : null);
+        if (depsResult.status === 'fulfilled' && Array.isArray(depsResult.value)) {
+          const dep = depsResult.value.find((d: { id?: string }) => d.id === dependentId);
+          setVitalsEntryEnabled(dep?.vitalsEntryEnabled ?? false);
+        }
 
         // Jeśli nie udało się pobrać niczego — pokaż błąd; jeśli tylko część, pokazujemy to co mamy.
         if (
@@ -310,6 +319,13 @@ export default function DependentInsightsScreen() {
               <Text style={styles.cardTitle}>{t('caretaker.insights.sectionMood')}</Text>
               {renderMoodLine()}
             </View>
+
+            <VitalsInsightsCharts
+              userId={dependentId}
+              fromIso={rangeBounds.fromIso}
+              toIso={rangeBounds.toIso}
+              vitalsEntryEnabled={vitalsEntryEnabled}
+            />
           </>
         )}
       </ScrollView>

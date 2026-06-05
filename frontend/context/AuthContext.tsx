@@ -1,6 +1,11 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { Platform } from 'react-native';
+import { usersAPI } from '../services/api';
+import {
+  getStoredToken,
+  getStoredRole,
+  persistSession,
+  clearSessionStorage,
+} from '../services/sessionStorage';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -21,18 +26,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        let token = null;
-        let roleStr = null;
-        if (Platform.OS === 'web') {
-          token = localStorage.getItem('userToken');
-          roleStr = localStorage.getItem('userRole');
-        } else {
-          token = await SecureStore.getItemAsync('userToken');
-          roleStr = await SecureStore.getItemAsync('userRole');
+        const token = await getStoredToken();
+        if (!token) return;
+
+        const storedRole = await getStoredRole();
+        if (storedRole) {
+          setUserRole(storedRole as Role);
         }
-        
-        if (token && roleStr) {
-          setUserRole(roleStr as Role);
+
+        try {
+          const me = await usersAPI.getMe();
+          const role = (me?.role as Role) ?? (storedRole as Role) ?? null;
+          if (role) {
+            await persistSession(token, role);
+            setUserRole(role);
+          }
+        } catch {
+          if (!storedRole) {
+            await clearSessionStorage();
+            setUserRole(null);
+          }
         }
       } catch (e) {
         console.warn('Session restore failed', e);
@@ -40,23 +53,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsReady(true);
       }
     };
-    restoreSession();
+    void restoreSession();
   }, []);
 
   const setUserSession = async (token: string, role: Role) => {
     try {
-      if (Platform.OS === 'web') {
-        localStorage.setItem('userToken', token);
-        if (role) {
-          localStorage.setItem('userRole', role);
-        }
-      } else {
-        await SecureStore.setItemAsync('userToken', token);
-        if (role) {
-          await SecureStore.setItemAsync('userRole', role);
-        }
-      }
-      setUserRole(role);
+      const effectiveRole = role ?? ((await getStoredRole()) as Role);
+      await persistSession(token, effectiveRole);
+      setUserRole(role ?? effectiveRole ?? null);
     } catch (e) {
       console.warn('Could not store session', e);
     }
@@ -68,18 +72,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      if (Platform.OS === 'web') {
-        localStorage.removeItem('userToken');
-        localStorage.removeItem('userRole');
-      } else {
-        for (const key of ['userToken', 'userRole'] as const) {
-          try {
-            await SecureStore.deleteItemAsync(key);
-          } catch {
-            /* brak klucza lub błąd magazynu */
-          }
-        }
-      }
+      await clearSessionStorage();
     } catch (e) {
       console.warn('Logout error', e);
     }

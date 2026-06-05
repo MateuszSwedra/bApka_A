@@ -25,17 +25,22 @@ export default function IndexRouter() {
         sessionToken = null;
       }
 
-      // 1) zalogowana sesja — wymagany token (unika wyścigu: rola w pamięci vs SecureStore po wylogowaniu)
-      if (userRole && sessionToken) {
+      // 1) zalogowana sesja — token wystarczy; rola z AuthContext (odświeżona przez getMe)
+      if (sessionToken && userRole) {
         if (userRole === 'CARETAKER') {
           router.replace('/(caretaker)');
         } else if (userRole === 'DEPENDENT') {
           router.replace('/(dependent)');
         } else if (userRole === 'HYBRID') {
-          router.replace('/(hybrid)');
+          router.replace('/(hybrid)/(tabs)');
         } else {
           router.replace('/role-selection');
         }
+        return;
+      }
+
+      if (sessionToken && !userRole) {
+        router.replace('/role-selection');
         return;
       }
 

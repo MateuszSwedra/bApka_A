@@ -53,7 +53,7 @@ describe('dependentScheduleUi', () => {
     expect(state).toEqual({ kind: 'empty' });
   });
 
-  it('returns due within ±15 min window', () => {
+  it('returns due within ±5 min window', () => {
     const now = new Date('2026-05-22T08:10:00');
     const state = computeDependentMainScheduleState(
       [baseSchedule],
@@ -67,8 +67,8 @@ describe('dependentScheduleUi', () => {
     }
   });
 
-  it('returns missed after 15 min past scheduled time', () => {
-    const now = new Date('2026-05-22T08:16:00');
+  it('returns missed after 5 min past scheduled time', () => {
+    const now = new Date('2026-05-22T08:06:00');
     const state = computeDependentMainScheduleState(
       [baseSchedule],
       treatments,
@@ -109,9 +109,9 @@ describe('dependentScheduleUi', () => {
   it('canConfirmDoseAtTime and isPastDoseConfirmationWindow', () => {
     const scheduleM = 8 * 60;
     expect(canConfirmDoseAtTime(scheduleM, scheduleM)).toBe(true);
-    expect(canConfirmDoseAtTime(scheduleM, scheduleM + 15)).toBe(true);
-    expect(canConfirmDoseAtTime(scheduleM, scheduleM + 16)).toBe(false);
-    expect(isPastDoseConfirmationWindow(scheduleM, scheduleM + 16)).toBe(true);
+    expect(canConfirmDoseAtTime(scheduleM, scheduleM + 5)).toBe(true);
+    expect(canConfirmDoseAtTime(scheduleM, scheduleM + 6)).toBe(false);
+    expect(isPastDoseConfirmationWindow(scheduleM, scheduleM + 6)).toBe(true);
   });
 
   it('schedulesPastConfirmationWindow lists overdue doses', () => {

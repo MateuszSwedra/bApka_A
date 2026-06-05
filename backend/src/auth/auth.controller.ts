@@ -22,4 +22,10 @@ export class AuthController {
   async register(@Body() body: any) {
     return this.authService.register(body);
   }
+
+  @Post('google')
+  @ApiOperation({ summary: 'Login or register with Google id_token' })
+  async google(@Body() body: { idToken?: string }) {
+    return this.authService.loginWithGoogle(body?.idToken ?? '');
+  }
 }

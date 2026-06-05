@@ -39,6 +39,7 @@
     "calendar": "Kalendarz",
     "treatment": "Apteczka",
     "insights": "Statystyki",
+    "settings": "Ustawienia",
     "meds": "Leki",
     "more": "Więcej"
   },
@@ -125,7 +126,11 @@
     "validationPasswordMatch": "Hasła muszą być takie same",
     "validationPasswordLength": "Hasło powinno mieć co najmniej 6 znaków",
     "errorLoginFallback": "Nieprawidłowy e-mail lub hasło albo brak połączenia z serwerem.",
-    "errorRegisterFallback": "Sprawdź dane lub połączenie z serwerem i spróbuj ponownie."
+    "errorRegisterFallback": "Sprawdź dane lub połączenie z serwerem i spróbuj ponownie.",
+    "google": {
+      "cta": "Kontynuuj z Google",
+      "errorFallback": "Nie udało się zalogować przez Google."
+    }
   },
   "role": {
     "title": "Wybierz swoją rolę",
@@ -221,9 +226,34 @@
       "dosesPlanned": "Zaplanowane dawki",
       "dosesOnTime": "Na czas (±{{window}} min)",
       "dosesEmpty": "Brak danych o dawkach w tym okresie.",
-      "moodEmpty": "Brak zapisanych humorów w tym okresie."
+      "moodEmpty": "Brak zapisanych humorów w tym okresie.",
+      "vitals": {
+        "title": "Pomiary",
+        "glucose": "Cukier we krwi",
+        "bp": "Ciśnienie krwi",
+        "empty": "Brak zapisanych pomiarów w tym okresie."
+      }
     },
     "moodAt": "Humor z {{time}}",
+    "settings": {
+      "title": "Ustawienia podopiecznego",
+      "seniorSection": "Opcje dla seniora",
+      "seniorSectionHint": "Zmiany dotyczą aplikacji na telefonie podopiecznego.",
+      "mood": "Pytanie o humor",
+      "moodSub": "Gdy wyłączone — kafelek humoru znika, a „Weź lek” zajmuje całą szerokość.",
+      "vitals": "Wpisywanie wyników pomiarów",
+      "vitalsSub": "Po potwierdzeniu pomiaru cukru lub ciśnienia senior uzupełni wyniki w formularzu.",
+      "accessibility": "Dostępność ekranu seniora",
+      "languageSection": "Język aplikacji",
+      "seniorLanguage": "Język seniora",
+      "seniorLanguageSub": "Interfejs na telefonie podopiecznego.",
+      "caretakerLanguage": "Twój język (opiekun)",
+      "caretakerLanguageSub": "Interfejs panelu opiekuna na tym urządzeniu.",
+      "language": { "pl": "Polski", "en": "English" },
+      "soundHint": "Dźwięk przypomnienia o lekach na telefonie seniora.",
+      "loadError": "Nie udało się wczytać ustawień.",
+      "saveError": "Nie udało się zapisać ustawień."
+    },
     "dependentHeader": "Profil Podopiecznego",
     "dependentFallbackName": "Podopieczny",
     "pairing": {
@@ -299,6 +329,29 @@
     "inventoryDoses": "{{count}} dawek pozostało",
     "inventoryDoses_one": "{{count}} dawka pozostała",
     "errorMarkTaken": "Nie udało się zapisać na serwerze. Spróbuj ponownie.",
+    "home": {
+      "medDue": "WEŹ LEK",
+      "medLate": "WEŹ LEK (SPÓŹNIONE)",
+      "medIdle": "Leki",
+      "medAt": "O {{time}}",
+      "medNoPlan": "Brak planu",
+      "moodDue": "ZAZNACZ HUMOR",
+      "moodIdle": "Humor",
+      "moodTap": "Dotknij i wybierz buzię",
+      "moodNext": "Następny o {{time}}",
+      "moodDone": "Na dziś zrobione",
+      "moodDisabled": "Wyłączone",
+      "schedule": "Harmonogram",
+      "scheduleSub": "Plan leków",
+      "sosSub": "Wezwij pomoc",
+      "sosConfirm": "Czy na pewno chcesz wysłać pomoc do opiekuna?",
+      "confirmTitle": "Potwierdzenie",
+      "confirmMed": "Czy potwierdzasz wzięcie leku {{name}} ({{dose}})?",
+      "confirmMedGeneric": "Czy potwierdzasz wzięcie leku?",
+      "lowMedToday": "Kończy się lek: {{names}}",
+      "lowMedSoon": "Wkrótce skończy się: {{name}}",
+      "moodSaveError": "Nie udało się zapisać nastroju."
+    },
     "settings": {
       "backHome": "Wróć do ekranu głównego",
       "returningHome": "Powrót za {{seconds}} s…",
@@ -344,19 +397,38 @@
       "saved": "Zapisano pomiar."
     },
     "calendar": {
-      "screenTitle": "Plan tygodnia",
+      "screenTitle": "Harmonogram",
       "weekPlanTitle": "Od dziś — 7 dni",
       "prevWeek": "Poprzednie 7 dni",
       "nextWeek": "Kolejne 7 dni",
       "thisWeek": "Od dzisiaj",
       "todayBadge": "Dziś",
-      "emptyDay": "Brak aktywności",
-      "alertDepletion": "Kończy się zapas leku",
+      "todayPrefix": "Dziś · {{day}}",
+      "noMeds": "Brak leków",
+      "items_one": "{{count}} pozycja",
+      "items_few": "{{count}} pozycje",
+      "items_many": "{{count}} pozycji",
+      "items_other": "{{count}} pozycji",
+      "emptyDay": "Brak zaplanowanych leków w tym dniu.",
+      "activityFallback": "Aktywność",
+      "doseOne": "1 dawka",
+      "dosePieces": "{{count}} szt.",
+      "alertDepletion": "Kończy się lek: {{name}}",
       "alertBuyPack": "Kup nową paczkę: {{name}}",
       "activityLegend": "Kolorowe pole — w tym dniu coś jest zaplanowane"
     }
   },
   "hybrid": {
+    "panelTitle": "Mój plan",
+    "takeMedIdle": "Leki i aktywności",
+    "takeMedCta": "POTWIERDŹ",
+    "treatmentsSubtitle": "Twoja apteczka i aktywności — dodawaj i edytuj samodzielnie.",
+    "logout": "Wyloguj się",
+    "settings": {
+      "section": "Twoje ustawienia",
+      "sectionHint": "Dostosuj aplikację do swoich potrzeb.",
+      "language": "Język aplikacji"
+    },
     "greeting": "Dzień dobry,",
     "nameFallback": "Użytkowniku",
     "pinBanner": "Zabezpiecz aplikację 4-cyfrowym kodem PIN.",

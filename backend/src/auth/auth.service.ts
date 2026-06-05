@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { OAuth2Client } from 'google-auth-library';
 
 function normalizeEmail(email: unknown): string {
   if (typeof email !== 'string') return '';
@@ -90,5 +91,86 @@ export class AuthService {
       }
       throw e;
     }
+  }
+
+  private googleClient(): OAuth2Client | null {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) return null;
+    return new OAuth2Client(clientId);
+  }
+
+  private googleAudiences(): string[] {
+    return [
+      process.env.GOOGLE_CLIENT_ID,
+      process.env.GOOGLE_ANDROID_CLIENT_ID,
+      process.env.GOOGLE_IOS_CLIENT_ID,
+      process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+      process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+      process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    ].filter((v): v is string => typeof v === 'string' && v.length > 0);
+  }
+
+  async loginWithGoogle(idToken: string) {
+    if (typeof idToken !== 'string' || !idToken.trim()) {
+      throw new BadRequestException('Brak tokenu Google.');
+    }
+
+    const client = this.googleClient();
+    if (!client) {
+      throw new BadRequestException('Logowanie Google nie jest skonfigurowane na serwerze.');
+    }
+
+    const audiences = this.googleAudiences();
+    let payload: { email?: string; sub?: string; name?: string; email_verified?: boolean } | undefined;
+
+    try {
+      const ticket = await client.verifyIdToken({
+        idToken: idToken.trim(),
+        audience: audiences.length > 0 ? audiences : undefined,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Nie udało się zweryfikować konta Google.');
+    }
+
+    if (!payload?.email || !payload.sub) {
+      throw new UnauthorizedException('Konto Google nie zawiera adresu e-mail.');
+    }
+
+    if (payload.email_verified === false) {
+      throw new UnauthorizedException('Adres e-mail Google nie jest zweryfikowany.');
+    }
+
+    const email = normalizeEmail(payload.email);
+    const googleId = payload.sub;
+
+    let user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { googleId },
+          { email: { equals: email, mode: 'insensitive' } },
+        ],
+      },
+    });
+
+    if (user) {
+      if (!user.googleId) {
+        user = await this.prisma.user.update({
+          where: { id: user.id },
+          data: { googleId },
+        });
+      }
+    } else {
+      user = await this.prisma.user.create({
+        data: {
+          email,
+          googleId,
+          name: typeof payload.name === 'string' ? payload.name.trim() || null : null,
+          role: Role.DEPENDENT,
+        },
+      });
+    }
+
+    return this.login(user);
   }
 }

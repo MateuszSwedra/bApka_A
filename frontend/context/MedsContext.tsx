@@ -97,6 +97,7 @@ function isUnauthorizedError(e: unknown): boolean {
 
 const DEPENDENT_FLOW_MARKERS = [
   'dependent',
+  '(tabs)',
   'add-treatment',
   'add-med',
   'edit-treatment',

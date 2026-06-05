@@ -14,7 +14,7 @@ import { Theme } from '../../../../constants/theme';
 import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useMeds } from '../../../../context/MedsContext';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
-import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
+import { addMedRoute, openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 import { ActivityPickerIllustration } from '../../../../components/caretaker/ActivityPickerIllustration';
 import { HugeButton } from '../../../../components/HugeButton';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
@@ -56,20 +56,22 @@ export default function PickActivityScreen() {
     }, [dependentId, refetchFromServer]),
   );
 
+  const flowScope = resolveMedsFlowScope(segments as string[]);
+
   const handleContinue = () => {
     if (!selectedId || !dependentId) return;
     router.push({
-      pathname: '/(caretaker)/add-med/[dependentId]/frequency',
+      pathname: addMedRoute(flowScope, 'frequency'),
       params: { dependentId, treatmentId: selectedId },
     } as never);
   };
 
-  const openAddTreatment = () => {
+  const handleOpenAddTreatment = () => {
     if (!dependentId) {
       Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
       return;
     }
-    openAddTreatmentForDependent(dependentId);
+    openAddTreatment(dependentId, flowScope);
   };
 
   return (
@@ -130,7 +132,7 @@ export default function PickActivityScreen() {
           })}
 
           <Pressable
-            onPress={openAddTreatment}
+            onPress={handleOpenAddTreatment}
             style={styles.addRow}
             accessibilityLabel={t('schedule.add.a11yAddActivity')}
           >

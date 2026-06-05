@@ -1,5 +1,5 @@
-/** Zgodne z oknem ±15 min w `schedules.service.ts` (TAKEN vs LATE). */
-export const DOSE_ON_TIME_WINDOW_MINUTES = 15;
+/** Zgodne z oknem ±5 min w `schedules.service.ts` (TAKEN vs LATE). */
+export const DOSE_ON_TIME_WINDOW_MINUTES = 5;
 
 export type TodayScheduleUiKind =
   | 'taken'

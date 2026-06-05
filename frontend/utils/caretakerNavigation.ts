@@ -1,10 +1,10 @@
-import { router } from 'expo-router';
+import { openAddMed, openAddTreatment } from './medsFlowNavigation';
 
 /** Nawigacja do dodawania harmonogramu — ścieżka z UUID (nie object pathname). */
 export function openAddMedForDependent(dependentUserId: string): void {
-  router.push(`/(caretaker)/add-med/${dependentUserId}` as any);
+  openAddMed(dependentUserId, 'caretaker');
 }
 
 export function openAddTreatmentForDependent(dependentUserId: string): void {
-  router.push(`/(caretaker)/add-treatment/${dependentUserId}` as any);
+  openAddTreatment(dependentUserId, 'caretaker');
 }

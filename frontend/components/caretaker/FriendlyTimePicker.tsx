@@ -1,16 +1,13 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../constants/theme';
-import {
-  TimeScrollPicker,
-  formatTimeParts,
-  parseTimeParts,
-  type TimeScrollPickerRef,
-} from '../TimeScrollPicker';
+import { formatTimeParts, parseTimeParts } from '../TimeScrollPicker';
 import { useTranslation } from 'react-i18next';
 
-export type FriendlyTimePickerRef = TimeScrollPickerRef;
+export type FriendlyTimePickerRef = {
+  getTime: () => { hour: number; minute: number };
+};
 
 type Props = {
   hour: number;
@@ -32,10 +29,9 @@ function clampMinute(m: number) {
 export const FriendlyTimePicker = React.forwardRef<FriendlyTimePickerRef, Props>(
   function FriendlyTimePicker({ hour, minute, onHourChange, onMinuteChange }, ref) {
     const { t } = useTranslation();
-    const innerRef = useRef<TimeScrollPickerRef>(null);
 
     React.useImperativeHandle(ref, () => ({
-      getTime: () => innerRef.current?.getTime() ?? { hour, minute },
+      getTime: () => ({ hour, minute }),
     }));
 
     const display = formatTimeParts(hour, minute);
@@ -104,16 +100,6 @@ export const FriendlyTimePicker = React.forwardRef<FriendlyTimePickerRef, Props>
             onPlus={() => stepMinute(1)}
           />
         </View>
-
-        <Text style={styles.wheelLabel}>{t('schedule.add.timeFineTune')}</Text>
-        <TimeScrollPicker
-          ref={innerRef}
-          hour={hour}
-          minute={minute}
-          onHourChange={onHourChange}
-          onMinuteChange={onMinuteChange}
-          surfaceColor={Theme.colors.calendarCell}
-        />
       </View>
     );
   },
@@ -262,13 +248,5 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     color: Theme.colors.textDark,
     marginBottom: 12,
-  },
-  wheelLabel: {
-    marginTop: Theme.spacing.m,
-    marginBottom: 0,
-    fontSize: Theme.typography.small,
-    fontWeight: '600',
-    color: Theme.colors.textLight,
-    textAlign: 'center',
   },
 });

@@ -39,6 +39,7 @@
     "calendar": "Calendar",
     "treatment": "Treatment",
     "insights": "Insights",
+    "settings": "Settings",
     "meds": "Meds",
     "more": "More"
   },
@@ -125,7 +126,11 @@
     "validationPasswordMatch": "Passwords must match",
     "validationPasswordLength": "Password should be at least 6 characters",
     "errorLoginFallback": "Invalid email or password, or no server connection.",
-    "errorRegisterFallback": "Check your details or connection and try again."
+    "errorRegisterFallback": "Check your details or connection and try again.",
+    "google": {
+      "cta": "Continue with Google",
+      "errorFallback": "Could not sign in with Google."
+    }
   },
   "role": {
     "title": "Choose your role",
@@ -219,9 +224,34 @@
       "dosesPlanned": "Planned doses",
       "dosesOnTime": "On time (±{{window}} min)",
       "dosesEmpty": "No dose data in this range.",
-      "moodEmpty": "No mood entries in this range."
+      "moodEmpty": "No mood entries in this range.",
+      "vitals": {
+        "title": "Measurements",
+        "glucose": "Blood glucose",
+        "bp": "Blood pressure",
+        "empty": "No measurements recorded in this range."
+      }
     },
     "moodAt": "Mood at {{time}}",
+    "settings": {
+      "title": "Dependent settings",
+      "seniorSection": "Senior options",
+      "seniorSectionHint": "These changes apply on the dependent's phone.",
+      "mood": "Mood question",
+      "moodSub": "When off — the mood tile disappears and \"Take medicine\" spans full width.",
+      "vitals": "Enter measurement results",
+      "vitalsSub": "After confirming a glucose or blood pressure activity, the senior fills in a results form.",
+      "accessibility": "Senior screen accessibility",
+      "languageSection": "App language",
+      "seniorLanguage": "Senior language",
+      "seniorLanguageSub": "Interface on the dependent's phone.",
+      "caretakerLanguage": "Your language (caretaker)",
+      "caretakerLanguageSub": "Caretaker panel language on this device.",
+      "language": { "pl": "Polish", "en": "English" },
+      "soundHint": "Medication reminder sound on the senior's phone.",
+      "loadError": "Could not load settings.",
+      "saveError": "Could not save settings."
+    },
     "dependentHeader": "Dependent profile",
     "dependentFallbackName": "Dependent",
     "pairing": {
@@ -297,6 +327,29 @@
     "inventoryDoses": "{{count}} doses left",
     "inventoryDoses_one": "{{count}} dose left",
     "errorMarkTaken": "Could not record this on the server. Please try again.",
+    "home": {
+      "medDue": "TAKE MEDICINE",
+      "medLate": "TAKE MEDICINE (LATE)",
+      "medIdle": "Medicine",
+      "medAt": "At {{time}}",
+      "medNoPlan": "No plan",
+      "moodDue": "LOG MOOD",
+      "moodIdle": "Mood",
+      "moodTap": "Tap and pick a face",
+      "moodNext": "Next at {{time}}",
+      "moodDone": "Done for today",
+      "moodDisabled": "Disabled",
+      "schedule": "Schedule",
+      "scheduleSub": "Medicine plan",
+      "sosSub": "Call for help",
+      "sosConfirm": "Are you sure you want to alert your caretaker?",
+      "confirmTitle": "Confirmation",
+      "confirmMed": "Do you confirm taking {{name}} ({{dose}})?",
+      "confirmMedGeneric": "Do you confirm taking the medicine?",
+      "lowMedToday": "Running low: {{names}}",
+      "lowMedSoon": "Soon running out: {{name}}",
+      "moodSaveError": "Could not save mood."
+    },
     "settings": {
       "backHome": "Back to home",
       "returningHome": "Returning home in {{seconds}}s…",
@@ -342,19 +395,36 @@
       "saved": "Measurement saved."
     },
     "calendar": {
-      "screenTitle": "Weekly plan",
+      "screenTitle": "Schedule",
       "weekPlanTitle": "From today — 7 days",
       "prevWeek": "Previous 7 days",
       "nextWeek": "Next 7 days",
       "thisWeek": "From today",
       "todayBadge": "Today",
-      "emptyDay": "No activities",
-      "alertDepletion": "Medicine running low",
+      "todayPrefix": "Today · {{day}}",
+      "noMeds": "No medicine",
+      "items_one": "{{count}} item",
+      "items_other": "{{count}} items",
+      "emptyDay": "No medicine planned for this day.",
+      "activityFallback": "Activity",
+      "doseOne": "1 dose",
+      "dosePieces": "{{count}} pcs.",
+      "alertDepletion": "Running low: {{name}}",
       "alertBuyPack": "Buy a new pack: {{name}}",
       "activityLegend": "Colored box — something is planned that day"
     }
   },
   "hybrid": {
+    "panelTitle": "My plan",
+    "takeMedIdle": "Medicine & activities",
+    "takeMedCta": "CONFIRM",
+    "treatmentsSubtitle": "Your treatments and activities — manage them on your own.",
+    "logout": "Sign out",
+    "settings": {
+      "section": "Your settings",
+      "sectionHint": "Adjust the app to your needs.",
+      "language": "App language"
+    },
     "greeting": "Good day,",
     "nameFallback": "User",
     "pinBanner": "Secure the app with a 4-digit PIN.",

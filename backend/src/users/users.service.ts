@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
@@ -86,15 +87,39 @@ export class UsersService {
     });
   }
 
+  private readonly settingsSelect = {
+    moodEnabled: true,
+    vitalsEntryEnabled: true,
+    highContrast: true,
+    colorBlindFriendly: true,
+    appLanguage: true,
+    medicationSoundChoice: true,
+  } as const;
+
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, name: true, role: true, moodEnabled: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        ...this.settingsSelect,
+      },
     });
     if (!user) {
       throw new NotFoundException('Użytkownik nie istnieje');
     }
     return user;
+  }
+
+  private async assertCaretakerOwnsDependent(caretakerId: string, dependentId: string) {
+    const connection = await this.prisma.connection.findFirst({
+      where: { caretakerId, dependentId, isPaired: true },
+    });
+    if (!connection) {
+      throw new ForbiddenException('Brak uprawnień do tego podopiecznego');
+    }
   }
 
   async updateRole(userId: string, role: Role) {
@@ -170,7 +195,7 @@ export class UsersService {
             role: true,
             lastMood: true,
             lastMoodAt: true,
-            moodEnabled: true,
+            ...this.settingsSelect,
           }
         }
       }
@@ -224,12 +249,51 @@ export class UsersService {
     });
   }
 
-  async updateSettings(userId: string, settings: { moodEnabled?: boolean }) {
+  private normalizeSettingsPatch(body: Record<string, unknown>) {
+    const data: Record<string, boolean | string> = {};
+    if (typeof body.moodEnabled === 'boolean') data.moodEnabled = body.moodEnabled;
+    if (typeof body.vitalsEntryEnabled === 'boolean') data.vitalsEntryEnabled = body.vitalsEntryEnabled;
+    if (typeof body.highContrast === 'boolean') data.highContrast = body.highContrast;
+    if (typeof body.colorBlindFriendly === 'boolean') data.colorBlindFriendly = body.colorBlindFriendly;
+    if (typeof body.appLanguage === 'string') {
+      const lang = body.appLanguage.trim().toLowerCase();
+      if (lang === 'pl' || lang === 'en') data.appLanguage = lang;
+    }
+    if (typeof body.medicationSoundChoice === 'string') {
+      const sound = body.medicationSoundChoice.trim();
+      if (['default', 'gentle', 'strong'].includes(sound)) {
+        data.medicationSoundChoice = sound;
+      }
+    }
+    if (Object.keys(data).length === 0) {
+      throw new BadRequestException('Brak poprawnych pól ustawień');
+    }
+    return data;
+  }
+
+  async updateSettings(userId: string, body: Record<string, unknown>) {
+    const data = this.normalizeSettingsPatch(body);
     return this.prisma.user.update({
       where: { id: userId },
-      data: settings,
-      select: { id: true, moodEnabled: true },
+      data,
+      select: { id: true, ...this.settingsSelect },
     });
+  }
+
+  async updateDependentSettingsByCaretaker(
+    caretakerId: string,
+    dependentId: string,
+    body: Record<string, unknown>,
+  ) {
+    await this.assertCaretakerOwnsDependent(caretakerId, dependentId);
+    const dependent = await this.prisma.user.findUnique({
+      where: { id: dependentId },
+      select: { id: true, role: true },
+    });
+    if (!dependent || dependent.role !== Role.DEPENDENT) {
+      throw new NotFoundException('Podopieczny nie istnieje');
+    }
+    return this.updateSettings(dependentId, body);
   }
 
   async getMoodHistory(userId: string, from: Date, to: Date) {

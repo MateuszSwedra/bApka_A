@@ -15,6 +15,7 @@ import { scheduleAPI, usersAPI } from '../../services/api';
 import { useMeds } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { format } from 'date-fns';
+import { useTranslation } from 'react-i18next';
 import {
   computeDependentMainScheduleState,
   computeMoodScheduleState,
@@ -30,10 +31,13 @@ import {
 } from '../../services/seniorMoodCompletion';
 import { SeniorConfirmModal } from '../../components/SeniorConfirmModal';
 import { MoodPickerModal } from '../../components/MoodPickerModal';
+import { VitalsMetricModal } from '../../components/senior/VitalsMetricModal';
 import { MoodIcon } from '../../components/mood/MoodIcon';
 import { useFocusEffect } from '@react-navigation/native';
+import { treatmentTypeForSchedule } from '../../utils/scheduleTreatmentType';
+import { applySeniorProfileSettings } from '../../services/seniorProfileSync';
 
-const TILE_COLORS = {
+const DEFAULT_TILE_COLORS = {
   medActive: '#2E7D32',
   medInactive: '#B0BEC5',
   moodActive: '#F9A825',
@@ -43,20 +47,38 @@ const TILE_COLORS = {
 };
 
 export default function DependentDashboard() {
+  const { t } = useTranslation();
   const { logout } = useAuth();
-  const { colors } = useDependentDisplay();
+  const { colors, colorBlindFriendly, highContrast, reload } = useDependentDisplay();
   const { schedules, treatments, depletionAlerts, refetchFromServer } = useMeds();
   const [now, setNow] = useState(() => new Date());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [completedMoodSlots, setCompletedMoodSlots] = useState<Set<string>>(new Set());
-  const [seniorName, setSeniorName] = useState('Senior');
+  const [seniorName, setSeniorName] = useState(t('dependent.nameFallback'));
   const [moodEnabled, setMoodEnabled] = useState(true);
+  const [vitalsEntryEnabled, setVitalsEntryEnabled] = useState(false);
 
   const [medConfirmVisible, setMedConfirmVisible] = useState(false);
   const [sosConfirmVisible, setSosConfirmVisible] = useState(false);
   const [moodPickerVisible, setMoodPickerVisible] = useState(false);
+  const [vitalsModalVisible, setVitalsModalVisible] = useState(false);
+  const [vitalsModalType, setVitalsModalType] = useState<'BP' | 'GLUCOSE'>('BP');
 
   const todayStr = format(now, 'yyyy-MM-dd');
+
+  const tileColors = useMemo(() => {
+    if (colorBlindFriendly || highContrast) {
+      return {
+        medActive: colors.primaryLimeDark,
+        medInactive: '#94A3B8',
+        moodActive: colors.accentOrange,
+        moodInactive: '#CBD5E1',
+        schedule: colors.primaryLimeDark,
+        sos: '#B91C1C',
+      };
+    }
+    return DEFAULT_TILE_COLORS;
+  }, [colorBlindFriendly, highContrast, colors]);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30_000);
@@ -76,15 +98,18 @@ export default function DependentDashboard() {
     useCallback(() => {
       void refetchFromServer();
       void loadCompleted();
+      void reload();
       usersAPI
         .getMe()
         .then(me => {
           if (me?.name?.trim()) setSeniorName(me.name.trim());
           else if (me?.email) setSeniorName(me.email);
           if (me && typeof me.moodEnabled === 'boolean') setMoodEnabled(me.moodEnabled);
+          if (me && typeof me.vitalsEntryEnabled === 'boolean') setVitalsEntryEnabled(me.vitalsEntryEnabled);
+          void applySeniorProfileSettings(me ?? {});
         })
         .catch(() => {});
-    }, [refetchFromServer, loadCompleted]),
+    }, [refetchFromServer, loadCompleted, reload]),
   );
 
   const mainState = useMemo(
@@ -103,16 +128,18 @@ export default function DependentDashboard() {
   const lowMedWarning = useMemo(() => {
     const todayAlerts = depletionAlerts.filter(a => a.date === todayStr);
     if (todayAlerts.length > 0) {
-      return `Kończy się lek: ${todayAlerts.map(a => a.inventoryItemName).join(', ')}`;
+      return t('dependent.home.lowMedToday', {
+        names: todayAlerts.map(a => a.inventoryItemName).join(', '),
+      });
     }
     const upcoming = depletionAlerts
       .filter(a => a.date >= todayStr)
       .sort((a, b) => a.date.localeCompare(b.date));
     if (upcoming.length > 0) {
-      return `Wkrótce skończy się: ${upcoming[0].inventoryItemName}`;
+      return t('dependent.home.lowMedSoon', { name: upcoming[0].inventoryItemName });
     }
     return null;
-  }, [depletionAlerts, todayStr]);
+  }, [depletionAlerts, todayStr, t]);
 
   const handleLogout = async () => {
     await logout();
@@ -128,15 +155,29 @@ export default function DependentDashboard() {
     setMedConfirmVisible(true);
   };
 
+  const maybeShowVitalsForm = (scheduleId: string) => {
+    if (!vitalsEntryEnabled) return;
+    const activityType = treatmentTypeForSchedule(scheduleId, schedules, treatments);
+    if (activityType === 'BLOOD_PRESSURE') {
+      setVitalsModalType('BP');
+      setVitalsModalVisible(true);
+    } else if (activityType === 'BLOOD_SUGAR') {
+      setVitalsModalType('GLUCOSE');
+      setVitalsModalVisible(true);
+    }
+  };
+
   const confirmMed = async () => {
     if (mainState.kind !== 'due' && mainState.kind !== 'missed') return;
+    const scheduleId = mainState.scheduleId;
     setMedConfirmVisible(false);
     try {
-      await scheduleAPI.markTaken(mainState.scheduleId);
-      await markScheduleCompletedForDate(todayStr, mainState.scheduleId);
+      await scheduleAPI.markTaken(scheduleId);
+      await markScheduleCompletedForDate(todayStr, scheduleId);
       await loadCompleted();
+      maybeShowVitalsForm(scheduleId);
     } catch {
-      Alert.alert('Błąd', 'Nie udało się zapisać. Spróbuj ponownie.');
+      Alert.alert(t('common.error'), t('dependent.errorMarkTaken'));
     }
   };
 
@@ -153,13 +194,13 @@ export default function DependentDashboard() {
       await markMoodSlotCompletedForDate(todayStr, moodState.slotTime);
       await loadCompleted();
     } catch {
-      Alert.alert('Błąd', 'Nie udało się zapisać nastroju.');
+      Alert.alert(t('common.error'), t('dependent.home.moodSaveError'));
     }
   };
 
   const onSosConfirm = () => {
     setSosConfirmVisible(false);
-    Alert.alert('SOS', 'Powiadomienie do opiekuna zostanie wysłane w kolejnej wersji aplikacji.');
+    Alert.alert(t('dependent.sosTitle'), t('dependent.sosMessage'));
   };
 
   const medActive = mainState.kind === 'due' || mainState.kind === 'missed';
@@ -167,17 +208,17 @@ export default function DependentDashboard() {
 
   const medTitle = medActive
     ? mainState.kind === 'missed'
-      ? 'WEŹ LEK (SPÓŹNIONE)'
-      : 'WEŹ LEK'
-    : 'Leki';
+      ? t('dependent.home.medLate')
+      : t('dependent.home.medDue')
+    : t('dependent.home.medIdle');
   const medLine1 =
     mainState.kind === 'due' || mainState.kind === 'missed'
       ? mainState.name
       : mainState.kind === 'upcoming'
-        ? `O ${mainState.nextTime}`
+        ? t('dependent.home.medAt', { time: mainState.nextTime })
         : mainState.kind === 'all_done'
-          ? 'Wszystko na dziś'
-          : 'Brak planu';
+          ? t('dependent.mainAllDone')
+          : t('dependent.home.medNoPlan');
   const medLine2 =
     mainState.kind === 'due' || mainState.kind === 'missed'
       ? mainState.dose
@@ -185,15 +226,20 @@ export default function DependentDashboard() {
         ? `${mainState.nextName} · ${mainState.dose}`
         : '';
 
-  const moodTitle = moodActive ? 'ZAZNACZ HUMOR' : 'Humor';
+  const moodTitle = moodActive ? t('dependent.home.moodDue') : t('dependent.home.moodIdle');
   const moodLine1 =
     moodState.kind === 'active'
-      ? 'Dotknij i wybierz buzię'
+      ? t('dependent.home.moodTap')
       : moodState.kind === 'inactive'
-        ? `Następny o ${moodState.nextTime}`
+        ? t('dependent.home.moodNext', { time: moodState.nextTime })
         : moodEnabled
-          ? 'Na dziś zrobione'
-          : 'Wyłączone';
+          ? t('dependent.home.moodDone')
+          : t('dependent.home.moodDisabled');
+
+  const medConfirmMessage =
+    mainState.kind === 'due' || mainState.kind === 'missed'
+      ? t('dependent.home.confirmMed', { name: mainState.name, dose: mainState.dose })
+      : t('dependent.home.confirmMedGeneric');
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
@@ -201,19 +247,14 @@ export default function DependentDashboard() {
         <View style={styles.headerCenter}>
           <Text style={[styles.seniorName, { color: colors.textDark }]}>{seniorName}</Text>
           {lowMedWarning ? (
-            <Text style={styles.lowMedWarning}>{lowMedWarning}</Text>
+            <Text style={[styles.lowMedWarning, { color: colors.accentOrange }]}>{lowMedWarning}</Text>
           ) : null}
         </View>
         <View style={styles.headerActions}>
           <Pressable
-            onPress={() => router.push('/(dependent)/settings' as any)}
-            style={[styles.iconBtn, { backgroundColor: colors.primaryLime }]}
-          >
-            <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
-          </Pressable>
-          <Pressable
             onPress={handleLogout}
             style={[styles.iconBtn, { backgroundColor: colors.surfaceSoftOrange }]}
+            accessibilityLabel={t('auth.signIn.ctaLogin')}
           >
             <MaterialIcons name="logout" size={28} color={colors.accentOrange} />
           </Pressable>
@@ -226,9 +267,15 @@ export default function DependentDashboard() {
           disabled={!medActive}
           style={({ pressed }) => [
             styles.tile,
+            !moodEnabled && styles.tileFullWidth,
             {
-              backgroundColor: medActive ? TILE_COLORS.medActive : TILE_COLORS.medInactive,
-              borderColor: medActive ? '#1B5E20' : '#90A4AE',
+              backgroundColor: medActive ? tileColors.medActive : tileColors.medInactive,
+              borderColor: medActive
+                ? colorBlindFriendly || highContrast
+                  ? colors.border
+                  : '#1B5E20'
+                : '#90A4AE',
+              borderWidth: colors.mainButtonBorderWidth ?? 3,
             },
             medActive && styles.tileActive,
             pressed && medActive && styles.pressed,
@@ -252,81 +299,91 @@ export default function DependentDashboard() {
           ) : null}
         </Pressable>
 
-        <Pressable
-          onPress={onMoodPress}
-          disabled={!moodActive}
-          style={({ pressed }) => [
-            styles.tile,
-            {
-              backgroundColor: moodActive ? TILE_COLORS.moodActive : TILE_COLORS.moodInactive,
-              borderColor: moodActive ? '#F57F17' : '#90A4AE',
-            },
-            moodActive && styles.tileActive,
-            pressed && moodActive && styles.pressed,
-          ]}
-        >
-          <MoodIcon mood={moodActive ? 'happy' : 'neutral'} size="lg" selected={moodActive} />
-          <Text style={[styles.tileTitle, { color: moodActive ? '#3E2723' : '#546E7A' }]}>
-            {moodTitle}
-          </Text>
-          <Text style={[styles.tileLine1, { color: moodActive ? '#3E2723' : '#607D8B' }]}>
-            {moodLine1}
-          </Text>
-        </Pressable>
+        {moodEnabled ? (
+          <Pressable
+            onPress={onMoodPress}
+            disabled={!moodActive}
+            style={({ pressed }) => [
+              styles.tile,
+              {
+                backgroundColor: moodActive ? tileColors.moodActive : tileColors.moodInactive,
+                borderColor: moodActive
+                  ? colorBlindFriendly || highContrast
+                    ? colors.moodBorder ?? colors.border
+                    : '#F57F17'
+                  : '#90A4AE',
+                borderWidth: colors.mainButtonBorderWidth ?? 3,
+              },
+              moodActive && styles.tileActive,
+              pressed && moodActive && styles.pressed,
+            ]}
+          >
+            <MoodIcon mood={moodActive ? 'happy' : 'neutral'} size="lg" selected={moodActive} />
+            <Text style={[styles.tileTitle, { color: moodActive ? '#3E2723' : '#546E7A' }]}>
+              {moodTitle}
+            </Text>
+            <Text style={[styles.tileLine1, { color: moodActive ? '#3E2723' : '#607D8B' }]}>
+              {moodLine1}
+            </Text>
+          </Pressable>
+        ) : null}
 
         <Pressable
           onPress={() => router.push('/(dependent)/calendar' as any)}
           style={({ pressed }) => [
             styles.tile,
-            { backgroundColor: TILE_COLORS.schedule, borderColor: '#1B3C53' },
+            { backgroundColor: tileColors.schedule, borderColor: colors.border, borderWidth: colors.mainButtonBorderWidth ?? 3 },
             pressed && styles.pressed,
           ]}
         >
           <MaterialIcons name="calendar-month" size={48} color="#FFFFFF" />
-          <Text style={[styles.tileTitle, { color: '#FFFFFF' }]}>Harmonogram</Text>
-          <Text style={[styles.tileLine1, { color: '#E3F2FD' }]}>Plan leków</Text>
+          <Text style={[styles.tileTitle, { color: '#FFFFFF' }]}>{t('dependent.home.schedule')}</Text>
+          <Text style={[styles.tileLine1, { color: '#E3F2FD' }]}>{t('dependent.home.scheduleSub')}</Text>
         </Pressable>
 
         <Pressable
           onPress={() => setSosConfirmVisible(true)}
           style={({ pressed }) => [
             styles.tile,
-            { backgroundColor: TILE_COLORS.sos, borderColor: '#B71C1C' },
+            { backgroundColor: tileColors.sos, borderColor: colors.border, borderWidth: colors.mainButtonBorderWidth ?? 3 },
             pressed && styles.pressed,
           ]}
         >
           <MaterialIcons name="emergency" size={48} color="#FFFFFF" />
-          <Text style={[styles.tileTitle, { color: '#FFFFFF' }]}>SOS</Text>
-          <Text style={[styles.tileLine1, { color: '#FFEBEE' }]}>Wezwij pomoc</Text>
+          <Text style={[styles.tileTitle, { color: '#FFFFFF' }]}>{t('dependent.sosTitle')}</Text>
+          <Text style={[styles.tileLine1, { color: '#FFEBEE' }]}>{t('dependent.home.sosSub')}</Text>
         </Pressable>
       </View>
 
       <SeniorConfirmModal
         visible={medConfirmVisible}
-        title="Potwierdzenie"
-        message={
-          mainState.kind === 'due' || mainState.kind === 'missed'
-            ? `Czy potwierdzasz wzięcie leku ${mainState.name} (${mainState.dose})?`
-            : 'Czy potwierdzasz wzięcie leku?'
-        }
+        title={t('dependent.home.confirmTitle')}
+        message={medConfirmMessage}
         onConfirm={() => void confirmMed()}
         onCancel={() => setMedConfirmVisible(false)}
-        confirmColor={TILE_COLORS.medActive}
+        confirmColor={tileColors.medActive}
       />
 
       <SeniorConfirmModal
         visible={sosConfirmVisible}
-        title="SOS"
-        message="Czy na pewno chcesz wysłać pomoc do opiekuna?"
+        title={t('dependent.sosTitle')}
+        message={t('dependent.home.sosConfirm')}
         onConfirm={onSosConfirm}
         onCancel={() => setSosConfirmVisible(false)}
-        confirmColor={TILE_COLORS.sos}
+        confirmColor={tileColors.sos}
       />
 
       <MoodPickerModal
         visible={moodPickerVisible}
         onPick={mood => void onMoodPick(mood)}
         onClose={() => setMoodPickerVisible(false)}
+      />
+
+      <VitalsMetricModal
+        visible={vitalsModalVisible}
+        type={vitalsModalType}
+        colors={colors}
+        onClose={() => setVitalsModalVisible(false)}
       />
     </View>
   );
@@ -356,7 +413,6 @@ const styles = StyleSheet.create({
   lowMedWarning: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#D32F2F',
     marginTop: 4,
   },
   headerActions: {
@@ -380,11 +436,13 @@ const styles = StyleSheet.create({
     width: '47%',
     minHeight: 200,
     borderRadius: Theme.borderRadius.xlarge,
-    borderWidth: 3,
     padding: Theme.spacing.l,
     justifyContent: 'center',
     alignItems: 'center',
     gap: Theme.spacing.xs,
+  },
+  tileFullWidth: {
+    width: '100%',
   },
   tileActive: {
     shadowColor: '#000',

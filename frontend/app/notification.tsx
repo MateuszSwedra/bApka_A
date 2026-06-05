@@ -48,7 +48,7 @@ function navigateToMainApp(role: Role) {
   } else if (role === 'DEPENDENT') {
     router.replace('/enter-pin');
   } else if (role === 'HYBRID') {
-    router.replace('/(hybrid)');
+    router.replace('/(hybrid)/(tabs)');
   } else {
     router.replace('/role-selection');
   }

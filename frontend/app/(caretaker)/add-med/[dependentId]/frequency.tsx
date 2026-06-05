@@ -7,7 +7,8 @@ import {
   Pressable,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useSegments } from 'expo-router';
+import { addMedRoute, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../../../constants/theme';
 import type { MedScheduleType } from '../../../../context/MedsContext';
@@ -66,13 +67,15 @@ export default function PickScheduleFrequencyScreen() {
         : undefined;
 
   const [selectedType, setSelectedType] = useState<MedScheduleType | null>(null);
+  const segments = useSegments();
+  const flowScope = resolveMedsFlowScope(segments as string[]);
 
   const canContinue = Boolean(selectedType && dependentId && treatmentId);
 
   const handleContinue = () => {
     if (!canContinue || !selectedType) return;
     router.push({
-      pathname: '/(caretaker)/add-med/[dependentId]/timing',
+      pathname: addMedRoute(flowScope, 'timing'),
       params: { dependentId, treatmentId, medType: selectedType },
     } as never);
   };
