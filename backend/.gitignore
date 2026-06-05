@@ -3,3 +3,7 @@ node_modules
 .env
 
 /generated/prisma
+
+# Raporty testów — generowane lokalnie / w CI
+coverage/
+*.lcov

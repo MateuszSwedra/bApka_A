@@ -26,6 +26,7 @@ import {
   OnboardingPalette,
   OnboardingGradient,
 } from '../constants/onboardingTheme';
+import { useTranslation } from 'react-i18next';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /** Lekko mniejszy sześciokąt, żeby obrys i animacja nie obcinały górnego wierzchołka. */
@@ -35,8 +36,7 @@ const HEX_SVG_PAD = 8;
 
 type Slide = {
   image: any;
-  title: string;
-  subtitle?: string;
+  key: 'slide1' | 'slide2' | 'slide3';
   accentColor: string;
   /** Tło wewnątrz heksa: chłodne (granat) vs ciepłe (akcent pomarańcz) */
   interiorTint: 'cool' | 'warm';
@@ -45,20 +45,19 @@ type Slide = {
 const SLIDES: Slide[] = [
   {
     image: require('../assets/images/welcome-senior.png'),
-    title: 'Pomoc dla Twojego seniora',
+    key: 'slide1',
     accentColor: OnboardingPalette.primary,
     interiorTint: 'cool',
   },
   {
     image: require('../assets/images/welcome-phone.png'),
-    title: 'Przypomnienia o lekach',
-    subtitle: 'i wiele więcej',
+    key: 'slide2',
     accentColor: OnboardingPalette.accent,
     interiorTint: 'warm',
   },
   {
     image: require('../assets/images/welcome-chart.png'),
-    title: 'Śledź postępy podopiecznego',
+    key: 'slide3',
     accentColor: OnboardingPalette.primaryDark,
     interiorTint: 'cool',
   },
@@ -261,6 +260,7 @@ function IconPattern({
 }
 
 export default function WelcomeScreen() {
+  const { t } = useTranslation();
   const [index, setIndex] = useState(0);
   const fade = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(1)).current;
@@ -327,6 +327,8 @@ export default function WelcomeScreen() {
   };
 
   const slide = SLIDES[index];
+  const slideTitle = t(`onboarding.welcome.${slide.key}.title`);
+  const slideSubtitle = t(`onboarding.welcome.${slide.key}.subtitle`, { defaultValue: '' });
 
   return (
     <View style={styles.container}>
@@ -356,7 +358,7 @@ export default function WelcomeScreen() {
           ]}
         >
           <HexagonImage
-            key={slide.title}
+            key={slide.key}
             source={slide.image}
             size={HEX_SIZE}
             bgColor={BG_COLOR}
@@ -395,11 +397,11 @@ export default function WelcomeScreen() {
       </View>
 
       <Animated.View style={[styles.textBlock, { opacity: textFade }]}>
-        <Text style={styles.title}>{slide.title}</Text>
-        {slide.subtitle ? (
-          <Text style={styles.subtitle}>{slide.subtitle}</Text>
+        <Text style={styles.title}>{slideTitle}</Text>
+        {slideSubtitle ? (
+          <Text style={styles.subtitle}>{slideSubtitle}</Text>
         ) : (
-          <Text style={[styles.subtitle, { opacity: 0 }]}>placeholder</Text>
+          <Text style={[styles.subtitle, { opacity: 0 }]}> </Text>
         )}
       </Animated.View>
 
@@ -433,7 +435,7 @@ export default function WelcomeScreen() {
               end={OnboardingGradient.end}
               style={styles.ctaButton}
             >
-              <Text style={styles.ctaText}>Zaczynamy</Text>
+              <Text style={styles.ctaText}>{t('onboarding.welcome.cta')}</Text>
               <MaterialCommunityIcons
                 name="arrow-right"
                 size={24}

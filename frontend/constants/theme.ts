@@ -24,6 +24,10 @@ export const Theme = {
     schedulePendingBackground: 'rgba(233, 164, 61, 0.14)',
     schedulePendingText: '#B8761A',
     shadowNeutral: 'rgba(27, 60, 83, 0.12)',
+    /** Tło siatki kalendarza opiekuna (jaśniejsze, między bielą a beżem). */
+    calendarCanvas: '#F7F6F4',
+    /** Kafelek dnia — beż (spójny z surfaceGrey). */
+    calendarCell: '#F9F3EF',
   },
   typography: {
     huge: 48,

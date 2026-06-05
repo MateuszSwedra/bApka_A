@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 
 @Controller('schedules')
@@ -31,8 +31,26 @@ export class SchedulesController {
   }
 
   @Get('user/:userId/logs')
-  getTodayDoseLogs(@Param('userId') userId: string) {
-    return this.schedulesService.getTodayDoseLogs(userId);
+  getTodayDoseLogs(@Param('userId') userId: string, @Query('date') date?: string) {
+    return this.schedulesService.getTodayDoseLogs(userId, date);
+  }
+
+  @Get('user/:userId/stats')
+  getDoseStats(
+    @Param('userId') userId: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const now = new Date();
+    const end = to ? new Date(to) : now;
+    const start = from ? new Date(from) : new Date(end.getTime());
+
+    if (!from) {
+      // domyślnie ostatnie 24h, jeśli zakres nie został podany z klienta
+      start.setDate(start.getDate() - 1);
+    }
+
+    return this.schedulesService.getDoseStats(userId, start, end);
   }
 
   @Patch('logs/:scheduleId/mark')

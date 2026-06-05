@@ -1,17 +1,19 @@
 import React from 'react';
 import { Modal, View, Text, StyleSheet, Pressable } from 'react-native';
 import { Theme } from '../constants/theme';
+import { MoodIcon } from './mood/MoodIcon';
+import type { MoodValue } from '../constants/moodVisual';
 
 interface Props {
   visible: boolean;
-  onPick: (mood: 'sad' | 'neutral' | 'happy') => void;
+  onPick: (mood: MoodValue) => void;
   onClose: () => void;
 }
 
-const MOODS = [
-  { key: 'sad' as const, emoji: '🙁', label: 'Smutny' },
-  { key: 'neutral' as const, emoji: '😐', label: 'Neutralny' },
-  { key: 'happy' as const, emoji: '🙂', label: 'Wesoły' },
+const MOODS: { key: MoodValue; label: string }[] = [
+  { key: 'sad', label: 'Smutny' },
+  { key: 'neutral', label: 'Neutralny' },
+  { key: 'happy', label: 'Wesoły' },
 ];
 
 export function MoodPickerModal({ visible, onPick, onClose }: Props) {
@@ -28,7 +30,7 @@ export function MoodPickerModal({ visible, onPick, onClose }: Props) {
                 onPress={() => onPick(m.key)}
                 style={({ pressed }) => [styles.faceBtn, pressed && styles.pressed]}
               >
-                <Text style={styles.emoji}>{m.emoji}</Text>
+                <MoodIcon mood={m.key} size="lg" />
                 <Text style={styles.faceLabel}>{m.label}</Text>
               </Pressable>
             ))}
@@ -84,14 +86,11 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.large,
     minWidth: 96,
   },
-  emoji: {
-    fontSize: 56,
-  },
   faceLabel: {
     fontSize: 16,
     fontWeight: '700',
     color: Theme.colors.textDark,
-    marginTop: Theme.spacing.xs,
+    marginTop: Theme.spacing.s,
   },
   closeBtn: {
     alignSelf: 'center',

@@ -1,4 +1,4 @@
-import { Controller, Patch, Post, Get, Body, UseGuards, Request, HttpCode } from '@nestjs/common';
+import { Controller, Patch, Post, Get, Body, UseGuards, Request, HttpCode, Param, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '@prisma/client';
@@ -63,6 +63,68 @@ export class UsersController {
   @ApiOperation({ summary: 'Update user settings (e.g. moodEnabled)' })
   updateSettings(@Request() req: any, @Body() body: any) {
     return this.usersService.updateSettings(req.user.userId, body);
+  }
+
+  @Get(':id/moods')
+  @ApiOperation({ summary: 'Get mood history for a user in given range' })
+  getMoodHistory(
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const now = new Date();
+    const end = to ? new Date(to) : now;
+    const start = from ? new Date(from) : new Date(end.getTime());
+
+    if (!from) {
+      // domyślnie ostatnie 30 dni
+      start.setDate(start.getDate() - 30);
+    }
+
+    return this.usersService.getMoodHistory(id, start, end);
+  }
+
+  @Post('me/sos')
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Create SOS event (senior)' })
+  createSos(@Request() req: any, @Body('note') note?: string) {
+    return this.usersService.createSosLog(req.user.userId, note);
+  }
+
+  @Get(':id/sos')
+  @ApiOperation({ summary: 'List SOS events in range' })
+  listSos(
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    const now = new Date();
+    const end = to ? new Date(to) : now;
+    const start = from ? new Date(from) : new Date(end.getTime());
+    if (!from) start.setDate(start.getDate() - 30);
+    return this.usersService.listSosLogs(id, start, end);
+  }
+
+  @Post('me/metrics')
+  @HttpCode(201)
+  @ApiOperation({ summary: 'Create health metric entry (senior)' })
+  createMetric(@Request() req: any, @Body() body: any) {
+    return this.usersService.createHealthMetricLog(req.user.userId, body);
+  }
+
+  @Get(':id/metrics')
+  @ApiOperation({ summary: 'List health metrics in range' })
+  listMetrics(
+    @Param('id') id: string,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+    @Query('type') type?: string,
+  ) {
+    const now = new Date();
+    const end = to ? new Date(to) : now;
+    const start = from ? new Date(from) : new Date(end.getTime());
+    if (!from) start.setDate(start.getDate() - 30);
+    return this.usersService.listHealthMetricLogs(id, start, end, type);
   }
 
   /** POST na tę samą ścieżkę co PATCH — niektóre wdrożenia / cache miały tylko PATCH. */

@@ -6,10 +6,18 @@ import React, {
   useMemo,
   useEffect,
   useCallback,
+  useRef,
 } from 'react';
-import { addDays, format, getDay, isBefore, isSameDay } from 'date-fns';
-import { inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
-import { useGlobalSearchParams } from 'expo-router';
+import { addDays, format } from 'date-fns';
+import { parseDosagePills, scheduleAppliesToDate } from '../utils/scheduleHelpers';
+import { normalizeYmd } from '../utils/ymdDate';
+import { getStoredAuthToken, inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
+import { assertCaretakerDependent } from '../utils/assertCaretakerDependent';
+import { useGlobalSearchParams, useSegments } from 'expo-router';
+import { resolveMedsTargetUserId, isUserUuid } from '../utils/resolveMedsTargetUserId';
+import { debugLog } from '../utils/debugLog';
+import { useAuth } from './AuthContext';
+import i18n from '../i18n';
 import type { TreatmentType } from '../constants/treatmentVisuals';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
@@ -62,97 +70,155 @@ interface MedsContextType {
   treatments: Treatment[];
   inventory: InventoryItem[];
   schedules: ScheduleItem[];
-  /** UUID podopiecznego — ustawiane z ekranów opiekuna (profil / add-med). */
-  setManagedUserId: (userId: string | null) => void;
-  addTreatment: (treatment: Omit<Treatment, 'id'>) => Promise<void>;
-  removeTreatment: (id: string) => void;
-  updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => void;
+  addTreatment: (treatment: Omit<Treatment, 'id'>, forUserId?: string) => Promise<void>;
+  addSchedule: (schedule: Omit<ScheduleItem, 'id'>, forUserId?: string) => Promise<void>;
+  removeTreatment: (id: string, forUserId?: string) => Promise<void>;
+  updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => Promise<void>;
   addInventoryItem: (name: string, totalPills: number, description?: string) => void;
   removeInventoryItem: (id: string) => void;
-  addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => Promise<void>;
   removeSchedule: (id: string) => Promise<void>;
   updateSchedule: (id: string, patch: Partial<ScheduleItem>) => Promise<void>;
   depletionAlerts: DepletionAlert[];
+  /** Aktualny userId podopiecznego (profil / add-treatment / add-med). */
+  targetUserId: string | null;
+  /** Ustaw UUID podopiecznego z ekranu opiekuna (np. profil / add-med). */
+  setManagedUserId: (userId: string | null) => void;
   /** Reload inventory and schedules from the server (caretaker changes). */
-  refetchFromServer: () => Promise<void>;
+  refetchFromServer: (userId?: string) => Promise<void>;
 }
 
 const MedsContext = createContext<MedsContextType | undefined>(undefined);
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const randomId = () => Math.random().toString(36).substring(2, 10);
 
-function normalizeRouteParam(value: string | string[] | undefined): string | undefined {
-  if (!value) return undefined;
-  const raw = Array.isArray(value) ? value[0] : value;
-  const trimmed = raw?.trim();
-  return trimmed || undefined;
+function isUnauthorizedError(e: unknown): boolean {
+  return e instanceof Error && /unauthorized/i.test(e.message);
 }
 
-function pickRouteUserId(
-  managedUserId: string | null,
-  dependentId?: string,
-  routeId?: string,
-): string | undefined {
-  if (managedUserId && UUID_RE.test(managedUserId)) return managedUserId;
-  const dep = normalizeRouteParam(dependentId);
-  if (dep && UUID_RE.test(dep)) return dep;
-  const id = normalizeRouteParam(routeId);
-  if (id && UUID_RE.test(id)) return id;
-  return undefined;
+const DEPENDENT_FLOW_MARKERS = [
+  'dependent',
+  'add-treatment',
+  'add-med',
+  'edit-treatment',
+] as const;
+
+function isInDependentCaretakerFlow(segments: string[]): boolean {
+  return DEPENDENT_FLOW_MARKERS.some(m => segments.includes(m));
 }
 
 export function MedsProvider({ children }: { children: ReactNode }) {
+  const { userRole, isReady } = useAuth();
   const { id, dependentId } = useGlobalSearchParams<{ id?: string; dependentId?: string }>();
-  const [managedUserId, setManagedUserId] = useState<string | null>(null);
-  const [selfUserId, setSelfUserId] = useState<string | null>(null);
+  const segments = useSegments();
+  const segList = segments as string[];
+  const [scopedDependentUserId, setScopedDependentUserId] = useState<string | null>(null);
+  const [targetUserId, setTargetUserId] = useState<string | null>(null);
 
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
-
-  const targetUserId =
-    pickRouteUserId(managedUserId, dependentId, id) ?? selfUserId;
+  const treatmentsRef = useRef(treatments);
+  const schedulesRef = useRef(schedules);
 
   useEffect(() => {
-    if (pickRouteUserId(managedUserId, dependentId, id)) return;
-    usersAPI
-      .getMe()
-      .then((me: { id?: string }) => {
-        if (me?.id) setSelfUserId(me.id);
-      })
-      .catch((e: unknown) => console.error('Failed to fetch user ID', e));
-  }, [managedUserId, dependentId, id]);
+    treatmentsRef.current = treatments;
+  }, [treatments]);
 
-  const refetchFromServer = useCallback(async () => {
-    if (!targetUserId) return;
-    try {
-      const fetchedInventory = await inventoryAPI.getInventory(targetUserId);
-      if (fetchedInventory && fetchedInventory.length > 0) {
-        const mapped: Treatment[] = fetchedInventory.map((it: any) => ({
-          id: String(it.id),
-          type: it.type as TreatmentType || 'MEDICATION',
-          name: it.name,
-          totalPills: it.totalPills,
-          description: it.description,
-        }));
-        setTreatments(mapped);
-      } else {
-        setTreatments([]);
+  useEffect(() => {
+    schedulesRef.current = schedules;
+  }, [schedules]);
+
+  useEffect(() => {
+    const fromRoute = resolveMedsTargetUserId({ id, dependentId }, segList);
+    const inDependentFlow = isInDependentCaretakerFlow(segList);
+
+    if (fromRoute) {
+      debugLog(
+        'MedsContext:resolveUser',
+        'fromRoute',
+        { fromRoute, segList },
+        'H-E',
+      );
+      setScopedDependentUserId(fromRoute);
+      setTargetUserId(fromRoute);
+      return;
+    }
+
+    if (scopedDependentUserId && inDependentFlow) {
+      setTargetUserId(scopedDependentUserId);
+      return;
+    }
+
+    if (!inDependentFlow) {
+      setScopedDependentUserId(null);
+    }
+
+    if (!isReady) return;
+    if (!userRole) {
+      setTargetUserId(null);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const token = await getStoredAuthToken();
+      if (!token || cancelled) return;
+      try {
+        const me = await usersAPI.getMe();
+        if (!cancelled && me?.id) setTargetUserId(me.id);
+      } catch (e: unknown) {
+        if (!cancelled && !isUnauthorizedError(e)) {
+          console.warn('Failed to fetch user ID', e);
+        }
       }
+    })();
 
-      const fetchedSchedules = await scheduleAPI.getSchedules(targetUserId);
+    return () => {
+      cancelled = true;
+    };
+  }, [id, dependentId, segList, isReady, userRole, scopedDependentUserId]);
+
+  const refetchFromServer = useCallback(async (userId?: string) => {
+    const uid = userId ?? targetUserId;
+    if (!uid) return;
+    const token = await getStoredAuthToken();
+    if (!token) return;
+    try {
+      const fetchedInventory = await inventoryAPI.getInventory(uid);
+      const mappedTreatments: Treatment[] =
+        fetchedInventory && fetchedInventory.length > 0
+          ? fetchedInventory.map((it: any) => ({
+              id: String(it.id),
+              type: (it.type as TreatmentType) || 'MEDICATION',
+              name: it.name,
+              totalPills: it.totalPills,
+              description: it.description,
+            }))
+          : [];
+      setTreatments(mappedTreatments);
+
+      const treatmentIds = new Set(mappedTreatments.map(t => t.id));
+      const treatmentNames = new Set(mappedTreatments.map(t => t.name));
+
+      const fetchedSchedules = await scheduleAPI.getSchedules(uid);
       if (fetchedSchedules && fetchedSchedules.length > 0) {
-        const mappedSchedules: ScheduleItem[] = fetchedSchedules.map((sch: any) => ({
-          id: String(sch.id),
-          treatmentId: sch.inventoryId,
-          customName: sch.medication,
-          type: sch.type as MedScheduleType,
-          time: sch.time,
-          dosage: sch.dosage || "1",
-          startDate: sch.startDate,
-          endDate: sch.endDate,
-          daysOfWeek: sch.daysOfWeek || [1,2,3,4,5,6,7],
-        }));
+        const mappedSchedules: ScheduleItem[] = fetchedSchedules
+          .map((sch: any) => ({
+            id: String(sch.id),
+            treatmentId: sch.inventoryId ? String(sch.inventoryId) : undefined,
+            customName: sch.medication,
+            type: sch.type as MedScheduleType,
+            time: sch.time,
+            dosage: sch.dosage || '1',
+            startDate: normalizeYmd(sch.startDate) ?? sch.startDate,
+            endDate: normalizeYmd(sch.endDate) ?? sch.endDate,
+            daysOfWeek: sch.daysOfWeek || [1, 2, 3, 4, 5, 6, 7],
+          }))
+          .filter((sch: ScheduleItem) => {
+            const tid = getScheduleTreatmentId(sch);
+            if (tid) return treatmentIds.has(tid);
+            if (sch.customName) return treatmentNames.has(sch.customName);
+            return false;
+          });
         setSchedules(mappedSchedules);
       } else {
         setSchedules([]);
@@ -180,12 +246,30 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     [treatments]
   );
 
-  const addTreatment = async (treatment: Omit<Treatment, 'id'>) => {
-    if (!targetUserId) {
-      throw new Error('Brak ID podopiecznego — otwórz profil seniora i spróbuj ponownie.');
+  const addTreatment = async (
+    treatment: Omit<Treatment, 'id'>,
+    forUserId?: string,
+  ) => {
+    const uid = forUserId ?? targetUserId;
+    debugLog(
+      'MedsContext:addTreatment',
+      'create inventory',
+      {
+        uid,
+        forUserId: forUserId ?? null,
+        targetUserId,
+        scopedDependentUserId,
+        uidIsUuid: uid ? isUserUuid(uid) : false,
+      },
+      'H-C',
+    );
+    if (!uid) return;
+    if (!isUserUuid(uid)) {
+      throw new Error(i18n.t('errors.invalidDependentId'));
     }
     try {
-      const data = await inventoryAPI.create(targetUserId, {
+      await assertCaretakerDependent(uid);
+      await inventoryAPI.create(uid, {
         name: treatment.name,
         type: treatment.type,
         description: treatment.description,
@@ -193,20 +277,50 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         currentPills: treatment.totalPills,
         pillsPerDose: 1,
       });
-      setTreatments(prev => [...prev, { ...treatment, id: String(data.id) }]);
+      if (forUserId) {
+        setScopedDependentUserId(forUserId);
+        setTargetUserId(forUserId);
+      }
+      await refetchFromServer(uid);
     } catch (e) {
       console.error('Error adding treatment:', e);
       throw e;
     }
   };
 
-  const removeTreatment = async (id: string) => {
-    if (!targetUserId) return;
+  const removeTreatment = async (id: string, forUserId?: string) => {
+    const uid = forUserId ?? targetUserId ?? scopedDependentUserId;
+    const treatment = treatmentsRef.current.find(t => t.id === id);
+    const relatedSchedules = schedulesRef.current.filter(sch => {
+      const tid = getScheduleTreatmentId(sch);
+      if (tid === id) return true;
+      if (!tid && treatment?.name && sch.customName === treatment.name) return true;
+      return false;
+    });
+
     try {
+      await Promise.all(
+        relatedSchedules.map(sch =>
+          scheduleAPI.remove(sch.id).catch(err => {
+            console.warn('Nie udało się usunąć harmonogramu', sch.id, err);
+          }),
+        ),
+      );
       await inventoryAPI.remove(id);
       setTreatments(prev => prev.filter(t => t.id !== id));
-      setSchedules(prev => prev.filter(sch => getScheduleTreatmentId(sch) !== id));
-    } catch (e) { console.error('Error removing treatment:', e); }
+      setSchedules(prev =>
+        prev.filter(sch => {
+          const tid = getScheduleTreatmentId(sch);
+          if (tid === id) return false;
+          if (!tid && treatment?.name && sch.customName === treatment.name) return false;
+          return true;
+        }),
+      );
+      if (uid) await refetchFromServer(uid);
+    } catch (e) {
+      console.error('Error removing treatment:', e);
+      throw e;
+    }
   };
 
   const updateTreatment = async (id: string, patch: Partial<Omit<Treatment, 'id'>>) => {
@@ -215,6 +329,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       setTreatments(prev => prev.map(t => (t.id === id ? { ...t, ...patch } : t)));
     } catch (e) {
       console.error('Error updating treatment:', e);
+      throw e;
     }
   };
 
@@ -226,12 +341,18 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     removeTreatment(id);
   };
 
-  const addSchedule = async (schedule: Omit<ScheduleItem, 'id'>) => {
-    if (!targetUserId) {
-      throw new Error('Brak ID podopiecznego — otwórz profil seniora i spróbuj ponownie.');
+  const addSchedule = async (
+    schedule: Omit<ScheduleItem, 'id'>,
+    forUserId?: string,
+  ) => {
+    const uid = forUserId ?? targetUserId;
+    if (!uid) return;
+    if (!isUserUuid(uid)) {
+      throw new Error(i18n.t('errors.invalidDependentId'));
     }
     try {
-      const data = await scheduleAPI.create(targetUserId, {
+      await assertCaretakerDependent(uid);
+      const data = await scheduleAPI.create(uid, {
         inventoryId: schedule.treatmentId || schedule.inventoryId,
         medication: schedule.customName,
         time: schedule.time,
@@ -241,7 +362,18 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         endDate: schedule.endDate,
         daysOfWeek: schedule.daysOfWeek ?? [],
       });
-      setSchedules(prev => [...prev, { ...schedule, id: String(data.id), dosage: schedule.dosage || '1' }]);
+      const created: ScheduleItem = {
+        ...schedule,
+        id: String(data.id),
+        dosage: schedule.dosage || '1',
+        daysOfWeek: schedule.daysOfWeek ?? [],
+      };
+      setSchedules(prev => [...prev, created]);
+      if (forUserId) {
+        setScopedDependentUserId(forUserId);
+        setTargetUserId(forUserId);
+      }
+      await refetchFromServer(uid);
     } catch (e) {
       console.error('Error adding schedule:', e);
       throw e;
@@ -272,12 +404,6 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   const depletionAlerts = useMemo(() => {
     const alerts: DepletionAlert[] = [];
     
-    // JS date-fns getDay(): 0 to Nd, 1 to Pn. Zmieniamy na 1=Pn, 7=Nd
-    const getIsoDay = (date: Date) => {
-      const d = getDay(date);
-      return d === 0 ? 7 : d;
-    };
-
     // Tylko leki (MEDICATION) — zużycie tabletek i alerty końca zapasu
     treatments
       .filter(t => t.type === 'MEDICATION')
@@ -295,28 +421,13 @@ export function MedsProvider({ children }: { children: ReactNode }) {
 
       while (remainingPills > 0 && emergencyBreak < 1000) {
         const currentDateStr = format(currentDate, 'yyyy-MM-dd');
-        const currentIsoDay = getIsoDay(currentDate);
 
         let pillsTakenToday = 0;
 
         for (const sch of relatedSchedules) {
-          // ONCE ignorujemy w zasobach Apteczki z założenia (zrobiłeś wyjątek wpisywania nazwy ręcznie)
-          if (sch.type === 'ONCE') continue; 
-
-          // Sprawdzamy czy harmonogram obowiązuje w tym dniu (startDate)
-          const isAfterOrOnStart = !isBefore(currentDate, new Date(sch.startDate)) || isSameDay(currentDate, new Date(sch.startDate));
-          
-          // Sprawdzamy zakończenie (dla TEMPORARY)
-          let isBeforeOrOnEnd = true;
-          if (sch.type === 'TEMPORARY' && sch.endDate) {
-            isBeforeOrOnEnd = !isBefore(new Date(sch.endDate), currentDate) || isSameDay(currentDate, new Date(sch.endDate));
-          }
-
-          if (isAfterOrOnStart && isBeforeOrOnEnd) {
-            if (sch.daysOfWeek.includes(currentIsoDay)) {
-              pillsTakenToday += 1; // Jedna porcja z tego harmonogramu
-            }
-          }
+          if (sch.type === 'ONCE') continue;
+          if (!scheduleAppliesToDate(sch, currentDateStr)) continue;
+          pillsTakenToday += parseDosagePills(sch.dosage);
         }
 
         remainingPills -= pillsTakenToday;
@@ -337,13 +448,17 @@ export function MedsProvider({ children }: { children: ReactNode }) {
     return alerts;
   }, [treatments, schedules]);
 
+  const setManagedUserId = useCallback((userId: string | null) => {
+    setScopedDependentUserId(userId);
+    setTargetUserId(userId);
+  }, []);
+
   return (
     <MedsContext.Provider
       value={{
         treatments,
         inventory,
         schedules,
-        setManagedUserId,
         addTreatment,
         removeTreatment,
         updateTreatment,
@@ -353,6 +468,8 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         removeSchedule,
         updateSchedule,
         depletionAlerts,
+        targetUserId,
+        setManagedUserId,
         refetchFromServer,
       }}
     >

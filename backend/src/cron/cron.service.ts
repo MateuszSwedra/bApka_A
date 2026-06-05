@@ -38,7 +38,7 @@ export class CronService {
       const existingLog = await this.prisma.doseLog.findFirst({
         where: {
           scheduleId: schedule.id,
-          createdAt: {
+          scheduledAt: {
             gte: today,
           },
         },
@@ -50,7 +50,7 @@ export class CronService {
           data: {
             scheduleId: schedule.id,
             status: 'PENDING',
-            scheduledAt: new Date(),
+            scheduledAt: now,
           },
         });
         this.logger.log(`Utworzono log PENDING dla harmonogramu ${schedule.id}`);
@@ -78,14 +78,17 @@ export class CronService {
   async markMissedDoses() {
     this.logger.debug('Sprawdzanie pominiętych leków...');
     
-    const oneHourAgo = new Date();
-    oneHourAgo.setHours(oneHourAgo.getHours() - 1);
+    // Dawka jest „spóźniona” aż do czasu kolejnej dawki.
+    // Przy aktualnym modelu (1 log na dawkę, generowany o godzinie harmonogramu),
+    // najbezpieczniej oznaczyć MISSED dopiero, gdy minęło ~24h od scheduledAt.
+    const oneDayAgo = new Date();
+    oneDayAgo.setHours(oneDayAgo.getHours() - 24);
 
     const result = await this.prisma.doseLog.updateMany({
       where: {
         status: 'PENDING',
         scheduledAt: {
-          lt: oneHourAgo,
+          lt: oneDayAgo,
         },
       },
       data: {

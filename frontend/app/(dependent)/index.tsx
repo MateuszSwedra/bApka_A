@@ -30,6 +30,7 @@ import {
 } from '../../services/seniorMoodCompletion';
 import { SeniorConfirmModal } from '../../components/SeniorConfirmModal';
 import { MoodPickerModal } from '../../components/MoodPickerModal';
+import { MoodIcon } from '../../components/mood/MoodIcon';
 import { useFocusEffect } from '@react-navigation/native';
 
 const TILE_COLORS = {
@@ -123,12 +124,12 @@ export default function DependentDashboard() {
   };
 
   const onMedPress = () => {
-    if (mainState.kind !== 'due') return;
+    if (mainState.kind !== 'due' && mainState.kind !== 'missed') return;
     setMedConfirmVisible(true);
   };
 
   const confirmMed = async () => {
-    if (mainState.kind !== 'due') return;
+    if (mainState.kind !== 'due' && mainState.kind !== 'missed') return;
     setMedConfirmVisible(false);
     try {
       await scheduleAPI.markTaken(mainState.scheduleId);
@@ -161,12 +162,16 @@ export default function DependentDashboard() {
     Alert.alert('SOS', 'Powiadomienie do opiekuna zostanie wysłane w kolejnej wersji aplikacji.');
   };
 
-  const medActive = mainState.kind === 'due';
+  const medActive = mainState.kind === 'due' || mainState.kind === 'missed';
   const moodActive = moodState.kind === 'active';
 
-  const medTitle = medActive ? 'WEŹ LEK' : 'Leki';
+  const medTitle = medActive
+    ? mainState.kind === 'missed'
+      ? 'WEŹ LEK (SPÓŹNIONE)'
+      : 'WEŹ LEK'
+    : 'Leki';
   const medLine1 =
-    mainState.kind === 'due'
+    mainState.kind === 'due' || mainState.kind === 'missed'
       ? mainState.name
       : mainState.kind === 'upcoming'
         ? `O ${mainState.nextTime}`
@@ -174,7 +179,7 @@ export default function DependentDashboard() {
           ? 'Wszystko na dziś'
           : 'Brak planu';
   const medLine2 =
-    mainState.kind === 'due'
+    mainState.kind === 'due' || mainState.kind === 'missed'
       ? mainState.dose
       : mainState.kind === 'upcoming'
         ? `${mainState.nextName} · ${mainState.dose}`
@@ -260,7 +265,7 @@ export default function DependentDashboard() {
             pressed && moodActive && styles.pressed,
           ]}
         >
-          <Text style={styles.moodIcon}>{moodActive ? '😊' : '😐'}</Text>
+          <MoodIcon mood={moodActive ? 'happy' : 'neutral'} size="lg" selected={moodActive} />
           <Text style={[styles.tileTitle, { color: moodActive ? '#3E2723' : '#546E7A' }]}>
             {moodTitle}
           </Text>
@@ -300,7 +305,7 @@ export default function DependentDashboard() {
         visible={medConfirmVisible}
         title="Potwierdzenie"
         message={
-          mainState.kind === 'due'
+          mainState.kind === 'due' || mainState.kind === 'missed'
             ? `Czy potwierdzasz wzięcie leku ${mainState.name} (${mainState.dose})?`
             : 'Czy potwierdzasz wzięcie leku?'
         }
@@ -404,9 +409,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-  },
-  moodIcon: {
-    fontSize: 48,
   },
   pressed: {
     transform: [{ scale: 0.97 }],

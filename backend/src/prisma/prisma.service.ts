@@ -25,5 +25,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get inventory() { return this.client.inventory; }
   get schedule() { return this.client.schedule; }
   get doseLog() { return this.client.doseLog; }
+  get moodLog() { return this.client.moodLog; }
   get connection() { return this.client.connection; }
+  get sosLog() { return this.client.sosLog; }
+  get healthMetricLog() { return this.client.healthMetricLog; }
 }

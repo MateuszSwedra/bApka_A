@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import { normalizePinInput } from '../utils/pin';
+import { useTranslation } from 'react-i18next';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -18,6 +19,7 @@ const showAlert = (title: string, message: string) => {
 };
 
 export default function EnterPinScreen() {
+  const { t } = useTranslation();
   const { loginFake, setUserSession } = useAuth();
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +27,7 @@ export default function EnterPinScreen() {
   const handlePair = async () => {
     const digits = normalizePinInput(pin);
     if (digits.length !== 6) {
-      showAlert('Błąd', 'Wprowadź poprawny 6-cyfrowy kod PIN.');
+      showAlert(t('common.error'), t('pairing.validationLength'));
       return;
     }
 
@@ -48,10 +50,10 @@ export default function EnterPinScreen() {
         loginFake('DEPENDENT');
       }
 
-      showAlert('Sukces', 'Zostałeś połączony z kontem Opiekuna!');
+      showAlert(t('pairing.alertSuccessTitle'), t('pairing.alertSuccessMessage'));
       router.replace('/(dependent)');
     } catch (e: any) {
-      showAlert('Błąd parowania', 'Podany kod PIN jest nieprawidłowy lub wygasł.');
+      showAlert(t('pairing.alertErrorTitle'), t('pairing.alertInvalidPin'));
     } finally {
       setIsLoading(false);
     }
@@ -68,15 +70,13 @@ export default function EnterPinScreen() {
   return (
     <View style={styles.container}>
       <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
-      <Text style={styles.title}>Podaj kod PIN</Text>
-      <Text style={styles.subtitle}>
-        Wpisz 6-cyfrowy kod, który wygenerował dla Ciebie Twój opiekun w swojej aplikacji bApka.
-      </Text>
+      <Text style={styles.title}>{t('pairing.enterPin.title')}</Text>
+      <Text style={styles.subtitle}>{t('pairing.enterPin.subtitle')}</Text>
       
       <View style={styles.inputContainer}>
         <TextInput 
           style={styles.input}
-          placeholder="------"
+          placeholder={t('pairing.pinPlaceholder')}
           value={pin}
           onChangeText={(t) => setPin(normalizePinInput(t))}
           keyboardType="number-pad"
@@ -89,8 +89,8 @@ export default function EnterPinScreen() {
         <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
       ) : (
         <View style={styles.actions}>
-          <HugeButton title="Połącz konto" onPress={handlePair} style={styles.button} />
-          <HugeButton title="Wróć" variant="outline" onPress={handleBack} style={styles.button} />
+          <HugeButton title={t('pairing.ctaConnect')} onPress={handlePair} style={styles.button} />
+          <HugeButton title={t('common.back')} variant="outline" onPress={handleBack} style={styles.button} />
         </View>
       )}
     </View>

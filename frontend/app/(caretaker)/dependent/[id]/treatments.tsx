@@ -1,15 +1,49 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useCallback, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useMeds, Treatment } from '../../../../context/MedsContext';
 import { Card } from '../../../../components/Card';
-import { useLocalSearchParams, router } from 'expo-router';
+import {
+  useLocalSearchParams,
+  router,
+  useFocusEffect,
+  useGlobalSearchParams,
+  useSegments,
+} from 'expo-router';
+import { openAddTreatmentForDependent } from '../../../../utils/caretakerNavigation';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
+import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
+import { useTranslation } from 'react-i18next';
+import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 
 export default function DependentTreatmentsScreen() {
-  const { id } = useLocalSearchParams();
-  const { treatments, removeTreatment } = useMeds();
+  const { t } = useTranslation();
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
+  const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
+  const topInset = useDependentTabTopInset();
+  const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (dependentId) void refetchFromServer(dependentId);
+    }, [dependentId, refetchFromServer]),
+  );
 
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
     type,
@@ -19,16 +53,12 @@ export default function DependentTreatmentsScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.sectionTitle}>Aktywności medyczne</Text>
-        <Text style={styles.sectionSubtitle}>
-          Lista aktywności podopiecznego. Każda może zawierać opis (np. „przyjmować z jedzeniem").
-        </Text>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
+        <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
+        <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
         {grouped.length === 0 && (
-          <Text style={styles.emptyText}>
-            Brak aktywności. Dodaj pierwszą za pomocą przycisku „+".
-          </Text>
+          <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
         )}
 
         {grouped.map(group => (
@@ -37,7 +67,7 @@ export default function DependentTreatmentsScreen() {
               <View style={[styles.groupIconCircle, { backgroundColor: group.meta.accent + '22' }]}>
                 <MaterialIcons name={group.meta.icon} size={20} color={group.meta.accent} />
               </View>
-              <Text style={styles.groupTitle}>{group.meta.groupLabel}</Text>
+              <Text style={styles.groupTitle}>{getTreatmentGroupLabel(group.type)}</Text>
               <Text style={styles.groupCount}>{group.items.length}</Text>
             </View>
 
@@ -47,7 +77,7 @@ export default function DependentTreatmentsScreen() {
                 item={item}
                 accent={group.meta.accent}
                 onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
-                onRemove={() => removeTreatment(item.id)}
+                onRemove={() => void removeTreatment(item.id, dependentId ?? undefined)}
               />
             ))}
           </View>
@@ -55,8 +85,14 @@ export default function DependentTreatmentsScreen() {
       </ScrollView>
 
       <Pressable
-        style={styles.fab}
-        onPress={() => router.push(`/(caretaker)/add-treatment/${id}` as any)}
+        style={[styles.fab, { bottom: fabBottomOffset }]}
+        onPress={() => {
+          if (!dependentId) {
+            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+            return;
+          }
+          openAddTreatmentForDependent(dependentId);
+        }}
       >
         <MaterialIcons name="add" size={32} color={Theme.colors.textDark} />
       </Pressable>
@@ -75,6 +111,7 @@ function TreatmentCard({
   onEdit: () => void;
   onRemove: () => void;
 }) {
+  const { t } = useTranslation();
   return (
     <Card variant="white" style={styles.itemCard}>
       <View style={styles.itemHeader}>
@@ -82,13 +119,13 @@ function TreatmentCard({
           <Text style={styles.itemName}>{item.name}</Text>
           {item.type === 'MEDICATION' && typeof item.totalPills === 'number' && (
             <Text style={[styles.itemMeta, { color: accent }]}>
-              Zapas: {item.totalPills} szt.
+              {t('treatment.list.stock', { count: item.totalPills })}
             </Text>
           )}
           {item.description ? (
             <Text style={styles.itemDescription}>{item.description}</Text>
           ) : (
-            <Text style={styles.itemDescriptionMuted}>Brak opisu</Text>
+            <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
           )}
         </View>
         <View style={styles.actions}>
@@ -199,8 +236,9 @@ const styles = StyleSheet.create({
   },
   fab: {
     position: 'absolute',
-    bottom: Theme.spacing.xl,
     right: Theme.spacing.xl,
+    zIndex: 10,
+    elevation: 8,
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
     height: 64,

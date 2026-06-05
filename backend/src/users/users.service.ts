@@ -10,6 +10,82 @@ import { Role } from '@prisma/client';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  async createSosLog(userId: string, note?: string) {
+    return this.prisma.sosLog.create({
+      data: {
+        userId,
+        note: note?.trim() || null,
+        source: 'APP_SENIOR',
+      },
+    });
+  }
+
+  async listSosLogs(userId: string, from: Date, to: Date) {
+    return this.prisma.sosLog.findMany({
+      where: {
+        userId,
+        createdAt: {
+          gte: from,
+          lt: to,
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createHealthMetricLog(
+    userId: string,
+    body: {
+      type: string;
+      measuredAt?: string;
+      value?: number;
+      unit?: string;
+      systolic?: number;
+      diastolic?: number;
+      pulse?: number;
+    },
+  ) {
+    const type = String(body?.type || '').trim();
+    if (!type) throw new BadRequestException('Missing metric type');
+
+    const measuredAt = body?.measuredAt ? new Date(body.measuredAt) : new Date();
+    if (Number.isNaN(measuredAt.getTime())) {
+      throw new BadRequestException('Invalid measuredAt');
+    }
+
+    return this.prisma.healthMetricLog.create({
+      data: {
+        userId,
+        type,
+        measuredAt,
+        value: typeof body.value === 'number' ? body.value : null,
+        unit: body.unit ? String(body.unit).trim() : null,
+        systolic: typeof body.systolic === 'number' ? body.systolic : null,
+        diastolic: typeof body.diastolic === 'number' ? body.diastolic : null,
+        pulse: typeof body.pulse === 'number' ? body.pulse : null,
+        source: 'APP_SENIOR',
+      },
+    });
+  }
+
+  async listHealthMetricLogs(
+    userId: string,
+    from: Date,
+    to: Date,
+    type?: string,
+  ) {
+    const where: any = {
+      userId,
+      measuredAt: { gte: from, lt: to },
+    };
+    if (type) where.type = String(type);
+
+    return this.prisma.healthMetricLog.findMany({
+      where,
+      orderBy: { measuredAt: 'asc' },
+    });
+  }
+
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
@@ -104,7 +180,7 @@ export class UsersService {
   }
 
   async updateMood(userId: string, mood: string) {
-    return this.prisma.user.update({
+    const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
         lastMood: mood,
@@ -112,6 +188,16 @@ export class UsersService {
       },
       select: { id: true, lastMood: true, lastMoodAt: true }
     });
+
+    await this.prisma.moodLog.create({
+      data: {
+        userId,
+        mood,
+        source: 'APP_SENIOR',
+      },
+    });
+
+    return updated;
   }
 
   async updateFcmToken(userId: string, fcmToken: string) {
@@ -144,5 +230,30 @@ export class UsersService {
       data: settings,
       select: { id: true, moodEnabled: true },
     });
+  }
+
+  async getMoodHistory(userId: string, from: Date, to: Date) {
+    const logs = await this.prisma.moodLog.findMany({
+      where: {
+        userId,
+        createdAt: {
+          gte: from,
+          lt: to,
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    const histogram = logs.reduce<Record<string, number>>((acc, log) => {
+      const key = log.mood || 'unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      range: { from: from.toISOString(), to: to.toISOString() },
+      items: logs,
+      histogram,
+    };
   }
 }

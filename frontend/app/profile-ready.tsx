@@ -21,8 +21,10 @@ import {
   OnboardingGradient,
 } from '../constants/onboardingTheme';
 import { usersAPI } from '../services/api';
+import { useTranslation } from 'react-i18next';
 
 export default function ProfileReadyScreen() {
+  const { t } = useTranslation();
   const { width: winW, height: winH } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const scrollMinHeight = Math.max(winH - insets.top - insets.bottom, 320);
@@ -56,8 +58,8 @@ export default function ProfileReadyScreen() {
 
   const greetingLine =
     displayName && displayName.length > 0
-      ? `Miło nam Cię poznać, ${displayName}!`
-      : 'Miło nam Cię poznać!';
+      ? t('profileReady.greeting', { name: displayName })
+      : t('profileReady.greetingGeneric');
 
   return (
     <KeyboardAvoidingView
@@ -90,7 +92,7 @@ export default function ProfileReadyScreen() {
           ) : (
             <View style={styles.textBlock}>
               <Text style={styles.title}>{greetingLine}</Text>
-              <Text style={styles.subtitle}>Twój profil został utworzony.</Text>
+              <Text style={styles.subtitle}>{t('profileReady.subtitle')}</Text>
             </View>
           )}
 
@@ -110,7 +112,7 @@ export default function ProfileReadyScreen() {
                 end={OnboardingGradient.end}
                 style={styles.primaryCta}
               >
-                <Text style={styles.primaryCtaText}>Kontynuuj</Text>
+                <Text style={styles.primaryCtaText}>{t('profileReady.cta')}</Text>
                 <MaterialCommunityIcons
                   name="arrow-right"
                   size={22}
