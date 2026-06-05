@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -8,8 +8,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { useMeds } from '../../../context/MedsContext';
@@ -70,7 +71,16 @@ const TYPE_OPTIONS: TypeOption[] = [
 ];
 
 export default function AddTreatmentScreen() {
-  const { addTreatment } = useMeds();
+  const params = useLocalSearchParams<{ dependentId: string }>();
+  const dependentId = Array.isArray(params.dependentId)
+    ? params.dependentId[0]
+    : params.dependentId;
+  const { addTreatment, setManagedUserId } = useMeds();
+
+  useEffect(() => {
+    if (dependentId) setManagedUserId(dependentId);
+    return () => setManagedUserId(null);
+  }, [dependentId, setManagedUserId]);
   const [selectedType, setSelectedType] = useState<TreatmentType | null>(null);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -105,16 +115,23 @@ export default function AddTreatmentScreen() {
     return true;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!currentOption || !canSave()) return;
     const pills = parseInt(pillsStr.replace(/[^0-9]/g, ''));
-    addTreatment({
-      type: currentOption.type,
-      name: name.trim(),
-      description: description.trim() || undefined,
-      totalPills: currentOption.type === 'MEDICATION' ? pills : undefined,
-    });
-    router.back();
+    try {
+      await addTreatment({
+        type: currentOption.type,
+        name: name.trim(),
+        description: description.trim() || undefined,
+        totalPills: currentOption.type === 'MEDICATION' ? pills : undefined,
+      });
+      router.back();
+    } catch {
+      Alert.alert(
+        'Błąd',
+        'Nie udało się dodać aktywności do apteczki. Upewnij się, że jesteś w profilu podopiecznego.',
+      );
+    }
   };
 
   return (

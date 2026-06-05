@@ -62,12 +62,14 @@ interface MedsContextType {
   treatments: Treatment[];
   inventory: InventoryItem[];
   schedules: ScheduleItem[];
-  addTreatment: (treatment: Omit<Treatment, 'id'>) => void;
+  /** UUID podopiecznego — ustawiane z ekranów opiekuna (profil / add-med). */
+  setManagedUserId: (userId: string | null) => void;
+  addTreatment: (treatment: Omit<Treatment, 'id'>) => Promise<void>;
   removeTreatment: (id: string) => void;
   updateTreatment: (id: string, patch: Partial<Omit<Treatment, 'id'>>) => void;
   addInventoryItem: (name: string, totalPills: number, description?: string) => void;
   removeInventoryItem: (id: string) => void;
-  addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => void;
+  addSchedule: (schedule: Omit<ScheduleItem, 'id'>) => Promise<void>;
   removeSchedule: (id: string) => Promise<void>;
   updateSchedule: (id: string, patch: Partial<ScheduleItem>) => Promise<void>;
   depletionAlerts: DepletionAlert[];
@@ -77,25 +79,49 @@ interface MedsContextType {
 
 const MedsContext = createContext<MedsContextType | undefined>(undefined);
 
-const randomId = () => Math.random().toString(36).substring(2, 10);
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function normalizeRouteParam(value: string | string[] | undefined): string | undefined {
+  if (!value) return undefined;
+  const raw = Array.isArray(value) ? value[0] : value;
+  const trimmed = raw?.trim();
+  return trimmed || undefined;
+}
+
+function pickRouteUserId(
+  managedUserId: string | null,
+  dependentId?: string,
+  routeId?: string,
+): string | undefined {
+  if (managedUserId && UUID_RE.test(managedUserId)) return managedUserId;
+  const dep = normalizeRouteParam(dependentId);
+  if (dep && UUID_RE.test(dep)) return dep;
+  const id = normalizeRouteParam(routeId);
+  if (id && UUID_RE.test(id)) return id;
+  return undefined;
+}
 
 export function MedsProvider({ children }: { children: ReactNode }) {
-  const { id, dependentId } = useGlobalSearchParams<{ id?: string, dependentId?: string }>();
-  const [targetUserId, setTargetUserId] = useState<string | null>(null);
+  const { id, dependentId } = useGlobalSearchParams<{ id?: string; dependentId?: string }>();
+  const [managedUserId, setManagedUserId] = useState<string | null>(null);
+  const [selfUserId, setSelfUserId] = useState<string | null>(null);
 
   const [treatments, setTreatments] = useState<Treatment[]>([]);
   const [schedules, setSchedules] = useState<ScheduleItem[]>([]);
 
+  const targetUserId =
+    pickRouteUserId(managedUserId, dependentId, id) ?? selfUserId;
+
   useEffect(() => {
-    const currentId = id || dependentId;
-    if (currentId) {
-      setTargetUserId(Array.isArray(currentId) ? currentId[0] : currentId);
-    } else {
-      usersAPI.getMe().then((me: any) => {
-        if (me?.id) setTargetUserId(me.id);
-      }).catch((e: any) => console.error('Failed to fetch user ID', e));
-    }
-  }, [id, dependentId]);
+    if (pickRouteUserId(managedUserId, dependentId, id)) return;
+    usersAPI
+      .getMe()
+      .then((me: { id?: string }) => {
+        if (me?.id) setSelfUserId(me.id);
+      })
+      .catch((e: unknown) => console.error('Failed to fetch user ID', e));
+  }, [managedUserId, dependentId, id]);
 
   const refetchFromServer = useCallback(async () => {
     if (!targetUserId) return;
@@ -155,7 +181,9 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   );
 
   const addTreatment = async (treatment: Omit<Treatment, 'id'>) => {
-    if (!targetUserId) return;
+    if (!targetUserId) {
+      throw new Error('Brak ID podopiecznego — otwórz profil seniora i spróbuj ponownie.');
+    }
     try {
       const data = await inventoryAPI.create(targetUserId, {
         name: treatment.name,
@@ -199,18 +227,22 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   };
 
   const addSchedule = async (schedule: Omit<ScheduleItem, 'id'>) => {
-    if (!targetUserId) return;
+    if (!targetUserId) {
+      throw new Error('Brak ID podopiecznego — otwórz profil seniora i spróbuj ponownie.');
+    }
     try {
       const data = await scheduleAPI.create(targetUserId, {
         inventoryId: schedule.treatmentId || schedule.inventoryId,
         medication: schedule.customName,
         time: schedule.time,
         type: schedule.type,
-        dosage: schedule.dosage || "1",
+        dosage: schedule.dosage || '1',
         startDate: schedule.startDate,
+        endDate: schedule.endDate,
+        daysOfWeek: schedule.daysOfWeek ?? [],
       });
-      setSchedules(prev => [...prev, { ...schedule, id: String(data.id), dosage: schedule.dosage || "1" }]);
-    } catch (e) { 
+      setSchedules(prev => [...prev, { ...schedule, id: String(data.id), dosage: schedule.dosage || '1' }]);
+    } catch (e) {
       console.error('Error adding schedule:', e);
       throw e;
     }
@@ -311,6 +343,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
         treatments,
         inventory,
         schedules,
+        setManagedUserId,
         addTreatment,
         removeTreatment,
         updateTreatment,

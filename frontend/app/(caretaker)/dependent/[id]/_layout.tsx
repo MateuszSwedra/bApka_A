@@ -1,9 +1,19 @@
-import { Tabs, router } from 'expo-router';
+import { Tabs, router, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { View, Pressable, Text } from 'react-native';
+import { useEffect } from 'react';
+import { useMeds } from '../../../../context/MedsContext';
 
 export default function DependentTabsLayout() {
+  const params = useLocalSearchParams<{ id: string }>();
+  const dependentId = Array.isArray(params.id) ? params.id[0] : params.id;
+  const { setManagedUserId } = useMeds();
+
+  useEffect(() => {
+    if (dependentId) setManagedUserId(dependentId);
+    return () => setManagedUserId(null);
+  }, [dependentId, setManagedUserId]);
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
       {/* Header wspólny dla wszystkich zakładek */}

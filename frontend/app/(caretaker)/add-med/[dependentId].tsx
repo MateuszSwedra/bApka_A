@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TextInput,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -33,9 +34,9 @@ export default function AddMedicationScreen() {
     ? params.dependentId[0]
     : params.dependentId;
 
-  const { treatments, addSchedule } = useMeds();
+  const { treatments, addSchedule, setManagedUserId } = useMeds();
 
-  const [medType, setMedType] = useState<MedScheduleType>('ONCE');
+  const [medType, setMedType] = useState<MedScheduleType | null>(null);
   const [selectedTreatmentId, setSelectedTreatmentId] = useState<string | null>(null);
 
   const [hour, setHour] = useState('08');
@@ -54,12 +55,21 @@ export default function AddMedicationScreen() {
   const [tempRangeComplete, setTempRangeComplete] = useState(false);
 
   useEffect(() => {
+    if (dependentId) setManagedUserId(dependentId);
+    return () => setManagedUserId(null);
+  }, [dependentId, setManagedUserId]);
+
+  useEffect(() => {
     if (medType !== 'TEMPORARY') return;
     setTempStart(today);
     setTempEnd(today);
     setTempSelectingStart(true);
     setTempRangeComplete(false);
   }, [medType, today]);
+
+  const hasActivity = Boolean(selectedTreatmentId);
+  const hasMedType = medType !== null;
+  const hasTime = Boolean(hour && minute);
 
   const daysOfWeek = [
     { id: 1, label: 'Pn' },
@@ -106,15 +116,15 @@ export default function AddMedicationScreen() {
   };
 
   const canSave = () => {
-    if (!selectedTreatmentId) return false;
+    if (!selectedTreatmentId || !medType) return false;
     if (medType === 'ONCE') return true;
     if (medType === 'REGULAR') return selectedDays.length > 0;
     if (medType === 'TEMPORARY') return tempRangeComplete;
     return false;
   };
 
-  const handleSave = () => {
-    if (!canSave() || !selectedTreatmentId) return;
+  const handleSave = async () => {
+    if (!canSave() || !selectedTreatmentId || !medType) return;
     let startDate = today;
     let endDate: string | undefined;
     let daysOfWeek: number[] = [];
@@ -123,20 +133,33 @@ export default function AddMedicationScreen() {
     if (medType === 'TEMPORARY') {
       startDate = tempStart;
       endDate = tempEnd;
-      // Brak zaznaczonych dni = codziennie w okresie
       daysOfWeek = selectedDays.length > 0 ? selectedDays : [1, 2, 3, 4, 5, 6, 7];
     }
-    addSchedule({
-      treatmentId: selectedTreatmentId,
-      type: medType,
-      time: `${hour}:${minute}`,
-      dosage,
-      daysOfWeek,
-      startDate,
-      endDate,
-    });
-    router.back();
+    try {
+      await addSchedule({
+        treatmentId: selectedTreatmentId,
+        type: medType,
+        time: `${hour}:${minute}`,
+        dosage,
+        daysOfWeek,
+        startDate,
+        endDate,
+      });
+      router.back();
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zapisać harmonogramu. Spróbuj ponownie.');
+    }
   };
+
+  const renderLockedHint = (step: number) => (
+    <Text style={styles.lockedHint}>
+      {step === 2
+        ? 'Najpierw wybierz aktywność z apteczki.'
+        : step === 3
+          ? 'Najpierw wybierz rodzaj podawania.'
+          : 'Uzupełnij poprzednie kroki.'}
+    </Text>
+  );
 
   const handleTempDayPress = (dateString: string) => {
     if (compareYmd(dateString, today) < 0) return;
@@ -298,10 +321,12 @@ export default function AddMedicationScreen() {
         {renderActivityPicker()}
 
         <Text style={styles.label}>Rodzaj podawania</Text>
-        <View style={styles.segmentContainer}>
+        {!hasActivity ? renderLockedHint(2) : null}
+        <View style={[styles.segmentContainer, !hasActivity && styles.sectionDisabled]}>
           <Pressable
             style={[styles.segmentBtn, medType === 'ONCE' && styles.segmentBtnActive]}
-            onPress={() => setMedType('ONCE')}
+            onPress={() => hasActivity && setMedType('ONCE')}
+            disabled={!hasActivity}
           >
             <Text style={[styles.segmentText, medType === 'ONCE' && styles.segmentTextActive]}>
               Jednorazowo
@@ -309,7 +334,8 @@ export default function AddMedicationScreen() {
           </Pressable>
           <Pressable
             style={[styles.segmentBtn, medType === 'REGULAR' && styles.segmentBtnActive]}
-            onPress={() => setMedType('REGULAR')}
+            onPress={() => hasActivity && setMedType('REGULAR')}
+            disabled={!hasActivity}
           >
             <Text style={[styles.segmentText, medType === 'REGULAR' && styles.segmentTextActive]}>
               Stałe
@@ -317,7 +343,8 @@ export default function AddMedicationScreen() {
           </Pressable>
           <Pressable
             style={[styles.segmentBtn, medType === 'TEMPORARY' && styles.segmentBtnActive]}
-            onPress={() => setMedType('TEMPORARY')}
+            onPress={() => hasActivity && setMedType('TEMPORARY')}
+            disabled={!hasActivity}
           >
             <Text style={[styles.segmentText, medType === 'TEMPORARY' && styles.segmentTextActive]}>
               Tymczasowo
@@ -325,39 +352,48 @@ export default function AddMedicationScreen() {
           </Pressable>
         </View>
 
-        <Text style={styles.label}>Godzina</Text>
-        <View style={styles.timeContainer}>
-          <TextInput
-            style={styles.timeInput}
-            value={hour}
-            onChangeText={handleHourChange}
-            onBlur={handleHourBlur}
-            keyboardType="number-pad"
-            maxLength={2}
-            selectTextOnFocus
-          />
-          <Text style={styles.timeSeparator}>:</Text>
-          <TextInput
-            style={styles.timeInput}
-            value={minute}
-            onChangeText={handleMinuteChange}
-            onBlur={handleMinuteBlur}
-            keyboardType="number-pad"
-            maxLength={2}
-            selectTextOnFocus
-          />
-        </View>
+        {hasMedType ? (
+          <>
+            <Text style={styles.label}>Godzina</Text>
+            <View style={styles.timeContainer}>
+              <TextInput
+                style={styles.timeInput}
+                value={hour}
+                onChangeText={handleHourChange}
+                onBlur={handleHourBlur}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                editable={hasMedType}
+              />
+              <Text style={styles.timeSeparator}>:</Text>
+              <TextInput
+                style={styles.timeInput}
+                value={minute}
+                onChangeText={handleMinuteChange}
+                onBlur={handleMinuteBlur}
+                keyboardType="number-pad"
+                maxLength={2}
+                selectTextOnFocus
+                editable={hasMedType}
+              />
+            </View>
 
-        <Text style={styles.label}>Ilość sztuk / Dawka</Text>
-        <TextInput
-          style={[styles.timeInput, { width: 120, height: 60, fontSize: 32, alignSelf: 'center' }]}
-          value={dosage}
-          onChangeText={setDosage}
-          keyboardType="number-pad"
-          selectTextOnFocus
-        />
+            <Text style={styles.label}>Ilość sztuk / Dawka</Text>
+            <TextInput
+              style={[styles.timeInput, { width: 120, height: 60, fontSize: 32, alignSelf: 'center' }]}
+              value={dosage}
+              onChangeText={setDosage}
+              keyboardType="number-pad"
+              selectTextOnFocus
+              editable={hasMedType}
+            />
+          </>
+        ) : (
+          renderLockedHint(3)
+        )}
 
-        {medType === 'ONCE' && (
+        {hasMedType && hasTime && medType === 'ONCE' && (
           <View style={styles.section}>
             <Text style={styles.label}>Wybierz datę</Text>
             <View style={styles.calendarWrapper}>
@@ -372,7 +408,7 @@ export default function AddMedicationScreen() {
           </View>
         )}
 
-        {(medType === 'REGULAR' || medType === 'TEMPORARY') && (
+        {hasMedType && hasTime && (medType === 'REGULAR' || medType === 'TEMPORARY') && (
           <View style={styles.section}>
             <Text style={styles.label}>
               Dni tygodnia{medType === 'TEMPORARY' ? ' (opcjonalne)' : ''}
@@ -399,7 +435,7 @@ export default function AddMedicationScreen() {
           </View>
         )}
 
-        {medType === 'TEMPORARY' && (
+        {hasMedType && hasTime && medType === 'TEMPORARY' && (
           <View style={styles.section}>
             <View style={styles.rangeHeader}>
               <Text style={[styles.label, { marginTop: 0 }]}>Okres podawania</Text>
@@ -689,5 +725,14 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
     marginBottom: Theme.spacing.s,
     lineHeight: 18,
+  },
+  sectionDisabled: {
+    opacity: 0.45,
+  },
+  lockedHint: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.accentOrange,
+    fontWeight: '600',
+    marginBottom: Theme.spacing.s,
   },
 });
