@@ -5,62 +5,84 @@ import {
   StyleSheet,
   Pressable,
   Platform,
-  ScrollView,
   Alert,
 } from 'react-native';
-import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { scheduleAPI, usersAPI } from '../../services/api';
-import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
+import { useMeds } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { format } from 'date-fns';
-import { schedulesForDateSorted, computeDependentMainScheduleState } from '../../utils/dependentScheduleUi';
+import {
+  computeDependentMainScheduleState,
+  computeMoodScheduleState,
+  DEFAULT_MOOD_CHECK_TIMES,
+} from '../../utils/dependentScheduleUi';
 import {
   getCompletedScheduleIdsForDate,
   markScheduleCompletedForDate,
 } from '../../services/seniorScheduleCompletion';
-import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
+import {
+  getCompletedMoodSlotsForDate,
+  markMoodSlotCompletedForDate,
+} from '../../services/seniorMoodCompletion';
+import { SeniorConfirmModal } from '../../components/SeniorConfirmModal';
+import { MoodPickerModal } from '../../components/MoodPickerModal';
 import { useFocusEffect } from '@react-navigation/native';
+
+const TILE_COLORS = {
+  medActive: '#2E7D32',
+  medInactive: '#B0BEC5',
+  moodActive: '#F9A825',
+  moodInactive: '#CFD8DC',
+  schedule: '#456882',
+  sos: '#D32F2F',
+};
 
 export default function DependentDashboard() {
   const { logout } = useAuth();
   const { colors } = useDependentDisplay();
-  const { treatments, schedules, inventory, refetchFromServer } = useMeds();
+  const { schedules, treatments, depletionAlerts, refetchFromServer } = useMeds();
   const [now, setNow] = useState(() => new Date());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
+  const [completedMoodSlots, setCompletedMoodSlots] = useState<Set<string>>(new Set());
+  const [seniorName, setSeniorName] = useState('Senior');
+  const [moodEnabled, setMoodEnabled] = useState(true);
+
+  const [medConfirmVisible, setMedConfirmVisible] = useState(false);
+  const [sosConfirmVisible, setSosConfirmVisible] = useState(false);
+  const [moodPickerVisible, setMoodPickerVisible] = useState(false);
+
   const todayStr = format(now, 'yyyy-MM-dd');
 
-  const [moodPhase, setMoodPhase] = useState<'pick' | 'thanks' | 'hidden'>('pick');
-  const [highlightMood, setHighlightMood] = useState(false);
-
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
+    const id = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(id);
   }, []);
 
   const loadCompleted = useCallback(async () => {
-    const ids = await getCompletedScheduleIdsForDate(todayStr);
+    const [ids, moodSlots] = await Promise.all([
+      getCompletedScheduleIdsForDate(todayStr),
+      getCompletedMoodSlotsForDate(todayStr),
+    ]);
     setCompletedIds(new Set(ids));
+    setCompletedMoodSlots(new Set(moodSlots));
   }, [todayStr]);
-
-  useEffect(() => {
-    void loadCompleted();
-  }, [loadCompleted]);
-
-  const [moodEnabled, setMoodEnabled] = useState(true);
 
   useFocusEffect(
     useCallback(() => {
       void refetchFromServer();
       void loadCompleted();
-      usersAPI.getMe().then(me => {
-        if (me && typeof me.moodEnabled === 'boolean') {
-          setMoodEnabled(me.moodEnabled);
-        }
-      }).catch(() => {});
+      usersAPI
+        .getMe()
+        .then(me => {
+          if (me?.name?.trim()) setSeniorName(me.name.trim());
+          else if (me?.email) setSeniorName(me.email);
+          if (me && typeof me.moodEnabled === 'boolean') setMoodEnabled(me.moodEnabled);
+        })
+        .catch(() => {});
     }, [refetchFromServer, loadCompleted]),
   );
 
@@ -69,12 +91,27 @@ export default function DependentDashboard() {
     [schedules, treatments, completedIds, now],
   );
 
-  const todayRows = useMemo(
-    () => schedulesForDateSorted(schedules, treatments, todayStr),
-    [schedules, treatments, todayStr],
+  const moodState = useMemo(
+    () =>
+      moodEnabled
+        ? computeMoodScheduleState(DEFAULT_MOOD_CHECK_TIMES, completedMoodSlots, now)
+        : { kind: 'disabled' as const },
+    [moodEnabled, completedMoodSlots, now],
   );
 
-  const clockText = format(now, 'HH:mm');
+  const lowMedWarning = useMemo(() => {
+    const todayAlerts = depletionAlerts.filter(a => a.date === todayStr);
+    if (todayAlerts.length > 0) {
+      return `Kończy się lek: ${todayAlerts.map(a => a.inventoryItemName).join(', ')}`;
+    }
+    const upcoming = depletionAlerts
+      .filter(a => a.date >= todayStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    if (upcoming.length > 0) {
+      return `Wkrótce skończy się: ${upcoming[0].inventoryItemName}`;
+    }
+    return null;
+  }, [depletionAlerts, todayStr]);
 
   const handleLogout = async () => {
     await logout();
@@ -85,281 +122,207 @@ export default function DependentDashboard() {
     }
   };
 
-  const onMainAction = async () => {
+  const onMedPress = () => {
     if (mainState.kind !== 'due') return;
+    setMedConfirmVisible(true);
+  };
+
+  const confirmMed = async () => {
+    if (mainState.kind !== 'due') return;
+    setMedConfirmVisible(false);
     try {
       await scheduleAPI.markTaken(mainState.scheduleId);
       await markScheduleCompletedForDate(todayStr, mainState.scheduleId);
       await loadCompleted();
-      setHighlightMood(true);
-      setMoodPhase('pick');
     } catch {
-      Alert.alert('Error', 'Could not record this on the server. Please try again.');
+      Alert.alert('Błąd', 'Nie udało się zapisać. Spróbuj ponownie.');
     }
   };
 
-  const onMoodPick = async (mood: string) => {
-    setMoodPhase('thanks');
+  const onMoodPress = () => {
+    if (moodState.kind !== 'active') return;
+    setMoodPickerVisible(true);
+  };
+
+  const onMoodPick = async (mood: 'sad' | 'neutral' | 'happy') => {
+    setMoodPickerVisible(false);
+    if (moodState.kind !== 'active') return;
     try {
       await usersAPI.updateMood(mood);
-    } catch (e) {
-      console.warn('Could not save mood', e);
+      await markMoodSlotCompletedForDate(todayStr, moodState.slotTime);
+      await loadCompleted();
+    } catch {
+      Alert.alert('Błąd', 'Nie udało się zapisać nastroju.');
     }
-    setTimeout(() => {
-      setMoodPhase('hidden');
-      setHighlightMood(false);
-    }, 3500);
   };
 
-  const onSos = () => {
-    Alert.alert(
-      'SOS',
-      'You tapped the SOS button. No notification was sent to your carer in this version.',
-    );
+  const onSosConfirm = () => {
+    setSosConfirmVisible(false);
+    Alert.alert('SOS', 'Powiadomienie do opiekuna zostanie wysłane w kolejnej wersji aplikacji.');
   };
 
-  const borderMain = colors.mainButtonBorderWidth ?? 0;
+  const medActive = mainState.kind === 'due';
+  const moodActive = moodState.kind === 'active';
+
+  const medTitle = medActive ? 'WEŹ LEK' : 'Leki';
+  const medLine1 =
+    mainState.kind === 'due'
+      ? mainState.name
+      : mainState.kind === 'upcoming'
+        ? `O ${mainState.nextTime}`
+        : mainState.kind === 'all_done'
+          ? 'Wszystko na dziś'
+          : 'Brak planu';
+  const medLine2 =
+    mainState.kind === 'due'
+      ? mainState.dose
+      : mainState.kind === 'upcoming'
+        ? `${mainState.nextName} · ${mainState.dose}`
+        : '';
+
+  const moodTitle = moodActive ? 'ZAZNACZ HUMOR' : 'Humor';
+  const moodLine1 =
+    moodState.kind === 'active'
+      ? 'Dotknij i wybierz buzię'
+      : moodState.kind === 'inactive'
+        ? `Następny o ${moodState.nextTime}`
+        : moodEnabled
+          ? 'Na dziś zrobione'
+          : 'Wyłączone';
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
-        <View style={styles.greeting}>
-          <Text style={[styles.greetingText, { color: colors.textLight }]}>Good day,</Text>
-          <Text style={[styles.nameText, { color: colors.textDark }]}>dear senior</Text>
+        <View style={styles.headerCenter}>
+          <Text style={[styles.seniorName, { color: colors.textDark }]}>{seniorName}</Text>
+          {lowMedWarning ? (
+            <Text style={styles.lowMedWarning}>{lowMedWarning}</Text>
+          ) : null}
         </View>
         <View style={styles.headerActions}>
           <Pressable
             onPress={() => router.push('/(dependent)/settings' as any)}
             style={[styles.iconBtn, { backgroundColor: colors.primaryLime }]}
           >
-            <MaterialIcons name="settings" size={32} color={colors.primaryLimeDark} />
+            <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
           </Pressable>
           <Pressable
             onPress={handleLogout}
-            style={[styles.logoutBtn, { backgroundColor: colors.surfaceSoftOrange }]}
+            style={[styles.iconBtn, { backgroundColor: colors.surfaceSoftOrange }]}
           >
-            <MaterialIcons name="logout" size={32} color={colors.accentOrange} />
+            <MaterialIcons name="logout" size={28} color={colors.accentOrange} />
           </Pressable>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {moodEnabled && moodPhase !== 'hidden' && (
-          <View
-            style={[
-              styles.moodWrap,
-              {
-                backgroundColor: colors.surfaceWhite,
-                borderColor: highlightMood ? colors.accentOrange : colors.moodBorder ?? colors.border,
-                borderWidth: highlightMood ? 3 : colors.mainButtonBorderWidth ?? 1,
-              },
-            ]}
-          >
-            {moodPhase === 'pick' && (
-              <>
-                <Text style={[styles.moodTitle, { color: colors.textDark }]}>
-                  How do you feel today?
-                </Text>
-                <View style={styles.moodRow}>
-                  <Pressable
-                    onPress={() => onMoodPick('sad')}
-                    style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
-                  >
-                    <Text style={styles.moodEmoji}>🙁</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => onMoodPick('neutral')}
-                    style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
-                  >
-                    <Text style={styles.moodEmoji}>😐</Text>
-                  </Pressable>
-                  <Pressable
-                    onPress={() => onMoodPick('happy')}
-                    style={({ pressed }) => [styles.moodFace, pressed && { opacity: 0.85 }]}
-                  >
-                    <Text style={styles.moodEmoji}>🙂</Text>
-                  </Pressable>
-                </View>
-              </>
-            )}
-            {moodPhase === 'thanks' && (
-              <Text style={[styles.moodThanks, { color: colors.textDark }]}>
-                Thank you for letting us know.
-              </Text>
-            )}
-          </View>
-        )}
-
-        <View style={styles.clockContainer}>
-          <Text style={[styles.clock, { color: colors.textDark }]}>{clockText}</Text>
-        </View>
-
-        {mainState.kind === 'due' && (
-          <Pressable
-            onPress={() => void onMainAction()}
-            style={({ pressed }) => [
-              styles.mainActionCard,
-              {
-                backgroundColor: colors.primaryLimeDark,
-                borderColor: colors.textDark,
-                borderWidth: borderMain || 0,
-              },
-              pressed && styles.pressedCard,
-            ]}
-          >
-            <View style={styles.mainActionIcon}>
-              <MaterialIcons name="medication" size={64} color={colors.surfaceWhite} />
-            </View>
-            <Text style={[styles.mainActionText, { color: colors.surfaceWhite }]}>
-              Take your medicine or do your exercises — it is time from your calendar.
-            </Text>
-            <Text style={[styles.mainActionSub, { color: colors.surfaceWhite }]}>{mainState.name}</Text>
-          </Pressable>
-        )}
-
-        {mainState.kind === 'upcoming' && (
-          <View
-            style={[
-              styles.mainPassive,
-              {
-                backgroundColor: colors.border,
-                borderColor: colors.textLight,
-                borderWidth: borderMain || 1,
-              },
-            ]}
-          >
-            <MaterialIcons name="schedule" size={40} color={colors.textDark} />
-            <Text style={[styles.mainPassiveText, { color: colors.textDark }]}>
-              Next medicine or activity at: {mainState.nextTime}
-            </Text>
-            <Text style={[styles.mainPassiveHint, { color: colors.textDark }]}>{mainState.nextName}</Text>
-          </View>
-        )}
-
-        {mainState.kind === 'empty' && (
-          <View
-            style={[
-              styles.mainPassive,
-              {
-                backgroundColor: colors.border,
-                borderColor: colors.textLight,
-                borderWidth: borderMain || 1,
-              },
-            ]}
-          >
-            <MaterialIcons name="event-available" size={40} color={colors.textDark} />
-            <Text style={[styles.mainPassiveText, { color: colors.textDark }]}>
-              {"No activity is required by your carer's calendar right now."}
-            </Text>
-          </View>
-        )}
-
-        {mainState.kind === 'all_done' && (
-          <View
-            style={[
-              styles.mainDone,
-              {
-                backgroundColor: colors.primaryLime,
-                borderColor: colors.primaryLimeDark,
-                borderWidth: borderMain || 2,
-              },
-            ]}
-          >
-            <MaterialIcons name="task-alt" size={44} color={colors.primaryLimeDark} />
-            <Text style={[styles.mainDoneText, { color: colors.textDark }]}>
-              That is all for today — no more planned activities.
-            </Text>
-          </View>
-        )}
-
+      <View style={styles.grid}>
         <Pressable
+          onPress={onMedPress}
+          disabled={!medActive}
           style={({ pressed }) => [
-            styles.sosCard,
-            { backgroundColor: colors.accentOrange },
-            pressed && styles.pressedCard,
+            styles.tile,
+            {
+              backgroundColor: medActive ? TILE_COLORS.medActive : TILE_COLORS.medInactive,
+              borderColor: medActive ? '#1B5E20' : '#90A4AE',
+            },
+            medActive && styles.tileActive,
+            pressed && medActive && styles.pressed,
           ]}
-          onPress={onSos}
         >
-          <MaterialIcons name="emergency" size={36} color={colors.surfaceWhite} />
-          <Text style={[styles.sosText, { color: colors.surfaceWhite }]}>SOS</Text>
+          <MaterialIcons
+            name="medication"
+            size={48}
+            color={medActive ? '#FFFFFF' : '#546E7A'}
+          />
+          <Text style={[styles.tileTitle, { color: medActive ? '#FFFFFF' : '#37474F' }]}>
+            {medTitle}
+          </Text>
+          <Text style={[styles.tileLine1, { color: medActive ? '#FFFFFF' : '#455A64' }]}>
+            {medLine1}
+          </Text>
+          {medLine2 ? (
+            <Text style={[styles.tileLine2, { color: medActive ? '#E8F5E9' : '#607D8B' }]}>
+              {medLine2}
+            </Text>
+          ) : null}
         </Pressable>
 
-        <View style={styles.sectionHeaderRow}>
-          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{"Today's activities"}</Text>
-        </View>
-        {todayRows.length === 0 ? (
-          <Text style={[styles.emptyLine, { color: colors.textLight }]}>Nothing scheduled for today.</Text>
-        ) : (
-          todayRows.map(({ sch, name }) => {
-            const tid = getScheduleTreatmentId(sch);
-            const t = tid ? treatments.find(x => x.id === tid) : undefined;
-            const icon =
-              t?.type && TREATMENT_VISUAL[t.type] ? TREATMENT_VISUAL[t.type].icon : ('event' as const);
-            const done = completedIds.has(sch.id);
-            return (
-              <Card
-                key={sch.id}
-                style={{
-                  ...styles.activityCard,
-                  backgroundColor: colors.surfaceWhite,
-                  borderColor: colors.border,
-                }}
-              >
-                <View style={[styles.timeBadge, { backgroundColor: colors.surfaceGrey }]}>
-                  <Text style={[styles.activityTime, { color: colors.textDark }]}>{sch.time}</Text>
-                </View>
-                <MaterialIcons name={icon} size={28} color={colors.primaryLimeDark} />
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.activityName, { color: colors.textDark }]}>
-                    {name}
-                  </Text>
-                  {t?.description ? (
-                    <Text style={{ fontSize: 16, color: colors.textDark, marginTop: 4 }}>
-                      {t.description}
-                    </Text>
-                  ) : null}
-                </View>
-                <MaterialIcons
-                  name={done ? 'check-circle' : 'radio-button-unchecked'}
-                  size={32}
-                  color={done ? colors.success : colors.textLight}
-                />
-              </Card>
-            );
-          })
-        )}
-
         <Pressable
-          onPress={() => router.push('/(dependent)/calendar' as any)}
-          style={[
-            styles.calendarCta,
-            { backgroundColor: colors.primaryLimeDark, borderColor: colors.textDark },
+          onPress={onMoodPress}
+          disabled={!moodActive}
+          style={({ pressed }) => [
+            styles.tile,
+            {
+              backgroundColor: moodActive ? TILE_COLORS.moodActive : TILE_COLORS.moodInactive,
+              borderColor: moodActive ? '#F57F17' : '#90A4AE',
+            },
+            moodActive && styles.tileActive,
+            pressed && moodActive && styles.pressed,
           ]}
         >
-          <MaterialIcons name="calendar-month" size={36} color={colors.surfaceWhite} />
-          <Text style={[styles.calendarCtaText, { color: colors.surfaceWhite }]}>
-            Open calendar — other days
+          <Text style={styles.moodIcon}>{moodActive ? '😊' : '😐'}</Text>
+          <Text style={[styles.tileTitle, { color: moodActive ? '#3E2723' : '#546E7A' }]}>
+            {moodTitle}
+          </Text>
+          <Text style={[styles.tileLine1, { color: moodActive ? '#3E2723' : '#607D8B' }]}>
+            {moodLine1}
           </Text>
         </Pressable>
 
-        <Text style={[styles.sectionTitle, { color: colors.textDark, marginTop: Theme.spacing.l }]}>
-          Medicine left at home
-        </Text>
-        {inventory.length === 0 ? (
-          <Text style={[styles.emptyLine, { color: colors.textLight }]}>No packs were added yet.</Text>
-        ) : (
-          inventory.map(item => (
-            <Card key={item.id} variant="grey" style={{ ...styles.stockCard, borderColor: colors.border }}>
-              <Text style={[styles.stockName, { color: colors.textDark }]}>{item.name}</Text>
-              {Number(item.totalPills) > 0 && (
-                <Text style={[styles.stockCount, { color: colors.primaryLimeDark }]}>
-                  {item.totalPills} dose(s) left
-                </Text>
-              )}
-            </Card>
-          ))
-        )}
-      </ScrollView>
+        <Pressable
+          onPress={() => router.push('/(dependent)/calendar' as any)}
+          style={({ pressed }) => [
+            styles.tile,
+            { backgroundColor: TILE_COLORS.schedule, borderColor: '#1B3C53' },
+            pressed && styles.pressed,
+          ]}
+        >
+          <MaterialIcons name="calendar-month" size={48} color="#FFFFFF" />
+          <Text style={[styles.tileTitle, { color: '#FFFFFF' }]}>Harmonogram</Text>
+          <Text style={[styles.tileLine1, { color: '#E3F2FD' }]}>Plan leków</Text>
+        </Pressable>
+
+        <Pressable
+          onPress={() => setSosConfirmVisible(true)}
+          style={({ pressed }) => [
+            styles.tile,
+            { backgroundColor: TILE_COLORS.sos, borderColor: '#B71C1C' },
+            pressed && styles.pressed,
+          ]}
+        >
+          <MaterialIcons name="emergency" size={48} color="#FFFFFF" />
+          <Text style={[styles.tileTitle, { color: '#FFFFFF' }]}>SOS</Text>
+          <Text style={[styles.tileLine1, { color: '#FFEBEE' }]}>Wezwij pomoc</Text>
+        </Pressable>
+      </View>
+
+      <SeniorConfirmModal
+        visible={medConfirmVisible}
+        title="Potwierdzenie"
+        message={
+          mainState.kind === 'due'
+            ? `Czy potwierdzasz wzięcie leku ${mainState.name} (${mainState.dose})?`
+            : 'Czy potwierdzasz wzięcie leku?'
+        }
+        onConfirm={() => void confirmMed()}
+        onCancel={() => setMedConfirmVisible(false)}
+        confirmColor={TILE_COLORS.medActive}
+      />
+
+      <SeniorConfirmModal
+        visible={sosConfirmVisible}
+        title="SOS"
+        message="Czy na pewno chcesz wysłać pomoc do opiekuna?"
+        onConfirm={onSosConfirm}
+        onCancel={() => setSosConfirmVisible(false)}
+        confirmColor={TILE_COLORS.sos}
+      />
+
+      <MoodPickerModal
+        visible={moodPickerVisible}
+        onPick={mood => void onMoodPick(mood)}
+        onClose={() => setMoodPickerVisible(false)}
+      />
     </View>
   );
 }
@@ -370,221 +333,83 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: Theme.spacing.l,
     paddingTop: Theme.spacing.xxl,
     paddingBottom: Theme.spacing.m,
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
+  },
+  headerCenter: {
+    flex: 1,
+    paddingRight: Theme.spacing.m,
+  },
+  seniorName: {
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  lowMedWarning: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#D32F2F',
+    marginTop: 4,
   },
   headerActions: {
     flexDirection: 'row',
-    alignItems: 'center',
     gap: Theme.spacing.s,
   },
   iconBtn: {
     padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.round,
   },
-  greeting: {
+  grid: {
     flex: 1,
-  },
-  greetingText: {
-    fontSize: 22,
-  },
-  nameText: {
-    fontSize: 28,
-    fontWeight: 'bold',
-  },
-  logoutBtn: {
-    padding: Theme.spacing.s,
-    borderRadius: Theme.borderRadius.round,
-  },
-  scrollContent: {
-    padding: Theme.spacing.l,
-    paddingBottom: Theme.spacing.xxl,
-  },
-  moodWrap: {
-    borderRadius: Theme.borderRadius.large,
-    padding: Theme.spacing.l,
-    marginBottom: Theme.spacing.l,
-  },
-  moodTitle: {
-    fontSize: 26,
-    fontWeight: '800',
-    textAlign: 'center',
-    marginBottom: Theme.spacing.m,
-  },
-  moodRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  moodFace: {
+    flexWrap: 'wrap',
     padding: Theme.spacing.m,
-  },
-  moodEmoji: {
-    fontSize: 56,
-  },
-  moodThanks: {
-    fontSize: 26,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  clockContainer: {
-    alignItems: 'center',
-    marginBottom: Theme.spacing.m,
-  },
-  clock: {
-    fontSize: 72,
-    fontWeight: '900',
-    letterSpacing: -2,
-  },
-  mainActionCard: {
-    borderRadius: Theme.borderRadius.xlarge,
-    padding: Theme.spacing.xl,
-    alignItems: 'center',
+    gap: Theme.spacing.m,
+    alignContent: 'center',
     justifyContent: 'center',
+  },
+  tile: {
+    width: '47%',
     minHeight: 200,
-    marginBottom: Theme.spacing.l,
-  },
-  mainActionIcon: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: Theme.spacing.m,
-  },
-  mainActionText: {
-    fontSize: 24,
-    fontWeight: '900',
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-  mainActionSub: {
-    marginTop: Theme.spacing.m,
-    fontSize: 22,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  mainPassive: {
     borderRadius: Theme.borderRadius.xlarge,
-    padding: Theme.spacing.xl,
-    alignItems: 'center',
-    marginBottom: Theme.spacing.l,
-    gap: Theme.spacing.s,
-  },
-  mainPassiveText: {
-    fontSize: 24,
-    fontWeight: '800',
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-  mainPassiveHint: {
-    fontSize: 20,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  mainDone: {
-    borderRadius: Theme.borderRadius.xlarge,
-    padding: Theme.spacing.xl,
-    alignItems: 'center',
-    marginBottom: Theme.spacing.l,
-    gap: Theme.spacing.m,
-  },
-  mainDoneText: {
-    fontSize: 24,
-    fontWeight: '900',
-    textAlign: 'center',
-    lineHeight: 32,
-  },
-  pressedCard: {
-    transform: [{ scale: 0.98 }],
-    opacity: 0.9,
-  },
-  sosCard: {
-    flexDirection: 'row',
-    borderRadius: Theme.borderRadius.large,
+    borderWidth: 3,
     padding: Theme.spacing.l,
-    alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Theme.spacing.xl,
-    gap: Theme.spacing.s,
-  },
-  sosText: {
-    fontSize: 26,
-    fontWeight: 'bold',
-  },
-  sectionHeaderRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: Theme.spacing.s,
+    gap: Theme.spacing.xs,
   },
-  sectionTitle: {
-    fontSize: 26,
-    fontWeight: '800',
+  tileActive: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 6,
   },
-  emptyLine: {
-    fontSize: 20,
-    marginBottom: Theme.spacing.m,
-  },
-  activityCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.m,
-    borderRadius: Theme.borderRadius.large,
-    borderWidth: 1,
-    gap: Theme.spacing.s,
-  },
-  timeBadge: {
-    paddingHorizontal: Theme.spacing.s,
-    paddingVertical: Theme.spacing.xs,
-    borderRadius: Theme.borderRadius.small,
-    minWidth: 72,
-    alignItems: 'center',
-  },
-  activityTime: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  activityName: {
-    flex: 1,
+  tileTitle: {
     fontSize: 22,
-    fontWeight: '700',
-  },
-  calendarCta: {
-    marginTop: Theme.spacing.m,
-    marginBottom: Theme.spacing.l,
-    borderRadius: Theme.borderRadius.large,
-    paddingVertical: Theme.spacing.m,
-    paddingHorizontal: Theme.spacing.l,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: Theme.spacing.m,
-    borderWidth: 1,
-  },
-  calendarCtaText: {
-    fontSize: 24,
     fontWeight: '900',
-  },
-  stockCard: {
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.s,
-    borderWidth: 1,
-    borderRadius: Theme.borderRadius.large,
-  },
-  stockName: {
-    fontSize: 22,
-    fontWeight: '800',
-  },
-  stockCount: {
-    fontSize: 20,
-    fontWeight: '700',
+    textAlign: 'center',
     marginTop: Theme.spacing.xs,
+  },
+  tileLine1: {
+    fontSize: 17,
+    fontWeight: '700',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  tileLine2: {
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  moodIcon: {
+    fontSize: 48,
+  },
+  pressed: {
+    transform: [{ scale: 0.97 }],
+    opacity: 0.92,
   },
 });

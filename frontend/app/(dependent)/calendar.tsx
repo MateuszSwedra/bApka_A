@@ -1,75 +1,50 @@
 import React, { useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import { router } from 'expo-router';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { MaterialIcons } from '@expo/vector-icons';
-import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
-import { format } from 'date-fns';
+import { addDays, format } from 'date-fns';
+import { pl } from 'date-fns/locale';
 import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
-import type { ScheduleItem } from '../../context/MedsContext';
+import type { ScheduleItem, Treatment } from '../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
 import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 
-LocaleConfig.locales['en'] = {
-  monthNames: [
-    'January',
-    'February',
-    'March',
-    'April',
-    'May',
-    'June',
-    'July',
-    'August',
-    'September',
-    'October',
-    'November',
-    'December',
-  ],
-  monthNamesShort: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-  dayNames: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
-  dayNamesShort: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-  today: 'Today',
-};
-LocaleConfig.defaultLocale = 'en';
+const DAYS_AHEAD = 60;
+
+function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]) {
+  if (sch.customName) return sch.customName;
+  const tid = getScheduleTreatmentId(sch);
+  if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Aktywność';
+  return 'Aktywność';
+}
+
+function doseLabel(sch: ScheduleItem): string {
+  if (!sch.dosage || sch.dosage === '1') return '1 dawka';
+  return `${sch.dosage} szt.`;
+}
 
 export default function DependentCalendarScreen() {
   const { colors } = useDependentDisplay();
-  const [selectedDate, setSelectedDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const { depletionAlerts, schedules, treatments } = useMeds();
+  const [expandedDate, setExpandedDate] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'));
 
-  const dynamicMarks = depletionAlerts.reduce(
-    (acc, alert) => {
-      acc[alert.date] = { marked: true, dotColor: colors.accentOrange };
-      return acc;
-    },
-    {} as Record<string, { marked: boolean; dotColor: string }>,
-  );
+  const dayList = useMemo(() => {
+    const start = new Date();
+    return Array.from({ length: DAYS_AHEAD }, (_, i) => {
+      const d = addDays(start, i);
+      const dateStr = format(d, 'yyyy-MM-dd');
+      const daySchedules = schedules
+        .filter(s => scheduleAppliesToDate(s, dateStr))
+        .sort((a, b) => a.time.localeCompare(b.time));
+      const alerts = depletionAlerts.filter(a => a.date === dateStr);
+      return { dateStr, date: d, daySchedules, alerts };
+    });
+  }, [schedules, depletionAlerts]);
 
-  const todayAlerts = depletionAlerts.filter(a => a.date === selectedDate);
-
-  const scheduledForDay = useMemo(
-    () => schedules.filter(s => scheduleAppliesToDate(s, selectedDate)),
-    [schedules, selectedDate],
-  );
-
-  const labelForSchedule = (sch: ScheduleItem) => {
-    if (sch.customName) return sch.customName;
-    const tid = getScheduleTreatmentId(sch);
-    if (tid) return treatments.find(t => t.id === tid)?.name ?? 'Activity';
-    return 'Activity';
-  };
-
-  const typeForSchedule = (sch: ScheduleItem) => {
-    const tid = getScheduleTreatmentId(sch);
-    return treatments.find(t => t.id === tid)?.type;
-  };
-
-  const typeLabel = (sch: ScheduleItem) => {
-    if (sch.type === 'ONCE') return 'One-off';
-    if (sch.type === 'REGULAR') return 'Regular';
-    return 'Temporary';
+  const toggleDay = (dateStr: string) => {
+    setExpandedDate(prev => (prev === dateStr ? null : dateStr));
   };
 
   return (
@@ -78,91 +53,93 @@ export default function DependentCalendarScreen() {
         <Pressable onPress={() => router.back()} style={styles.backBtn}>
           <MaterialIcons name="arrow-back" size={32} color={colors.textDark} />
         </Pressable>
-        <Text style={[styles.headerTitle, { color: colors.textDark }]}>Your calendar</Text>
+        <Text style={[styles.headerTitle, { color: colors.textDark }]}>Harmonogram</Text>
         <View style={{ width: 32 }} />
       </View>
 
-      <ScrollView style={styles.scroll}>
-        <View style={[styles.calendarContainer, { backgroundColor: colors.surfaceWhite }]}>
-          <Calendar
-            current={selectedDate}
-            onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
-            markedDates={{
-              ...dynamicMarks,
-              [selectedDate]: {
-                ...dynamicMarks[selectedDate],
-                selected: true,
-                selectedColor: colors.primaryLime,
-              },
-            }}
-            theme={{
-              backgroundColor: colors.surfaceWhite,
-              calendarBackground: colors.surfaceWhite,
-              textSectionTitleColor: colors.textLight,
-              selectedDayBackgroundColor: colors.primaryLime,
-              selectedDayTextColor: colors.textDark,
-              todayTextColor: colors.primaryLimeDark,
-              dayTextColor: colors.textDark,
-              textDisabledColor: colors.border,
-              dotColor: colors.primaryLimeDark,
-              selectedDotColor: colors.textDark,
-              arrowColor: colors.textDark,
-              monthTextColor: colors.textDark,
-              indicatorColor: colors.primaryLime,
-              textDayFontWeight: '600',
-              textMonthFontWeight: 'bold',
-              textDayHeaderFontWeight: '700',
-              textDayFontSize: 18,
-              textMonthFontSize: 22,
-            }}
-          />
-        </View>
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
+        {dayList.map(({ dateStr, date, daySchedules, alerts }) => {
+          const expanded = expandedDate === dateStr;
+          const isToday = dateStr === format(new Date(), 'yyyy-MM-dd');
+          const dayLabel = format(date, 'EEEE, d MMMM', { locale: pl });
+          const count = daySchedules.length;
 
-        <View style={styles.scheduleSection}>
-          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>
-            Day: {selectedDate}
-          </Text>
-
-          {todayAlerts.map((alert, idx) => (
-            <Card
-              key={`warn-${idx}`}
-              variant="white"
-              style={{ ...styles.scheduleCardWarning, borderColor: colors.accentOrange }}
-            >
-              <Text style={[styles.scheduleTimeWarning, { color: colors.accentOrange }]}>
-                Medicine running low
-              </Text>
-              <View style={styles.scheduleRow}>
-                <MaterialIcons name="shopping-cart" size={28} color={colors.accentOrange} />
-                <Text style={[styles.scheduleItemWarning, { color: colors.accentOrange }]}>
-                  Buy a new pack: {alert.inventoryItemName}
-                </Text>
-              </View>
-            </Card>
-          ))}
-
-          {scheduledForDay.map(sch => {
-            const name = labelForSchedule(sch);
-            const tType = typeForSchedule(sch);
-            const icon =
-              tType && TREATMENT_VISUAL[tType] ? TREATMENT_VISUAL[tType].icon : ('event' as const);
-            return (
-              <Card key={sch.id} variant="grey" style={{ ...styles.scheduleCard, borderColor: colors.border }}>
-                <Text style={[styles.scheduleTime, { color: colors.textDark }]}>
-                  {sch.time} · {typeLabel(sch)}
-                </Text>
-                <View style={styles.scheduleRow}>
-                  <MaterialIcons name={icon} size={26} color={colors.success} />
-                  <Text style={[styles.scheduleItemDone, { color: colors.textDark }]}>{name}</Text>
+          return (
+            <View key={dateStr} style={styles.dayBlock}>
+              <Pressable
+                onPress={() => toggleDay(dateStr)}
+                style={({ pressed }) => [
+                  styles.dayHeader,
+                  {
+                    backgroundColor: isToday ? colors.primaryLime : colors.surfaceWhite,
+                    borderColor: isToday ? colors.primaryLimeDark : colors.border,
+                  },
+                  pressed && { opacity: 0.9 },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.dayTitle, { color: colors.textDark }]}>
+                    {isToday ? `Dziś · ${dayLabel}` : dayLabel}
+                  </Text>
+                  <Text style={[styles.dayMeta, { color: colors.textLight }]}>
+                    {count === 0 ? 'Brak leków' : `${count} ${count === 1 ? 'pozycja' : 'pozycji'}`}
+                  </Text>
                 </View>
-              </Card>
-            );
-          })}
+                <MaterialIcons
+                  name={expanded ? 'expand-less' : 'expand-more'}
+                  size={32}
+                  color={colors.textDark}
+                />
+              </Pressable>
 
-          {scheduledForDay.length === 0 && todayAlerts.length === 0 && (
-            <Text style={[styles.emptyDay, { color: colors.textLight }]}>No activities on this day.</Text>
-          )}
-        </View>
+              {expanded && (
+                <View style={[styles.dayBody, { backgroundColor: colors.surfaceGrey, borderColor: colors.border }]}>
+                  {alerts.map((alert, idx) => (
+                    <View
+                      key={`alert-${idx}`}
+                      style={[styles.alertRow, { borderColor: colors.accentOrange }]}
+                    >
+                      <MaterialIcons name="warning" size={24} color="#D32F2F" />
+                      <Text style={styles.alertText}>Kończy się lek: {alert.inventoryItemName}</Text>
+                    </View>
+                  ))}
+
+                  {daySchedules.length === 0 && alerts.length === 0 ? (
+                    <Text style={[styles.emptyDay, { color: colors.textLight }]}>
+                      Brak zaplanowanych leków w tym dniu.
+                    </Text>
+                  ) : (
+                    daySchedules.map(sch => {
+                      const name = labelForSchedule(sch, treatments);
+                      const tid = getScheduleTreatmentId(sch);
+                      const tType = tid ? treatments.find(t => t.id === tid)?.type : undefined;
+                      const icon =
+                        tType && TREATMENT_VISUAL[tType]
+                          ? TREATMENT_VISUAL[tType].icon
+                          : ('medication' as const);
+
+                      return (
+                        <View
+                          key={sch.id}
+                          style={[styles.planRow, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}
+                        >
+                          <View style={[styles.timeBadge, { backgroundColor: colors.primaryLime }]}>
+                            <Text style={[styles.timeText, { color: colors.textDark }]}>{sch.time}</Text>
+                          </View>
+                          <MaterialIcons name={icon} size={28} color={colors.primaryLimeDark} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.medName, { color: colors.textDark }]}>{name}</Text>
+                            <Text style={[styles.medDose, { color: colors.textLight }]}>{doseLabel(sch)}</Text>
+                          </View>
+                        </View>
+                      );
+                    })
+                  )}
+                </View>
+              )}
+            </View>
+          );
+        })}
       </ScrollView>
     </View>
   );
@@ -177,68 +154,95 @@ const styles = StyleSheet.create({
     paddingHorizontal: Theme.spacing.l,
     paddingTop: Theme.spacing.xxl,
     paddingBottom: Theme.spacing.m,
-    borderBottomWidth: 1,
+    borderBottomWidth: 2,
   },
   backBtn: {
     padding: Theme.spacing.xs,
   },
   headerTitle: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
   },
   scroll: { flex: 1 },
-  calendarContainer: { paddingBottom: Theme.spacing.m },
-  scheduleSection: {
-    paddingHorizontal: Theme.spacing.l,
-    paddingTop: Theme.spacing.m,
+  scrollContent: {
+    padding: Theme.spacing.m,
     paddingBottom: 100,
+    gap: Theme.spacing.s,
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '800',
-    color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.m,
-  },
-  scheduleCard: {
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.m,
-    borderWidth: 1,
-    borderRadius: Theme.borderRadius.large,
-  },
-  scheduleCardWarning: {
-    padding: Theme.spacing.m,
-    marginBottom: Theme.spacing.m,
-    borderWidth: 2,
-    borderRadius: Theme.borderRadius.large,
-  },
-  scheduleTime: {
-    fontSize: 22,
-    fontWeight: '700',
+  dayBlock: {
     marginBottom: Theme.spacing.s,
   },
-  scheduleTimeWarning: {
-    fontSize: 22,
-    fontWeight: '800',
-    marginBottom: Theme.spacing.s,
-  },
-  scheduleRow: {
+  dayHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: Theme.spacing.xs,
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 2,
   },
-  scheduleItemDone: {
-    fontSize: 22,
-    marginLeft: Theme.spacing.s,
-    fontWeight: '600',
-  },
-  scheduleItemWarning: {
+  dayTitle: {
     fontSize: 20,
-    marginLeft: Theme.spacing.s,
+    fontWeight: '800',
+    textTransform: 'capitalize',
+  },
+  dayMeta: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  dayBody: {
+    marginTop: Theme.spacing.xs,
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 1,
+    gap: Theme.spacing.s,
+  },
+  planRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.medium,
+    borderWidth: 1,
+    gap: Theme.spacing.s,
+  },
+  timeBadge: {
+    paddingHorizontal: Theme.spacing.s,
+    paddingVertical: Theme.spacing.xs,
+    borderRadius: Theme.borderRadius.small,
+    minWidth: 68,
+    alignItems: 'center',
+  },
+  timeText: {
+    fontSize: 18,
+    fontWeight: '800',
+  },
+  medName: {
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  medDose: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  alertRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.s,
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.medium,
+    borderWidth: 2,
+    backgroundColor: 'rgba(211, 47, 47, 0.08)',
+  },
+  alertText: {
+    flex: 1,
+    fontSize: 16,
     fontWeight: '700',
+    color: '#D32F2F',
   },
   emptyDay: {
+    fontSize: 18,
+    fontWeight: '600',
     textAlign: 'center',
-    marginTop: 20,
-    fontSize: 22,
+    paddingVertical: Theme.spacing.m,
   },
 });
