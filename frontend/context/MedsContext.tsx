@@ -18,6 +18,12 @@ import { debugLog } from '../utils/debugLog';
 import { useAuth } from './AuthContext';
 import i18n from '../i18n';
 import type { TreatmentType } from '../constants/treatmentVisuals';
+import {
+  DEV_PREVIEW_USER_ID,
+  devPreviewSchedules,
+  devPreviewTreatments,
+  isSeniorPreviewActive,
+} from '../constants/devSeniorPreview';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
 
@@ -163,6 +169,11 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    if (userRole === 'DEPENDENT' && isSeniorPreviewActive()) {
+      setTargetUserId(DEV_PREVIEW_USER_ID);
+      return;
+    }
+
     let cancelled = false;
     (async () => {
       const token = await getStoredAuthToken();
@@ -183,6 +194,12 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   }, [id, dependentId, segList, isReady, userRole, scopedDependentUserId]);
 
   const refetchFromServer = useCallback(async (userId?: string) => {
+    if (isSeniorPreviewActive()) {
+      setTreatments(devPreviewTreatments());
+      setSchedules(devPreviewSchedules());
+      return;
+    }
+
     const uid = userId ?? targetUserId;
     if (!uid) return;
     const token = await getStoredAuthToken();

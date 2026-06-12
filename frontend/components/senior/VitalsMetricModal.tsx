@@ -21,6 +21,8 @@ type VitalsMetricModalProps = {
   colors: SeniorSurfaceColors;
   onClose: () => void;
   onSaved?: () => void;
+  /** Podgląd dev — zapis tylko lokalnie, bez API. */
+  offlinePreview?: boolean;
 };
 
 export function VitalsMetricModal({
@@ -29,6 +31,7 @@ export function VitalsMetricModal({
   colors,
   onClose,
   onSaved,
+  offlinePreview = false,
 }: VitalsMetricModalProps) {
   const { t } = useTranslation();
   const [sys, setSys] = useState('');
@@ -61,6 +64,12 @@ export function VitalsMetricModal({
     setLoading(true);
     setError(null);
     try {
+      if (offlinePreview) {
+        reset();
+        onSaved?.();
+        onClose();
+        return;
+      }
       if (type === 'BP') {
         await usersAPI.createMetric({
           type: 'BP',
