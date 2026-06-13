@@ -1,0 +1,47 @@
+§ 1. Przedmiot Porozumienia
+
+Niniejsze porozumienie określa zasady współpracy, podziału autorskich praw majątkowych oraz osobistych do projektu inżynierskiego realizowanego przez Zespół w składzie:
+
+Mateusz Swędra
+
+Dominika Wabich
+
+Daniel Pasternak
+
+Aleksandra Nowak
+
+zwanymi dalej „Współtwórcami”.
+
+§ 2. Udziały w Projekcie
+
+Współtwórcy oświadczają, że ich wkład w powstanie Projektu jest równy.
+
+Każdemu ze Współtwórców przysługuje 25% (dwadzieścia pięć procent) udziału w autorskich prawach majątkowych do całości Projektu, w tym do kodu źródłowego, dokumentacji technicznej, schematów oraz designu.
+
+W przypadku, gdy którykolwiek ze Współtwórców zrezygnuje z dalszego udziału w pracach nad Projektem i zrzeknie się swoich praw, przysługujący mu udział w autorskich prawach majątkowych zostaje trwale ograniczony do 1% (jednego procenta). Pozostała część jego dotychczasowych udziałów (24%) przechodzi proporcjonalnie, w równych częściach, na pozostałych Współtwórców kontynuujących realizację Projektu.
+
+Wszelkie decyzje dotyczące komercjalizacji, udostępnienia Projektu osobom trzecim na zasadach innych niż open-source lub zbycia praw do Projektu wymagają zgody wszystkich Współtwórców posiadających pełne udziały. Współtwórca, którego udział został obniżony do 1% zgodnie z ust. 3, traci prawo głosu we wskazanych sprawach i nie ma prawa blokowania decyzji podejmowanych przez pozostałych Współtwórców.
+
+§ 3. Akceptacja poprzez wkład (Contribution)
+
+Niniejsze porozumienie wiąże każdego Współtwórcę z chwilą dokonania pierwszej i każdej kolejnej czynności polegającej na dodaniu, modyfikacji lub usunięciu zasobów w repozytorium Projektu (tzw. commit lub push).
+
+Wykonując powyższe czynności, Współtwórca potwierdza, że:
+
+Zapoznał się z treścią niniejszego porozumienia i je akceptuje.
+
+Wnoszony przez niego wkład jest wynikiem jego własnej pracy twórczej i nie narusza praw osób trzecich.
+
+Przenosi on autorskie prawa majątkowe do swojego wkładu na rzecz wszystkich Współtwórców w częściach określonych w § 2.
+
+§ 4. Repozytorium i Dokumentacja
+
+Oficjalnym miejscem przechowywania Projektu jest repozytorium pod adresem: (https://github.com/MateuszSwedra/bApka_A).
+
+Logi historii commitów w systemie kontroli wersji (Git) stanowią dowód wkładu pracy poszczególnych osób, jednak nie zmieniają one podziału udziałów określonego w § 2.
+
+§ 5. Postanowienia końcowe
+
+W sprawach nieuregulowanych niniejszym porozumieniem mają zastosowanie przepisy Ustawy o prawie autorskim i prawach pokrewnych.
+
+Każdy ze Współtwórców ma prawo do zachowania kopii Projektu na potrzeby własnego portfolio z zachowaniem informacji o pozostałych Współtwórcach.
