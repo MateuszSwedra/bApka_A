@@ -9,6 +9,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { router, useLocalSearchParams, useSegments } from 'expo-router';
 import { addMedRoute, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
+import { addMedPrefillParams, readAddMedPrefill } from '../../../../utils/addMedPrefill';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../../../constants/theme';
 import type { MedScheduleType } from '../../../../context/MedsContext';
@@ -51,7 +52,12 @@ const OPTIONS: FrequencyOption[] = [
 export default function PickScheduleFrequencyScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ dependentId?: string; treatmentId?: string }>();
+  const params = useLocalSearchParams<{
+    dependentId?: string;
+    treatmentId?: string;
+    prefillDate?: string;
+    prefillTime?: string;
+  }>();
 
   const dependentId =
     typeof params.dependentId === 'string'
@@ -69,6 +75,7 @@ export default function PickScheduleFrequencyScreen() {
   const [selectedType, setSelectedType] = useState<MedScheduleType | null>(null);
   const segments = useSegments();
   const flowScope = resolveMedsFlowScope(segments as string[]);
+  const prefill = readAddMedPrefill(params);
 
   const canContinue = Boolean(selectedType && dependentId && treatmentId);
 
@@ -76,7 +83,12 @@ export default function PickScheduleFrequencyScreen() {
     if (!canContinue || !selectedType) return;
     router.push({
       pathname: addMedRoute(flowScope, 'timing'),
-      params: { dependentId, treatmentId, medType: selectedType },
+      params: {
+        dependentId,
+        treatmentId,
+        medType: selectedType,
+        ...addMedPrefillParams(prefill),
+      },
     } as never);
   };
 

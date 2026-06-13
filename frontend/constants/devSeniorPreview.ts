@@ -1,7 +1,7 @@
 import { format } from 'date-fns';
 import type { ScheduleItem, Treatment } from '../context/MedsContext';
 
-/** Stały ID podglądu — bez wywołań API. */
+/** Stały ID podglądu - bez wywołań API. */
 export const DEV_PREVIEW_USER_ID = 'dev-senior-preview';
 
 /**
@@ -12,7 +12,7 @@ export const DEV_PREVIEW_USER_ID = 'dev-senior-preview';
  */
 let manualPreviewActive = false;
 
-/** Flaga z .env — pokazuje przycisk podglądu, nie loguje automatycznie. */
+/** Flaga z .env - pokazuje przycisk podglądu, nie loguje automatycznie. */
 export function isDevSeniorPreview(): boolean {
   return (
     typeof __DEV__ !== 'undefined' &&
@@ -28,7 +28,7 @@ export function activateManualSeniorPreview(): void {
   }
 }
 
-/** Aktywna sesja podglądu — mocki i pominięcie API. */
+/** Aktywna sesja podglądu - mocki i pominięcie API. */
 export function isSeniorPreviewActive(): boolean {
   return manualPreviewActive;
 }
@@ -41,7 +41,7 @@ function padTime(h: number, m: number): string {
   return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
 }
 
-/** Godzina „teraz” — kafelek WEŹ LEK będzie aktywny. */
+/** Godzina „teraz” - kafelek WEŹ LEK będzie aktywny. */
 function dueTimeNow(): string {
   const now = new Date();
   return padTime(now.getHours(), now.getMinutes());
@@ -55,7 +55,7 @@ export function devPreviewTreatments(): Treatment[] {
       name: 'Aspiryna',
       totalPills: 30,
       currentPills: 8,
-      description: 'Demo — bez API',
+      description: 'Demo - bez API',
     },
     {
       id: 'demo-t-bp',

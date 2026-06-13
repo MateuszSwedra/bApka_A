@@ -1,6 +1,6 @@
 /**
- * Trzy presety dźwięku powiadomień (leki vs SOS — osobne mapowanie plików).
- * Pliki w `assets/sounds/` (OGG z Google Actions — krótkie sample).
+ * Trzy presety dźwięku powiadomień (leki vs SOS - osobne mapowanie plików).
+ * Pliki w `assets/sounds/` (OGG z Google Actions - krótkie sample).
  */
 export type NotificationSoundChoiceId = 'default' | 'gentle' | 'strong';
 

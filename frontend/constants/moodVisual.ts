@@ -5,7 +5,7 @@ export type MoodValue = 'happy' | 'neutral' | 'sad';
 
 export type MoodIconName = React.ComponentProps<typeof MaterialCommunityIcons>['name'];
 
-/** Wesoła / neutralna / smutna — osobne emotikony i kolory (zielony / szary / czerwony). */
+/** Wesoła / neutralna / smutna - osobne emotikony i kolory (zielony / szary / czerwony). */
 export const MOOD_VISUAL: Record<
   MoodValue,
   { icon: MoodIconName; color: string; background: string; ring: string }

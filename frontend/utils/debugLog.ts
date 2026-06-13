@@ -1,4 +1,4 @@
-/** Opcjonalny log deweloperski — domyślnie wyłączony (bez żądań sieciowych). */
+/** Opcjonalny log deweloperski - domyślnie wyłączony (bez żądań sieciowych). */
 export function debugLog(
   _location: string,
   _message: string,

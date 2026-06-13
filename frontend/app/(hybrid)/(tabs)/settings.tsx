@@ -10,10 +10,11 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../../constants/theme';
+import { useAuth } from '../../../context/AuthContext';
 import { usersAPI } from '../../../services/api';
 import { HybridProfileHeader } from '../../../components/hybrid/HybridProfileHeader';
 import type { NotificationSoundChoiceId } from '../../../constants/notificationSounds';
@@ -44,6 +45,7 @@ const DEFAULT: SelfSettings = {
 
 export default function HybridSettingsScreen() {
   const { t } = useTranslation();
+  const { logout } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [settings, setSettings] = useState<SelfSettings>(DEFAULT);
   const [loading, setLoading] = useState(true);
@@ -68,6 +70,15 @@ export default function HybridSettingsScreen() {
   }, [t]);
 
   useFocusEffect(useCallback(() => { void load(); }, [load]));
+
+  const handleLogout = async () => {
+    await logout();
+    if (Platform.OS === 'web') {
+      window.location.href = '/login';
+    } else {
+      router.replace('/login');
+    }
+  };
 
   const patch = async (patchData: Partial<SelfSettings>, key: string) => {
     setSavingKey(key);
@@ -125,7 +136,15 @@ export default function HybridSettingsScreen() {
                 </View>
               );
             })}
-            {Platform.OS === 'web' ? <Text style={styles.webHint}>{t('sounds.webHint')}</Text> : null}
+            <Pressable
+              onPress={() => void handleLogout()}
+              style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
+              accessibilityRole="button"
+              accessibilityLabel={t('hybrid.logout')}
+            >
+              <MaterialIcons name="logout" size={24} color={Theme.colors.accentOrange} />
+              <Text style={styles.logoutText}>{t('hybrid.logout')}</Text>
+            </Pressable>
           </>
         )}
       </ScrollView>
@@ -161,5 +180,19 @@ const styles = StyleSheet.create({
   soundCard: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, borderWidth: 1, borderColor: Theme.colors.border, padding: Theme.spacing.m },
   soundCardSelected: { borderColor: Theme.colors.primaryLimeDark, borderWidth: 2 },
   previewBtn: { width: 56, borderRadius: Theme.borderRadius.medium, borderWidth: 1, borderColor: Theme.colors.border, backgroundColor: Theme.colors.surfaceWhite, alignItems: 'center', justifyContent: 'center' },
-  webHint: { marginTop: Theme.spacing.s, fontSize: Theme.typography.caption, fontStyle: 'italic', color: Theme.colors.textLight },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: Theme.spacing.s,
+    marginTop: Theme.spacing.xl,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 1,
+    borderColor: Theme.colors.accentOrange,
+    paddingVertical: Theme.spacing.m,
+    paddingHorizontal: Theme.spacing.l,
+  },
+  logoutBtnPressed: { opacity: 0.85 },
+  logoutText: { fontSize: Theme.typography.body, fontWeight: '700', color: Theme.colors.accentOrange },
 });

@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { Theme } from './theme';
 
-/** Wspólny motyw kart — spójny z kreatorem dodawania leku do kalendarza. */
+/** Wspólny motyw kart - spójny z kreatorem dodawania leku do kalendarza. */
 export const CaretakerFlowStyles = StyleSheet.create({
   screen: {
     flex: 1,

@@ -1,54 +1,57 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Pressable,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
+} from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../constants/theme';
-import { addDays, format } from 'date-fns';
-import { pl, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
-import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
-import type { ScheduleItem, Treatment } from '../../context/MedsContext';
-import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
-import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
+import { useMeds } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
-import type { AppLanguage } from '../../i18n/resolveLanguage';
-
-const DAYS_AHEAD = 60;
-
-function labelForSchedule(sch: ScheduleItem, treatments: Treatment[], fallback: string) {
-  if (sch.customName) return sch.customName;
-  const tid = getScheduleTreatmentId(sch);
-  if (tid) return treatments.find(t => t.id === tid)?.name ?? fallback;
-  return fallback;
-}
+import { SeniorWeekPlanView } from '../../components/senior/SeniorWeekPlanView';
+import {
+  shiftSeniorWeek,
+  startOfSeniorPlanWindow,
+} from '../../utils/seniorWeekPlan';
 
 export default function DependentCalendarScreen() {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { colors } = useDependentDisplay();
-  const dateLocale = (i18n.language as AppLanguage) === 'en' ? enUS : pl;
-
-  const doseLabel = (sch: ScheduleItem) => {
-    if (!sch.dosage || sch.dosage === '1') return t('dependent.calendar.doseOne');
-    return t('dependent.calendar.dosePieces', { count: sch.dosage });
-  };
   const { depletionAlerts, schedules, treatments } = useMeds();
-  const [expandedDate, setExpandedDate] = useState<string | null>(format(new Date(), 'yyyy-MM-dd'));
+  const [weekAnchor, setWeekAnchor] = useState(() => startOfSeniorPlanWindow(new Date()));
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const viewportH = useRef(0);
+  const contentH = useRef(0);
+  const scrollY = useRef(0);
 
-  const dayList = useMemo(() => {
-    const start = new Date();
-    return Array.from({ length: DAYS_AHEAD }, (_, i) => {
-      const d = addDays(start, i);
-      const dateStr = format(d, 'yyyy-MM-dd');
-      const daySchedules = schedules
-        .filter(s => scheduleAppliesToDate(s, dateStr))
-        .sort((a, b) => a.time.localeCompare(b.time));
-      const alerts = depletionAlerts.filter(a => a.date === dateStr);
-      return { dateStr, date: d, daySchedules, alerts };
-    });
-  }, [schedules, depletionAlerts]);
+  const updateScrollability = useCallback(() => {
+    const scrollable = contentH.current > viewportH.current + 16;
+    const atBottom = scrollY.current + viewportH.current >= contentH.current - 48;
+    setShowScrollHint(scrollable && !atBottom);
+    setShowBackToTop(scrollable && atBottom);
+  }, []);
 
-  const toggleDay = (dateStr: string) => {
-    setExpandedDate(prev => (prev === dateStr ? null : dateStr));
+  const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    scrollY.current = e.nativeEvent.contentOffset.y;
+    updateScrollability();
+  };
+
+  const handleScrollMore = () => {
+    const maxY = Math.max(0, contentH.current - viewportH.current);
+    const nextY = Math.min(scrollY.current + viewportH.current * 0.75, maxY);
+    scrollRef.current?.scrollTo({ y: nextY, animated: true });
+  };
+
+  const handleScrollToTop = () => {
+    scrollRef.current?.scrollTo({ y: 0, animated: true });
   };
 
   return (
@@ -60,103 +63,74 @@ export default function DependentCalendarScreen() {
         <Text style={[styles.headerTitle, { color: colors.textDark }]}>
           {t('dependent.calendar.screenTitle')}
         </Text>
-        <View style={{ width: 32 }} />
+        <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {dayList.map(({ dateStr, date, daySchedules, alerts }) => {
-          const expanded = expandedDate === dateStr;
-          const isToday = dateStr === format(new Date(), 'yyyy-MM-dd');
-          const dayLabel = format(date, 'EEEE, d MMMM', { locale: dateLocale });
-          const count = daySchedules.length;
+      <View style={styles.scrollWrap}>
+        <ScrollView
+          ref={scrollRef}
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator
+          scrollEventThrottle={16}
+          onScroll={onScroll}
+          onLayout={e => {
+            viewportH.current = e.nativeEvent.layout.height;
+            updateScrollability();
+          }}
+          onContentSizeChange={(_, h) => {
+            contentH.current = h;
+            updateScrollability();
+          }}
+        >
+          <SeniorWeekPlanView
+            weekAnchor={weekAnchor}
+            onPrevWeek={() => setWeekAnchor(w => shiftSeniorWeek(w, -1))}
+            onNextWeek={() => setWeekAnchor(w => shiftSeniorWeek(w, 1))}
+            onThisWeek={() => setWeekAnchor(startOfSeniorPlanWindow(new Date()))}
+            schedules={schedules}
+            treatments={treatments}
+            depletionAlerts={depletionAlerts}
+            colors={colors}
+          />
+        </ScrollView>
 
-          return (
-            <View key={dateStr} style={styles.dayBlock}>
-              <Pressable
-                onPress={() => toggleDay(dateStr)}
-                style={({ pressed }) => [
-                  styles.dayHeader,
-                  {
-                    backgroundColor: isToday ? colors.primaryLime : colors.surfaceWhite,
-                    borderColor: isToday ? colors.primaryLimeDark : colors.border,
-                  },
-                  pressed && { opacity: 0.9 },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.dayTitle, { color: colors.textDark }]}>
-                    {isToday
-                      ? t('dependent.calendar.todayPrefix', { day: dayLabel })
-                      : dayLabel}
-                  </Text>
-                  <Text style={[styles.dayMeta, { color: colors.textLight }]}>
-                    {count === 0
-                      ? t('dependent.calendar.noMeds')
-                      : t('dependent.calendar.items', { count })}
-                  </Text>
-                </View>
-                <MaterialIcons
-                  name={expanded ? 'expand-less' : 'expand-more'}
-                  size={32}
-                  color={colors.textDark}
-                />
-              </Pressable>
+        {showScrollHint ? (
+          <Pressable
+            onPress={handleScrollMore}
+            style={({ pressed }) => [
+              styles.floatingBtn,
+              { backgroundColor: colors.surfaceWhite, borderColor: colors.primaryLimeDark },
+              pressed && styles.floatingBtnPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t('dependent.calendar.scrollMore')}
+          >
+            <MaterialIcons name="keyboard-arrow-down" size={36} color={colors.primaryLimeDark} />
+            <Text style={[styles.floatingBtnText, { color: colors.textDark }]}>
+              {t('dependent.calendar.scrollMore')}
+            </Text>
+          </Pressable>
+        ) : null}
 
-              {expanded && (
-                <View style={[styles.dayBody, { backgroundColor: colors.surfaceGrey, borderColor: colors.border }]}>
-                  {alerts.map((alert, idx) => (
-                    <View
-                      key={`alert-${idx}`}
-                      style={[styles.alertRow, { borderColor: colors.accentOrange }]}
-                    >
-                      <MaterialIcons name="warning" size={24} color="#D32F2F" />
-                      <Text style={styles.alertText}>
-                        {t('dependent.calendar.alertDepletion', { name: alert.inventoryItemName })}
-                      </Text>
-                    </View>
-                  ))}
-
-                  {daySchedules.length === 0 && alerts.length === 0 ? (
-                    <Text style={[styles.emptyDay, { color: colors.textLight }]}>
-                      {t('dependent.calendar.emptyDay')}
-                    </Text>
-                  ) : (
-                    daySchedules.map(sch => {
-                      const name = labelForSchedule(
-                        sch,
-                        treatments,
-                        t('dependent.calendar.activityFallback'),
-                      );
-                      const tid = getScheduleTreatmentId(sch);
-                      const tType = tid ? treatments.find(t => t.id === tid)?.type : undefined;
-                      const icon =
-                        tType && TREATMENT_VISUAL[tType]
-                          ? TREATMENT_VISUAL[tType].icon
-                          : ('medication' as const);
-
-                      return (
-                        <View
-                          key={sch.id}
-                          style={[styles.planRow, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}
-                        >
-                          <View style={[styles.timeBadge, { backgroundColor: colors.primaryLime }]}>
-                            <Text style={[styles.timeText, { color: colors.textDark }]}>{sch.time}</Text>
-                          </View>
-                          <MaterialIcons name={icon} size={28} color={colors.primaryLimeDark} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.medName, { color: colors.textDark }]}>{name}</Text>
-                            <Text style={[styles.medDose, { color: colors.textLight }]}>{doseLabel(sch)}</Text>
-                          </View>
-                        </View>
-                      );
-                    })
-                  )}
-                </View>
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
+        {showBackToTop ? (
+          <Pressable
+            onPress={handleScrollToTop}
+            style={({ pressed }) => [
+              styles.floatingBtn,
+              { backgroundColor: colors.surfaceWhite, borderColor: colors.primaryLimeDark },
+              pressed && styles.floatingBtnPressed,
+            ]}
+            accessibilityRole="button"
+            accessibilityLabel={t('dependent.calendar.backToTop')}
+          >
+            <MaterialIcons name="keyboard-arrow-up" size={36} color={colors.primaryLimeDark} />
+            <Text style={[styles.floatingBtnText, { color: colors.textDark }]}>
+              {t('dependent.calendar.backToTop')}
+            </Text>
+          </Pressable>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -175,90 +149,48 @@ const styles = StyleSheet.create({
   backBtn: {
     padding: Theme.spacing.xs,
   },
+  headerSpacer: {
+    width: 32,
+  },
   headerTitle: {
+    flex: 1,
     fontSize: 28,
     fontWeight: '900',
+    textAlign: 'center',
+  },
+  scrollWrap: {
+    flex: 1,
+    position: 'relative',
   },
   scroll: { flex: 1 },
   scrollContent: {
     padding: Theme.spacing.m,
-    paddingBottom: 100,
-    gap: Theme.spacing.s,
+    paddingBottom: Theme.spacing.xxl + 56,
   },
-  dayBlock: {
-    marginBottom: Theme.spacing.s,
-  },
-  dayHeader: {
+  floatingBtn: {
+    position: 'absolute',
+    left: Theme.spacing.l,
+    right: Theme.spacing.l,
+    bottom: Theme.spacing.m,
     flexDirection: 'row',
     alignItems: 'center',
-    padding: Theme.spacing.m,
-    borderRadius: Theme.borderRadius.large,
-    borderWidth: 2,
-  },
-  dayTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    textTransform: 'capitalize',
-  },
-  dayMeta: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  dayBody: {
-    marginTop: Theme.spacing.xs,
-    padding: Theme.spacing.m,
-    borderRadius: Theme.borderRadius.large,
-    borderWidth: 1,
+    justifyContent: 'center',
     gap: Theme.spacing.s,
-  },
-  planRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: Theme.spacing.m,
-    borderRadius: Theme.borderRadius.medium,
-    borderWidth: 1,
-    gap: Theme.spacing.s,
-  },
-  timeBadge: {
-    paddingHorizontal: Theme.spacing.s,
-    paddingVertical: Theme.spacing.xs,
-    borderRadius: Theme.borderRadius.small,
-    minWidth: 68,
-    alignItems: 'center',
-  },
-  timeText: {
-    fontSize: 18,
-    fontWeight: '800',
-  },
-  medName: {
-    fontSize: 20,
-    fontWeight: '800',
-  },
-  medDose: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 2,
-  },
-  alertRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Theme.spacing.s,
-    padding: Theme.spacing.m,
-    borderRadius: Theme.borderRadius.medium,
-    borderWidth: 2,
-    backgroundColor: 'rgba(211, 47, 47, 0.08)',
-  },
-  alertText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#D32F2F',
-  },
-  emptyDay: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
     paddingVertical: Theme.spacing.m,
+    paddingHorizontal: Theme.spacing.l,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 2,
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  floatingBtnPressed: {
+    opacity: 0.85,
+  },
+  floatingBtnText: {
+    fontSize: 20,
+    fontWeight: '800',
   },
 });

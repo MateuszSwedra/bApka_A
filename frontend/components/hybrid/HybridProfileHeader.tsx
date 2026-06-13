@@ -12,13 +12,14 @@ type HybridProfileHeaderProps = {
   showSettings?: boolean;
 };
 
-export function HybridProfileHeader({ title, subtitle, showSettings = true }: HybridProfileHeaderProps) {
+export function HybridProfileHeader({ title, subtitle, showSettings = false }: HybridProfileHeaderProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 0) + Theme.spacing.m;
 
   return (
     <View style={[styles.bar, { paddingTop }]}>
+      <View style={styles.iconSpacer} />
       <View style={styles.titleWrap}>
         <Text style={styles.title} numberOfLines={1}>
           {title?.trim() || t('hybrid.panelTitle')}
@@ -32,10 +33,11 @@ export function HybridProfileHeader({ title, subtitle, showSettings = true }: Hy
       {showSettings ? (
         <Pressable
           onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
-          style={styles.iconBtn}
+          style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
+          accessibilityRole="button"
           accessibilityLabel={t('tabs.settings')}
         >
-          <MaterialIcons name="settings" size={26} color={Theme.colors.textDark} />
+          <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
         </Pressable>
       ) : (
         <View style={styles.iconSpacer} />
@@ -71,11 +73,24 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: Theme.colors.textLight,
   },
-  iconBtn: {
-    minWidth: 48,
-    minHeight: 48,
+  settingsBtn: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderWidth: 2,
+    borderColor: Theme.colors.primaryLimeDark,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  settingsBtnPressed: {
+    opacity: 0.85,
+    backgroundColor: Theme.colors.surfaceWarmHighlight,
   },
   iconSpacer: { width: 48 },
 });

@@ -16,7 +16,7 @@ function fromEnv(key: string): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
-/** Web client ID — logowanie w przeglądarce + id_token na Androidzie. */
+/** Web client ID - logowanie w przeglądarce + id_token na Androidzie. */
 export function getGoogleWebClientId(): string {
   return fromEnv('EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID') || readExtra().googleWebClientId || '';
 }

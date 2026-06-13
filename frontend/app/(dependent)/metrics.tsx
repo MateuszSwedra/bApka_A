@@ -1,51 +1,43 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, ScrollView, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { usersAPI } from '../../services/api';
+import { SeniorNumericStepper } from '../../components/senior/SeniorNumericStepper';
 
 type MetricType = 'BP' | 'GLUCOSE';
+
+const DEFAULT_SYS = 120;
+const DEFAULT_DIA = 80;
+const DEFAULT_GLUCOSE = 100;
 
 export default function DependentMetricsScreen() {
   const { t } = useTranslation();
   const [type, setType] = useState<MetricType>('BP');
-
-  const [sys, setSys] = useState('');
-  const [dia, setDia] = useState('');
-  const [pulse, setPulse] = useState('');
-  const [glucose, setGlucose] = useState('');
+  const [sys, setSys] = useState(DEFAULT_SYS);
+  const [dia, setDia] = useState(DEFAULT_DIA);
+  const [glucose, setGlucose] = useState(DEFAULT_GLUCOSE);
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = useMemo(() => {
-    if (type === 'BP') return !!sys.trim() && !!dia.trim();
-    return !!glucose.trim();
-  }, [type, sys, dia, glucose]);
-
   const submit = async () => {
-    if (!canSubmit) return;
     setLoading(true);
     try {
       if (type === 'BP') {
         await usersAPI.createMetric({
           type: 'BP',
-          systolic: Number(sys),
-          diastolic: Number(dia),
-          pulse: pulse ? Number(pulse) : undefined,
+          systolic: sys,
+          diastolic: dia,
           unit: 'mmHg',
         });
       } else {
         await usersAPI.createMetric({
           type: 'GLUCOSE',
-          value: Number(glucose),
+          value: glucose,
           unit: 'mg/dL',
         });
       }
       Alert.alert(t('common.success'), t('dependent.metrics.saved'));
-      setSys('');
-      setDia('');
-      setPulse('');
-      setGlucose('');
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('common.error');
       Alert.alert(t('common.error'), msg);
@@ -63,15 +55,14 @@ export default function DependentMetricsScreen() {
         <Text style={styles.title}>{t('dependent.metrics.title')}</Text>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <View style={styles.body}>
+        <View style={styles.hintBanner}>
+          <Text style={styles.hint}>{t('dependent.metrics.hint')}</Text>
+        </View>
+
         <View style={styles.switchRow}>
-          <Pressable
-            onPress={() => setType('BP')}
-            style={[styles.chip, type === 'BP' && styles.chipActive]}
-          >
-            <Text style={[styles.chipText, type === 'BP' && styles.chipTextActive]}>
-              {t('dependent.metrics.bp')}
-            </Text>
+          <Pressable onPress={() => setType('BP')} style={[styles.chip, type === 'BP' && styles.chipActive]}>
+            <Text style={[styles.chipText, type === 'BP' && styles.chipTextActive]}>{t('dependent.metrics.bp')}</Text>
           </Pressable>
           <Pressable
             onPress={() => setType('GLUCOSE')}
@@ -83,30 +74,47 @@ export default function DependentMetricsScreen() {
           </Pressable>
         </View>
 
-        {type === 'BP' ? (
-          <View style={styles.card}>
-            <Text style={styles.label}>{t('dependent.metrics.systolic')}</Text>
-            <TextInput value={sys} onChangeText={setSys} keyboardType="numeric" style={styles.input} />
-            <Text style={styles.label}>{t('dependent.metrics.diastolic')}</Text>
-            <TextInput value={dia} onChangeText={setDia} keyboardType="numeric" style={styles.input} />
-            <Text style={styles.label}>{t('dependent.metrics.pulseOptional')}</Text>
-            <TextInput value={pulse} onChangeText={setPulse} keyboardType="numeric" style={styles.input} />
-          </View>
-        ) : (
-          <View style={styles.card}>
-            <Text style={styles.label}>{t('dependent.metrics.glucoseValue')}</Text>
-            <TextInput value={glucose} onChangeText={setGlucose} keyboardType="numeric" style={styles.input} />
-          </View>
-        )}
+        <View style={styles.fields}>
+          {type === 'BP' ? (
+            <View style={styles.bpRow}>
+              <SeniorNumericStepper
+                label={t('dependent.metrics.systolic')}
+                value={sys}
+                min={90}
+                max={200}
+                step={1}
+                unit={t('dependent.metrics.unitMmHg')}
+                onChange={setSys}
+              />
+              <View style={styles.bpDivider} />
+              <SeniorNumericStepper
+                label={t('dependent.metrics.diastolic')}
+                value={dia}
+                min={50}
+                max={120}
+                step={1}
+                unit={t('dependent.metrics.unitMmHg')}
+                onChange={setDia}
+              />
+            </View>
+          ) : (
+            <SeniorNumericStepper
+              compact
+              label={t('dependent.metrics.glucoseValue')}
+              value={glucose}
+              min={50}
+              max={350}
+              step={1}
+              unit={t('dependent.metrics.unitMgDl')}
+              onChange={setGlucose}
+            />
+          )}
+        </View>
 
-        <Pressable
-          disabled={!canSubmit || loading}
-          onPress={submit}
-          style={[styles.button, (!canSubmit || loading) && { opacity: 0.6 }]}
-        >
+        <Pressable disabled={loading} onPress={() => void submit()} style={[styles.button, loading && { opacity: 0.6 }]}>
           <Text style={styles.buttonText}>{loading ? t('dependent.metrics.saving') : t('common.save')}</Text>
         </Pressable>
-      </ScrollView>
+      </View>
     </View>
   );
 }
@@ -122,43 +130,49 @@ const styles = StyleSheet.create({
     borderBottomColor: Theme.colors.border,
   },
   back: { paddingVertical: 6 },
-  backText: { color: Theme.colors.accentOrange, fontWeight: '700' },
-  title: { fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.textDark },
-  content: { padding: Theme.spacing.l, paddingBottom: 80 },
-  switchRow: { flexDirection: 'row', backgroundColor: Theme.colors.surfaceGrey, borderRadius: 999, padding: 4 },
-  chip: { flex: 1, paddingVertical: 10, borderRadius: 999, alignItems: 'center' },
-  chipActive: { backgroundColor: Theme.colors.surfaceWhite },
-  chipText: { color: Theme.colors.textLight, fontWeight: '700' },
-  chipTextActive: { color: Theme.colors.textDark },
-  card: {
-    marginTop: Theme.spacing.l,
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
+  backText: { color: Theme.colors.accentOrange, fontWeight: '700', fontSize: 18 },
+  title: { fontSize: 26, fontWeight: '900', color: Theme.colors.textDark },
+  body: { flex: 1, padding: Theme.spacing.l },
+  hintBanner: {
+    backgroundColor: Theme.colors.primaryLime + '55',
+    borderRadius: Theme.borderRadius.medium,
+    borderWidth: 2,
+    borderColor: Theme.colors.primaryLimeDark,
     padding: Theme.spacing.m,
+    marginBottom: Theme.spacing.m,
   },
-  label: { color: Theme.colors.textLight, fontWeight: '700', marginTop: 12 },
-  input: {
-    marginTop: 6,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
+  hint: {
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '800',
     color: Theme.colors.textDark,
-    backgroundColor: Theme.colors.background,
+    textAlign: 'center',
+  },
+  switchRow: {
+    flexDirection: 'row',
+    backgroundColor: Theme.colors.surfaceGrey,
+    borderRadius: 999,
+    padding: 4,
+    marginBottom: Theme.spacing.m,
+  },
+  chip: { flex: 1, paddingVertical: 12, borderRadius: 999, alignItems: 'center' },
+  chipActive: { backgroundColor: Theme.colors.surfaceWhite },
+  chipText: { color: Theme.colors.textLight, fontWeight: '700', fontSize: 17 },
+  chipTextActive: { color: Theme.colors.textDark },
+  fields: { flex: 1, justifyContent: 'center' },
+  bpRow: { flexDirection: 'row', gap: Theme.spacing.s },
+  bpDivider: {
+    width: 2,
+    alignSelf: 'stretch',
+    backgroundColor: Theme.colors.border,
+    marginTop: 28,
   },
   button: {
-    marginTop: Theme.spacing.l,
-    backgroundColor: Theme.colors.primaryLime,
-    borderRadius: 12,
-    paddingVertical: 14,
+    backgroundColor: Theme.colors.primaryLimeDark,
+    borderRadius: Theme.borderRadius.round,
+    paddingVertical: 16,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: Theme.colors.primaryLimeDark,
+    minHeight: 52,
   },
-  buttonText: { fontWeight: '800', color: Theme.colors.textDark },
+  buttonText: { fontWeight: '800', fontSize: 18, color: Theme.colors.surfaceWhite },
 });
-

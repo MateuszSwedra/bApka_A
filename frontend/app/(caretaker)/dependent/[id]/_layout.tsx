@@ -64,8 +64,8 @@ export default function DependentTabsLayout() {
         <Tabs.Screen
           name="settings"
           options={{
+            href: null,
             title: t('tabs.settings'),
-            tabBarIcon: ({ color }) => <MaterialIcons name="settings" size={24} color={color} />,
           }}
         />
       </Tabs>

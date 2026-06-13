@@ -173,7 +173,7 @@ export default function HybridTodayScreen() {
   return (
     <View style={styles.screen}>
       <LinearGradient colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
-      <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} />
+      <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} showSettings />
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <HybridTakeMedCard
           mainState={mainState}

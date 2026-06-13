@@ -1,12 +1,12 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
 import { Theme } from '../../../../../constants/theme';
 import { router, useGlobalSearchParams, useLocalSearchParams, useFocusEffect, useSegments } from 'expo-router';
 import { useMeds } from '../../../../../context/MedsContext';
 import { pickDependentUserId } from '../../../../../utils/resolveMedsTargetUserId';
 import { openAddMedForDependent } from '../../../../../utils/caretakerNavigation';
+import { openAddMedFromCalendarSlot, resolveMedsFlowScope } from '../../../../../utils/medsFlowNavigation';
 import { useFabBottomOffset } from '../../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
@@ -14,12 +14,6 @@ import { useTranslation } from 'react-i18next';
 import { AndroidStyleDayView } from '../../../../../components/caretaker/AndroidStyleDayView';
 import { ScheduleEventSheet } from '../../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
-import {
-  CALENDAR_DAY_BACKDROP_ENTER,
-  CALENDAR_DAY_BACKDROP_EXIT,
-  CALENDAR_DAY_ENTER,
-  CALENDAR_DAY_EXIT,
-} from '../../../../../utils/calendarDayTransition';
 
 export default function DependentCalendarDayScreen() {
   const { t } = useTranslation();
@@ -68,6 +62,19 @@ export default function DependentCalendarDayScreen() {
     return labelForSchedule(selectedSchedule);
   }, [selectedSchedule, labelForSchedule]);
 
+  const flowScope = resolveMedsFlowScope(segments as string[]);
+
+  const handleSlotPress = useCallback(
+    (hour: number) => {
+      if (!dependentId) {
+        Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+        return;
+      }
+      openAddMedFromCalendarSlot(dependentId, flowScope, dateStr, hour);
+    },
+    [dependentId, flowScope, dateStr, t],
+  );
+
   if (!dateStr) {
     router.back();
     return null;
@@ -75,17 +82,8 @@ export default function DependentCalendarDayScreen() {
 
   return (
     <View style={styles.root}>
-      <Animated.View
-        entering={CALENDAR_DAY_BACKDROP_ENTER}
-        exiting={CALENDAR_DAY_BACKDROP_EXIT}
-        style={styles.backdrop}
-        pointerEvents="none"
-      />
-      <Animated.View
-        entering={CALENDAR_DAY_ENTER}
-        exiting={CALENDAR_DAY_EXIT}
-        style={styles.container}
-      >
+      <View style={styles.backdrop} pointerEvents="none" />
+      <View style={styles.container}>
         <View style={[styles.dayWrap, { paddingTop: topInset }]}>
           <AndroidStyleDayView
             dateStr={dateStr}
@@ -95,6 +93,7 @@ export default function DependentCalendarDayScreen() {
             depletionAlerts={depletionAlerts}
             labelForSchedule={labelForSchedule}
             onEventPress={sch => setSelectedSchedule(sch)}
+            onSlotPress={handleSlotPress}
           />
         </View>
 
@@ -119,7 +118,7 @@ export default function DependentCalendarDayScreen() {
         >
           <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
         </Pressable>
-      </Animated.View>
+      </View>
     </View>
   );
 }

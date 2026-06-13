@@ -21,7 +21,7 @@ import {
 } from '../constants/onboardingTheme';
 import { useTranslation } from 'react-i18next';
 
-/** Placeholdery — podmień na docelowe URL-e produkcyjne. */
+/** Placeholdery - podmień na docelowe URL-e produkcyjne. */
 const TERMS_URL = 'https://bapka.app/warunki-korzystania';
 const PRIVACY_URL = 'https://bapka.app/polityka-prywatnosci';
 

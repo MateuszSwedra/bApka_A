@@ -11,6 +11,7 @@ import { Calendar } from 'react-native-calendars';
 import { format } from 'date-fns';
 import { router, useLocalSearchParams, useSegments } from 'expo-router';
 import { addMedRoute, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
+import { addMedPrefillParams, initialRegularWeekdays, readAddMedPrefill } from '../../../../utils/addMedPrefill';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../../../../constants/theme';
 import type { MedScheduleType } from '../../../../context/MedsContext';
@@ -36,31 +37,43 @@ export default function PickScheduleTimingScreen() {
     dependentId?: string;
     treatmentId?: string;
     medType?: string;
+    prefillDate?: string;
+    prefillTime?: string;
   }>();
 
   const dependentId = paramString(params.dependentId);
   const treatmentId = paramString(params.treatmentId);
   const medTypeParam = paramString(params.medType);
+  const prefill = readAddMedPrefill(params);
   const medType: MedScheduleType | null =
     medTypeParam === 'ONCE' || medTypeParam === 'REGULAR' || medTypeParam === 'TEMPORARY'
       ? medTypeParam
       : null;
 
   const today = format(new Date(), 'yyyy-MM-dd');
-  const [selectedDate, setSelectedDate] = useState(today);
-  const [selectedDays, setSelectedDays] = useState<number[]>([]);
-  const [tempStart, setTempStart] = useState(today);
-  const [tempEnd, setTempEnd] = useState(today);
-  const [tempSelectingStart, setTempSelectingStart] = useState(true);
+  const prefillStartDate = prefill.prefillDate ?? today;
+  const [selectedDate, setSelectedDate] = useState(prefill.prefillDate ?? today);
+  const [selectedDays, setSelectedDays] = useState<number[]>(() =>
+    medType === 'REGULAR' ? initialRegularWeekdays(prefill.prefillDate) : [],
+  );
+  const [tempStart, setTempStart] = useState(prefillStartDate);
+  const [tempEnd, setTempEnd] = useState(prefillStartDate);
+  const [tempSelectingStart, setTempSelectingStart] = useState(!prefill.prefillDate);
   const [tempRangeComplete, setTempRangeComplete] = useState(false);
 
   useEffect(() => {
     if (medType !== 'TEMPORARY') return;
-    setTempStart(today);
-    setTempEnd(today);
-    setTempSelectingStart(true);
+    const start = prefill.prefillDate ?? today;
+    setTempStart(start);
+    setTempEnd(start);
+    setTempSelectingStart(!prefill.prefillDate);
     setTempRangeComplete(false);
-  }, [medType, today]);
+  }, [medType, today, prefill.prefillDate]);
+
+  useEffect(() => {
+    if (medType !== 'REGULAR') return;
+    setSelectedDays(initialRegularWeekdays(prefill.prefillDate));
+  }, [medType, prefill.prefillDate]);
 
   const leadKey =
     medType === 'ONCE'
@@ -116,9 +129,10 @@ export default function PickScheduleTimingScreen() {
   };
 
   const resetTempRange = () => {
-    setTempStart(today);
-    setTempEnd(today);
-    setTempSelectingStart(true);
+    const start = prefill.prefillDate ?? today;
+    setTempStart(start);
+    setTempEnd(start);
+    setTempSelectingStart(!prefill.prefillDate);
     setTempRangeComplete(false);
   };
 
@@ -129,7 +143,7 @@ export default function PickScheduleTimingScreen() {
   const handleContinue = () => {
     if (!canContinue || !dependentId || !treatmentId || !medType) return;
 
-    const base = { dependentId, treatmentId, medType } as const;
+    const base = { dependentId, treatmentId, medType, ...addMedPrefillParams(prefill) } as const;
     if (medType === 'ONCE') {
       router.push({
         pathname: schedulePath,

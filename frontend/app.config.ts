@@ -1,6 +1,6 @@
 import type { ExpoConfig } from 'expo/config';
 
-/** Docelowy package na Google Play — nie zmieniaj po publikacji. */
+/** Docelowy package na Google Play - nie zmieniaj po publikacji. */
 export const ANDROID_PACKAGE = 'com.bapka.app';
 
 const config: ExpoConfig = {

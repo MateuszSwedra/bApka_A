@@ -19,8 +19,8 @@ import { useTranslation } from 'react-i18next';
 import {
   computeDependentMainScheduleState,
   computeMoodScheduleState,
-  DEFAULT_MOOD_CHECK_TIMES,
 } from '../../utils/dependentScheduleUi';
+import { normalizeMoodCheckTimes } from '../../utils/moodCheckTimes';
 import {
   getCompletedScheduleIdsForDate,
   markScheduleCompletedForDate,
@@ -64,6 +64,7 @@ export default function DependentDashboard() {
     previewMode ? DEV_PREVIEW_SENIOR_NAME : t('dependent.nameFallback'),
   );
   const [moodEnabled, setMoodEnabled] = useState(true);
+  const [moodCheckTimes, setMoodCheckTimes] = useState<string[]>(normalizeMoodCheckTimes(undefined));
   const [vitalsEntryEnabled, setVitalsEntryEnabled] = useState(false);
 
   const [medConfirmVisible, setMedConfirmVisible] = useState(false);
@@ -108,7 +109,7 @@ export default function DependentDashboard() {
           mergeDoseLogsIntoCompletionSets(logs, todayStr, completed, missed);
         }
       } catch {
-        /* offline — zostaje lokalny stan */
+        /* offline - zostaje lokalny stan */
       }
     }
     setCompletedIds(completed);
@@ -132,6 +133,7 @@ export default function DependentDashboard() {
           if (me?.name?.trim()) setSeniorName(me.name.trim());
           else if (me?.email) setSeniorName(me.email);
           if (me && typeof me.moodEnabled === 'boolean') setMoodEnabled(me.moodEnabled);
+          setMoodCheckTimes(normalizeMoodCheckTimes(me?.moodCheckTimes));
           if (me && typeof me.vitalsEntryEnabled === 'boolean') setVitalsEntryEnabled(me.vitalsEntryEnabled);
           void applySeniorProfileSettings(me ?? {});
         })
@@ -147,9 +149,9 @@ export default function DependentDashboard() {
   const moodState = useMemo(
     () =>
       moodEnabled
-        ? computeMoodScheduleState(DEFAULT_MOOD_CHECK_TIMES, completedMoodSlots, now)
+        ? computeMoodScheduleState(moodCheckTimes, completedMoodSlots, now)
         : { kind: 'disabled' as const },
-    [moodEnabled, completedMoodSlots, now],
+    [moodEnabled, moodCheckTimes, completedMoodSlots, now],
   );
 
   const lowStockMeds = useMemo(
@@ -264,15 +266,19 @@ export default function DependentDashboard() {
         ? `${mainState.nextName} · ${mainState.dose}`
         : '';
 
+  const moodCheckTime = moodCheckTimes[0] ?? '08:00';
+
   const moodTitle = moodActive ? t('dependent.home.moodDue') : t('dependent.home.moodIdle');
   const moodLine1 =
     moodState.kind === 'active'
       ? t('dependent.home.moodTap')
       : moodState.kind === 'inactive'
-        ? t('dependent.home.moodNext', { time: moodState.nextTime })
+        ? t('dependent.home.moodNext', { time: moodCheckTime })
         : moodEnabled
           ? t('dependent.home.moodDone')
           : t('dependent.home.moodDisabled');
+  const moodLine2 =
+    moodEnabled && moodState.kind === 'active' ? moodCheckTime : null;
 
   const medConfirmMessage =
     mainState.kind === 'due' || mainState.kind === 'missed'
@@ -284,7 +290,7 @@ export default function DependentDashboard() {
       {previewMode ? (
         <View style={[styles.previewBanner, { backgroundColor: colors.accentOrange }]}>
           <MaterialIcons name="visibility" size={20} color="#fff" />
-          <Text style={styles.previewBannerText}>Podgląd UI — dane demo, bez API</Text>
+          <Text style={styles.previewBannerText}>Podgląd UI - dane demo, bez API</Text>
         </View>
       ) : null}
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
@@ -381,6 +387,11 @@ export default function DependentDashboard() {
             <Text style={[styles.tileLine1, { color: moodActive ? '#3E2723' : '#607D8B' }]}>
               {moodLine1}
             </Text>
+            {moodLine2 ? (
+              <Text style={[styles.tileLine2, { color: moodActive ? '#3E2723' : '#607D8B' }]}>
+                {moodLine2}
+              </Text>
+            ) : null}
           </Pressable>
         ) : null}
 

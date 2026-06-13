@@ -18,8 +18,8 @@ export type MoodScheduleState =
   | { kind: 'inactive'; nextTime: string }
   | { kind: 'active'; slotTime: string };
 
-/** Domyślne godziny sprawdzania nastroju — do czasu konfiguracji przez opiekuna w API. */
-export const DEFAULT_MOOD_CHECK_TIMES = ['08:00', '14:00', '20:00'];
+/** Domyślna godzina sprawdzania nastroju - do czasu konfiguracji przez opiekuna w API. */
+export const DEFAULT_MOOD_CHECK_TIMES = ['08:00'];
 
 const MOOD_ACTIVE_WINDOW_MINUTES = 60;
 

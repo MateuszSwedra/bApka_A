@@ -38,6 +38,7 @@ model User {
   lastMood    String?
   lastMoodAt  DateTime?
   moodEnabled Boolean @default(true)
+  moodCheckTimes String[] @default(["08:00"])
   vitalsEntryEnabled Boolean @default(false)
   highContrast Boolean @default(false)
   colorBlindFriendly Boolean @default(false)

@@ -11,7 +11,7 @@ export type TreatmentType =
 
 export type TreatmentIconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
-/** Ikona i kolor — do kafelków / wyboru w kalendarzu */
+/** Ikona i kolor - do kafelków / wyboru w kalendarzu */
 export const TREATMENT_VISUAL: Record<
   TreatmentType,
   { icon: TreatmentIconName; accent: string }

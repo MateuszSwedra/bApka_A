@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { format, isToday } from 'date-fns';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { SeniorFlow } from '../../constants/seniorFlowStyles';
 import type { SeniorSurfaceColors } from '../../context/DependentDisplayContext';
@@ -16,7 +17,6 @@ import {
   isCurrentSeniorWeek,
 } from '../../utils/seniorWeekPlan';
 import { seniorActivityNameForSchedule } from '../../utils/seniorActivityLabel';
-import { seniorT } from '../../utils/seniorI18n';
 import type { CalendarDepletionAlert } from '../caretaker/AndroidStyleMonthCalendar';
 
 type Props = {
@@ -40,7 +40,7 @@ export function SeniorWeekPlanView({
   depletionAlerts,
   colors,
 }: Props) {
-  const tPl = seniorT();
+  const { t } = useTranslation();
   const weekDays = useMemo(() => daysInSeniorWeek(weekAnchor), [weekAnchor]);
   const weekRangeLabel = useMemo(() => formatSeniorWeekRange(weekAnchor), [weekAnchor]);
   const showThisWeek = !isCurrentSeniorWeek(weekAnchor);
@@ -52,19 +52,19 @@ export function SeniorWeekPlanView({
           onPress={onPrevWeek}
           style={[styles.navBtn, { borderColor: colors.border }]}
           accessibilityRole="button"
-          accessibilityLabel={tPl('dependent.calendar.prevWeek')}
+          accessibilityLabel={t('dependent.calendar.prevWeek')}
         >
           <MaterialIcons name="chevron-left" size={32} color={colors.textDark} />
         </Pressable>
         <View style={styles.navCenter}>
           <Text style={[styles.weekTitle, { color: colors.textDark }]}>
-            {tPl('dependent.calendar.weekPlanTitle')}
+            {t('dependent.calendar.weekPlanTitle')}
           </Text>
           <Text style={[styles.weekRange, { color: colors.textLight }]}>{weekRangeLabel}</Text>
           {showThisWeek ? (
             <Pressable onPress={onThisWeek} accessibilityRole="button">
               <Text style={[styles.thisWeekLink, { color: colors.primaryLimeDark }]}>
-                {tPl('dependent.calendar.thisWeek')}
+                {t('dependent.calendar.thisWeek')}
               </Text>
             </Pressable>
           ) : null}
@@ -73,7 +73,7 @@ export function SeniorWeekPlanView({
           onPress={onNextWeek}
           style={[styles.navBtn, { borderColor: colors.border }]}
           accessibilityRole="button"
-          accessibilityLabel={tPl('dependent.calendar.nextWeek')}
+          accessibilityLabel={t('dependent.calendar.nextWeek')}
         >
           <MaterialIcons name="chevron-right" size={32} color={colors.textDark} />
         </Pressable>
@@ -101,13 +101,13 @@ export function SeniorWeekPlanView({
           >
             <View style={styles.dayHeader}>
               <Text style={[styles.dayName, { color: colors.textDark }]}>
-                {tPl(`calendar.weekdayShort.${weekdayKey}`)}
+                {t(`calendar.weekdayShort.${weekdayKey}`)}
               </Text>
               <Text style={[styles.dayDate, { color: colors.textDark }]}>{format(day, 'd.MM')}</Text>
               {today ? (
                 <View style={[styles.todayBadge, { backgroundColor: colors.primaryLimeDark }]}>
                   <Text style={[styles.todayBadgeText, { color: colors.surfaceWhite }]}>
-                    {tPl('dependent.calendar.todayBadge')}
+                    {t('dependent.calendar.todayBadge')}
                   </Text>
                 </View>
               ) : null}
@@ -120,14 +120,14 @@ export function SeniorWeekPlanView({
               >
                 <MaterialIcons name="shopping-cart" size={24} color={colors.accentOrange} />
                 <Text style={[styles.alertText, { color: colors.accentOrange }]}>
-                  {tPl('dependent.calendar.alertBuyPack', { name: alert.inventoryItemName })}
+                  {t('dependent.calendar.alertBuyPack', { name: alert.inventoryItemName })}
                 </Text>
               </View>
             ))}
 
             {daySchedules.length === 0 && dayAlerts.length === 0 ? (
               <Text style={[styles.emptyDay, { color: colors.textLight }]}>
-                {tPl('dependent.calendar.emptyDay')}
+                {t('dependent.calendar.emptyDay')}
               </Text>
             ) : (
               daySchedules.map(sch => {

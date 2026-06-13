@@ -13,7 +13,7 @@ export function isUserUuid(value: string): boolean {
 
 /**
  * Id podopiecznego z trasy (dependent / add-treatment / add-med).
- * Nie używa gołego `id` z globalnych params — mogą pochodzić z innego ekranu.
+ * Nie używa gołego `id` z globalnych params - mogą pochodzić z innego ekranu.
  */
 export function resolveMedsTargetUserId(
   params: { id?: string | string[]; dependentId?: string | string[] },

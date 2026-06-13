@@ -1,11 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import Animated from 'react-native-reanimated';
 import { Theme } from '../../../../constants/theme';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useMeds } from '../../../../context/MedsContext';
-import { openAddMed } from '../../../../utils/medsFlowNavigation';
+import { openAddMed, openAddMedFromCalendarSlot } from '../../../../utils/medsFlowNavigation';
 import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../context/MedsContext';
@@ -14,12 +13,6 @@ import { AndroidStyleDayView } from '../../../../components/caretaker/AndroidSty
 import { ScheduleEventSheet } from '../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
-import {
-  CALENDAR_DAY_BACKDROP_ENTER,
-  CALENDAR_DAY_BACKDROP_EXIT,
-  CALENDAR_DAY_ENTER,
-  CALENDAR_DAY_EXIT,
-} from '../../../../utils/calendarDayTransition';
 
 export default function HybridCalendarDayScreen() {
   const { t } = useTranslation();
@@ -52,6 +45,17 @@ export default function HybridCalendarDayScreen() {
     return labelForSchedule(selectedSchedule);
   }, [selectedSchedule, labelForSchedule]);
 
+  const handleSlotPress = useCallback(
+    (hour: number) => {
+      if (!selfUserId) {
+        Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+        return;
+      }
+      openAddMedFromCalendarSlot(selfUserId, 'hybrid', dateStr, hour);
+    },
+    [selfUserId, dateStr, t],
+  );
+
   if (!dateStr) {
     router.back();
     return null;
@@ -59,8 +63,8 @@ export default function HybridCalendarDayScreen() {
 
   return (
     <View style={styles.root}>
-      <Animated.View entering={CALENDAR_DAY_BACKDROP_ENTER} exiting={CALENDAR_DAY_BACKDROP_EXIT} style={styles.backdrop} pointerEvents="none" />
-      <Animated.View entering={CALENDAR_DAY_ENTER} exiting={CALENDAR_DAY_EXIT} style={styles.container}>
+      <View style={styles.backdrop} pointerEvents="none" />
+      <View style={styles.container}>
         <View style={[styles.dayWrap, { paddingTop: topInset }]}>
           <AndroidStyleDayView
             dateStr={dateStr}
@@ -70,6 +74,7 @@ export default function HybridCalendarDayScreen() {
             depletionAlerts={depletionAlerts}
             labelForSchedule={labelForSchedule}
             onEventPress={sch => setSelectedSchedule(sch)}
+            onSlotPress={handleSlotPress}
           />
         </View>
         <ScheduleEventSheet
@@ -92,7 +97,7 @@ export default function HybridCalendarDayScreen() {
         >
           <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
         </Pressable>
-      </Animated.View>
+      </View>
     </View>
   );
 }

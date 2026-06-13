@@ -32,6 +32,7 @@ import {
   resolveMedsFlowScope,
   returnAfterScheduleSaved,
 } from '../../../../utils/medsFlowNavigation';
+import { parsePrefillTime } from '../../../../utils/addMedPrefill';
 
 function paramString(v?: string | string[]): string | undefined {
   if (v == null) return undefined;
@@ -49,6 +50,7 @@ export default function AddScheduleDetailsScreen() {
     startDate?: string;
     endDate?: string;
     daysOfWeek?: string;
+    prefillTime?: string;
   }>();
   const globalParams = useGlobalSearchParams<{ dependentId?: string; id?: string }>();
   const segments = useSegments();
@@ -90,10 +92,11 @@ export default function AddScheduleDetailsScreen() {
   const startDate = paramString(localParams.startDate) ?? format(new Date(), 'yyyy-MM-dd');
   const endDate = paramString(localParams.endDate);
   const daysOfWeek = parseDaysOfWeekParam(paramString(localParams.daysOfWeek));
+  const prefilledTime = parsePrefillTime(paramString(localParams.prefillTime));
 
   const timePickerRef = useRef<FriendlyTimePickerRef>(null);
-  const [hour, setHour] = useState(8);
-  const [minute, setMinute] = useState(0);
+  const [hour, setHour] = useState(prefilledTime?.hour ?? 8);
+  const [minute, setMinute] = useState(prefilledTime?.minute ?? 0);
   const [dosage, setDosage] = useState('1');
   const [saving, setSaving] = useState(false);
 

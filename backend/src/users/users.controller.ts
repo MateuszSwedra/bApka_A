@@ -141,7 +141,7 @@ export class UsersController {
     return this.usersService.listHealthMetricLogs(id, start, end, type);
   }
 
-  /** POST na tę samą ścieżkę co PATCH — niektóre wdrożenia / cache miały tylko PATCH. */
+  /** POST na tę samą ścieżkę co PATCH - niektóre wdrożenia / cache miały tylko PATCH. */
   @Post('me/name')
   @HttpCode(200)
   @ApiOperation({ summary: 'Update display name (POST alias, same path as PATCH)' })
@@ -149,7 +149,7 @@ export class UsersController {
     return this.usersService.updateDisplayName(req.user.userId, name);
   }
 
-  /** POST — alternatywna ścieżka (np. starszy klient). */
+  /** POST - alternatywna ścieżka (np. starszy klient). */
   @Post('me/display-name')
   @HttpCode(200)
   @ApiOperation({ summary: 'Update display name (POST alias, hyphen path)' })

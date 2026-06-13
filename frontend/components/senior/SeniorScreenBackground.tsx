@@ -7,7 +7,7 @@ type Props = {
   children: React.ReactNode;
 };
 
-/** Jednolite, gładkie tło — bez gradientu i dekoracji. */
+/** Jednolite, gładkie tło - bez gradientu i dekoracji. */
 export function SeniorScreenBackground({ colors, children }: Props) {
   return (
     <View style={[styles.root, { backgroundColor: colors.surfaceGrey }]}>{children}</View>

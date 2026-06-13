@@ -8,7 +8,7 @@ type Props = {
   height?: number;
 };
 
-/** Kalendarzyk + pigułka — wspólna grafika ekranu wyboru daty/dni/okresu. Bez tła. */
+/** Kalendarzyk + pigułka - wspólna grafika ekranu wyboru daty/dni/okresu. Bez tła. */
 export function ScheduleTimingIllustration({ width = 240, height = 200 }: Props) {
   const navy = Theme.colors.primaryLimeDark;
   const orange = Theme.colors.accentOrange;
@@ -49,7 +49,7 @@ export function ScheduleTimingIllustration({ width = 240, height = 200 }: Props)
           strokeDasharray="4 3"
         />
 
-        {/* Zegar — subtelny akcent */}
+        {/* Zegar - subtelny akcent */}
         <Circle cx={188} cy={152} r={16} fill="none" stroke={navy} strokeWidth={1.5} />
         <Line x1={188} y1={152} x2={188} y2={142} stroke={navy} strokeWidth={2} strokeLinecap="round" />
         <Line x1={188} y1={152} x2={196} y2={156} stroke={orange} strokeWidth={2} strokeLinecap="round" />

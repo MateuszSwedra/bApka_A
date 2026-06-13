@@ -4,6 +4,6 @@ node_modules
 
 /generated/prisma
 
-# Raporty testów — generowane lokalnie / w CI
+# Raporty testów - generowane lokalnie / w CI
 coverage/
 *.lcov

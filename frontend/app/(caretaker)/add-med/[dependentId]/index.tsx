@@ -15,6 +15,7 @@ import { TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
 import { useMeds } from '../../../../context/MedsContext';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { addMedRoute, openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
+import { addMedPrefillParams, readAddMedPrefill } from '../../../../utils/addMedPrefill';
 import { ActivityPickerIllustration } from '../../../../components/caretaker/ActivityPickerIllustration';
 import { HugeButton } from '../../../../components/HugeButton';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
@@ -23,7 +24,7 @@ import { useTranslation } from 'react-i18next';
 export default function PickActivityScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const localParams = useLocalSearchParams<{ dependentId?: string; id?: string }>();
+  const localParams = useLocalSearchParams<{ dependentId?: string; id?: string; prefillDate?: string; prefillTime?: string }>();
   const globalParams = useGlobalSearchParams<{ dependentId?: string; id?: string }>();
   const segments = useSegments();
   const { treatments, refetchFromServer, targetUserId } = useMeds();
@@ -57,12 +58,13 @@ export default function PickActivityScreen() {
   );
 
   const flowScope = resolveMedsFlowScope(segments as string[]);
+  const prefill = readAddMedPrefill(localParams);
 
   const handleContinue = () => {
     if (!selectedId || !dependentId) return;
     router.push({
       pathname: addMedRoute(flowScope, 'frequency'),
-      params: { dependentId, treatmentId: selectedId },
+      params: { dependentId, treatmentId: selectedId, ...addMedPrefillParams(prefill) },
     } as never);
   };
 
@@ -98,6 +100,17 @@ export default function PickActivityScreen() {
         ) : null}
 
         <View style={styles.list}>
+          <Pressable
+            onPress={handleOpenAddTreatment}
+            style={styles.addRow}
+            accessibilityLabel={t('schedule.add.a11yAddActivity')}
+          >
+            <View style={styles.addIconCircle}>
+              <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
+            </View>
+            <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
+          </Pressable>
+
           {treatments.map(item => {
             const vis = TREATMENT_VISUAL[item.type];
             const selected = selectedId === item.id;
@@ -130,17 +143,6 @@ export default function PickActivityScreen() {
               </Pressable>
             );
           })}
-
-          <Pressable
-            onPress={handleOpenAddTreatment}
-            style={styles.addRow}
-            accessibilityLabel={t('schedule.add.a11yAddActivity')}
-          >
-            <View style={styles.addIconCircle}>
-              <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
-            </View>
-            <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
-          </Pressable>
         </View>
       </ScrollView>
 
@@ -269,7 +271,7 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: Theme.colors.primaryLimeDark,
     backgroundColor: Theme.colors.primaryLime + '55',
-    marginTop: Theme.spacing.xs,
+    marginBottom: Theme.spacing.s,
   },
   addIconCircle: {
     width: 48,

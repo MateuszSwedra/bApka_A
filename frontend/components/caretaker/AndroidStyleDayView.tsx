@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { format, isToday, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from 'expo-router';
 import { Theme } from '../../constants/theme';
 import { TREATMENT_VISUAL, type TreatmentType } from '../../constants/treatmentVisuals';
 import type { ScheduleItem } from '../../context/MedsContext';
@@ -29,6 +30,7 @@ type Props = {
   depletionAlerts: CalendarDepletionAlert[];
   labelForSchedule: (sch: ScheduleItem) => string;
   onEventPress?: (sch: ScheduleItem) => void;
+  onSlotPress?: (hour: number) => void;
 };
 
 function hourLabel(hour: number): string {
@@ -43,8 +45,10 @@ export function AndroidStyleDayView({
   depletionAlerts,
   labelForSchedule,
   onEventPress,
+  onSlotPress,
 }: Props) {
   const { t } = useTranslation();
+  const [activeSlotHour, setActiveSlotHour] = useState<number | null>(null);
   const day = parseISO(dateStr);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
   const monthTitle = monthNames[day.getMonth()] ?? format(day, 'MMMM');
@@ -67,6 +71,12 @@ export function AndroidStyleDayView({
 
   const timelineHeight = HOURS * HOUR_HEIGHT;
   const scrollRef = useRef<ScrollView>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => setActiveSlotHour(null);
+    }, []),
+  );
 
   useEffect(() => {
     const d = parseISO(dateStr);
@@ -174,16 +184,33 @@ export function AndroidStyleDayView({
 
         <View style={[styles.timeline, { height: timelineHeight }]}>
           {Array.from({ length: HOURS }, (_, hour) => (
-            <View
+            <Pressable
               key={hour}
-              style={[styles.hourRow, { top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }]}
+              disabled={!onSlotPress}
+              onPress={() => onSlotPress?.(hour)}
+              onPressIn={() => setActiveSlotHour(hour)}
+              onPressOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
+              onHoverIn={() => setActiveSlotHour(hour)}
+              onHoverOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
+              style={({ pressed, hovered }) => [
+                styles.hourRow,
+                { top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT },
+                (hovered || pressed) && onSlotPress ? styles.hourRowActive : null,
+              ]}
+              accessibilityRole="button"
+              accessibilityLabel={t('schedule.add.slotA11y', { time: hourLabel(hour) })}
             >
               <Text style={styles.hourLabel}>{hourLabel(hour)}</Text>
               <View style={styles.hourLine} />
-            </View>
+              {onSlotPress && activeSlotHour === hour ? (
+                <View style={styles.slotAddBtn}>
+                  <MaterialIcons name="add" size={18} color={Theme.colors.primaryLimeDark} />
+                </View>
+              ) : null}
+            </Pressable>
           ))}
 
-          <View style={[styles.eventsLayer, { marginLeft: TIME_GUTTER }]}>
+          <View style={[styles.eventsLayer, { height: timelineHeight }]} pointerEvents="box-none">
             {positionedEvents.map(({ sch, top, height, accent, label, columnIndex, columnCount }) => {
               const gap = 2;
               const widthPct = 100 / columnCount;
@@ -322,6 +349,8 @@ const styles = StyleSheet.create({
     marginHorizontal: Theme.spacing.xs,
     borderRadius: 8,
     overflow: 'hidden',
+    width: '100%',
+    alignSelf: 'stretch',
   },
   hourRow: {
     position: 'absolute',
@@ -329,6 +358,23 @@ const styles = StyleSheet.create({
     right: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
+  },
+  hourRowActive: {
+    backgroundColor: 'rgba(69, 104, 130, 0.06)',
+  },
+  slotAddBtn: {
+    position: 'absolute',
+    right: Theme.spacing.s,
+    top: 4,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderWidth: 1,
+    borderColor: Theme.colors.primaryLimeDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 2,
   },
   hourLabel: {
     width: TIME_GUTTER,
@@ -346,10 +392,9 @@ const styles = StyleSheet.create({
   },
   eventsLayer: {
     position: 'absolute',
-    left: 0,
+    left: TIME_GUTTER,
     right: Theme.spacing.s,
     top: 0,
-    bottom: 0,
   },
   timedEvent: {
     position: 'absolute',

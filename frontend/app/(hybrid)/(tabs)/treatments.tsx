@@ -10,7 +10,7 @@ import { useDependentTabTopInset } from '../../../utils/useDependentTabTopInset'
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { useSelfUserId } from '../../../hooks/useSelfUserId';
-import { openEditTreatment } from '../../../utils/medsFlowNavigation';
+import { openAddTreatment, openEditTreatment } from '../../../utils/medsFlowNavigation';
 
 export default function HybridTreatmentsScreen() {
   const { t } = useTranslation();
@@ -24,6 +24,10 @@ export default function HybridTreatmentsScreen() {
     }, [selfUserId, refetchFromServer]),
   );
 
+  const handleOpenAddTreatment = () => {
+    if (selfUserId) openAddTreatment(selfUserId, 'hybrid');
+  };
+
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
     type,
     meta: TREATMENT_VISUAL[type],
@@ -35,6 +39,18 @@ export default function HybridTreatmentsScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('hybrid.treatmentsSubtitle')}</Text>
+
+        <Pressable
+          onPress={handleOpenAddTreatment}
+          style={styles.addRow}
+          accessibilityLabel={t('schedule.add.a11yAddActivity')}
+        >
+          <View style={styles.addIconCircle}>
+            <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
+          </View>
+          <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
+        </Pressable>
+
         {grouped.length === 0 ? (
           <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
         ) : (
@@ -108,7 +124,33 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   content: { padding: Theme.spacing.l, paddingBottom: 120 },
   sectionTitle: { fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.textDark },
-  sectionSubtitle: { marginTop: Theme.spacing.xs, marginBottom: Theme.spacing.l, color: Theme.colors.textLight, lineHeight: 20 },
+  sectionSubtitle: { marginTop: Theme.spacing.xs, marginBottom: Theme.spacing.m, color: Theme.colors.textLight, lineHeight: 20 },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.medium,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Theme.colors.primaryLimeDark,
+    backgroundColor: Theme.colors.primaryLime + '55',
+    marginBottom: Theme.spacing.l,
+  },
+  addIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Theme.spacing.m,
+    backgroundColor: Theme.colors.surfaceWhite,
+  },
+  addRowText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
+  },
   groupSection: { marginTop: Theme.spacing.m },
   groupHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: Theme.spacing.s },
   groupIconCircle: { width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginRight: Theme.spacing.s },

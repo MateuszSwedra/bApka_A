@@ -172,7 +172,7 @@ export default function DependentTodayDashboard() {
   }, [nextSchedule, currentMinutes, t]);
 
   const moodSubtitle = useMemo(() => {
-    // @ts-expect-error — lastMood z API
+    // @ts-expect-error - lastMood z API
     if (!dependent?.lastMood || !dependent?.lastMoodAt) return null;
     // @ts-expect-error
     const date = new Date(dependent.lastMoodAt);
@@ -221,7 +221,12 @@ export default function DependentTodayDashboard() {
       />
       <View style={[styles.decorOrb, { backgroundColor: accent.soft }]} />
 
-      <DependentProfileHeader title={displayName} subtitle={headerSubtitle} />
+      <DependentProfileHeader
+        title={displayName}
+        subtitle={headerSubtitle}
+        showSettings
+        dependentId={dependentId ?? undefined}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={[styles.content, { paddingBottom: Theme.spacing.xl }]}
@@ -231,7 +236,7 @@ export default function DependentTodayDashboard() {
           initials={getInitials(displayName)}
           greeting={greetingLine}
           accent={accent}
-          // @ts-expect-error — lastMood z API
+          // @ts-expect-error - lastMood z API
           mood={dependent?.lastMood}
           moodSubtitle={moodSubtitle}
           stats={todayDoseStats}

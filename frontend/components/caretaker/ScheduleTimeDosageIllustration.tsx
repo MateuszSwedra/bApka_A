@@ -8,7 +8,7 @@ type Props = {
   height?: number;
 };
 
-/** Zegar + akcent dawki — ekran godziny i dawki. Bez tła. */
+/** Zegar + akcent dawki - ekran godziny i dawki. Bez tła. */
 export function ScheduleTimeDosageIllustration({ width = 240, height = 200 }: Props) {
   const navy = Theme.colors.primaryLimeDark;
   const orange = Theme.colors.accentOrange;
@@ -69,7 +69,7 @@ export function ScheduleTimeDosageIllustration({ width = 240, height = 200 }: Pr
         />
         <Circle cx={cx} cy={cy} r={5} fill={navy} />
 
-        {/* Kapsułka — dawka (tylko dekor) */}
+        {/* Kapsułka - dawka (tylko dekor) */}
         <Path
           d="M178 128 h34 a12 12 0 0 1 12 12 v4 a12 12 0 0 1 -12 12 h-34 a12 12 0 0 1 -12 -12 v-4 a12 12 0 0 1 12 -12 z"
           fill={orange}

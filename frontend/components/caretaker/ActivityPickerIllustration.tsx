@@ -8,7 +8,7 @@ type Props = {
   height?: number;
 };
 
-/** Ilustracja wyboru aktywności — bez tła, kolory marki bApka. */
+/** Ilustracja wyboru aktywności - bez tła, kolory marki bApka. */
 export function ActivityPickerIllustration({ width = 220, height = 200 }: Props) {
   const stroke = Theme.colors.border;
   const header = Theme.colors.primaryLimeDark;

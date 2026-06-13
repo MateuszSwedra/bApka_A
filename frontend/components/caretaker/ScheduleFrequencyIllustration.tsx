@@ -9,7 +9,7 @@ type Props = {
 };
 
 /**
- * Ilustracja wyboru częstotliwości — orbita z ikonami (inna kompozycja niż referencja z „?”).
+ * Ilustracja wyboru częstotliwości - orbita z ikonami (inna kompozycja niż referencja z „?”).
  * Bez tła, kolory marki.
  */
 export function ScheduleFrequencyIllustration({ width = 240, height = 220 }: Props) {
@@ -49,11 +49,11 @@ export function ScheduleFrequencyIllustration({ width = 240, height = 220 }: Pro
           fill="none"
         />
 
-        {/* Jednorazowo — góra: pojedyncza kropka w pierścieniu */}
+        {/* Jednorazowo - góra: pojedyncza kropka w pierścieniu */}
         <Circle cx={cx} cy={cy - orbitRy} r={22} fill={mint} opacity={0.95} />
         <Circle cx={cx} cy={cy - orbitRy} r={7} fill={navy} />
 
-        {/* Regularnie — prawo: strzałki cyklu */}
+        {/* Regularnie - prawo: strzałki cyklu */}
         <Circle cx={cx + orbitRx} cy={cy} r={22} fill={navy} opacity={0.92} />
         <Path
           d={`M${cx + orbitRx - 10} ${cy - 2} a10 10 0 1 1 8 -6`}
@@ -71,7 +71,7 @@ export function ScheduleFrequencyIllustration({ width = 240, height = 220 }: Pro
           strokeLinejoin="round"
         />
 
-        {/* Okres — lewy dół: pasek dat */}
+        {/* Okres - lewy dół: pasek dat */}
         <Circle cx={cx - orbitRx * 0.78} cy={cy + orbitRy * 0.72} r={22} fill={orange} opacity={0.9} />
         <Rect
           x={cx - orbitRx * 0.78 - 11}

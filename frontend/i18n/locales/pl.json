@@ -62,7 +62,7 @@
       "cta": "Dalej",
       "saving": "Zapisujemy…",
       "errorEmpty": "Podaj imię lub pseudonim.",
-      "errorMinLength": "Wpisz co najmniej 2 znaki — np. imię lub zwracane imię.",
+      "errorMinLength": "Wpisz co najmniej 2 znaki - np. imię lub zwracane imię.",
       "errorMaxLength": "To pole może mieć co najwyżej 80 znaków.",
       "errorSave": "Nie udało się zapisać. Spróbuj ponownie."
     }
@@ -187,7 +187,7 @@
     "sectionSos": "Powiadomienie SOS",
     "sectionSosSubtitle": "Osobny dźwięk dla alarmu SOS.",
     "a11yPreview": "Odsłuchaj: {{label}}",
-    "webHint": "W przeglądarce podgląd może być wyciszony — na telefonie usłyszysz pełny dźwięk."
+    "webHint": "W przeglądarce podgląd może być wyciszony - na telefonie usłyszysz pełny dźwięk."
   },
   "caretaker": {
     "dashboard": {
@@ -241,7 +241,11 @@
       "seniorSection": "Opcje dla seniora",
       "seniorSectionHint": "Zmiany dotyczą aplikacji na telefonie podopiecznego.",
       "mood": "Pytanie o humor",
-      "moodSub": "Gdy wyłączone — kafelek humoru znika, a „Weź lek” zajmuje całą szerokość.",
+      "moodSub": "Gdy wyłączone - kafelek humoru znika, a „Weź lek” zajmuje całą szerokość.",
+      "moodTimesTitle": "Godzina pytania o samopoczucie",
+      "moodTimesHint": "Przesuń koła, aby ustawić godzinę. Zmiany zapisujesz przyciskiem poniżej.",
+      "moodTimesSave": "Zapisz",
+      "moodTimesSaved": "Zapisano",
       "vitals": "Wpisywanie wyników pomiarów",
       "vitalsSub": "Po potwierdzeniu pomiaru cukru lub ciśnienia senior uzupełni wyniki w formularzu.",
       "accessibility": "Dostępność ekranu seniora",
@@ -292,8 +296,8 @@
       "dayOverview": "Przegląd dnia"
     },
     "device": {
-      "synced": "Urządzenie poprawnie zsynchronizowane",
-      "statusOk": "Status: OK"
+      "synced": "Wkrótce",
+      "statusOk": "Urządzenie: wkrótce"
     },
     "alerts": {
       "title": "Alerty",
@@ -312,11 +316,11 @@
     "nameFallback": "drogi seniorze",
     "moodTitle": "Jak się dziś czujesz?",
     "moodThanks": "Dziękujemy za informację.",
-    "mainDue": "Czas na leki lub ćwiczenia — zgodnie z kalendarzem.",
+    "mainDue": "Czas na leki lub ćwiczenia - zgodnie z kalendarzem.",
     "mainDueCta": "Potwierdź",
     "mainUpcoming": "Następna aktywność o: {{time}}",
     "mainEmpty": "Kalendarz opiekuna nie wymaga teraz żadnej aktywności.",
-    "mainAllDone": "To wszystko na dziś — brak zaplanowanych aktywności.",
+    "mainAllDone": "To wszystko na dziś - brak zaplanowanych aktywności.",
     "mainMissed": "Nie przyjęto na czas",
     "mainMissedHint": "Minęło 15 minut od planowanej godziny. Ta aktywność została oznaczona jako pominięta.",
     "activityMissed": "Pominięte",
@@ -397,7 +401,7 @@
       "colorBlindSub": "Wyraźniejsze kształty i bezpieczniejsze kolory.",
       "highContrastSub": "Pogrubiony tekst i tła.",
       "moodPickerSub": "Pytanie o samopoczucie po aktywnościach.",
-      "soundHint": "Wybierz dźwięk systemowy lub wbudowany. Dotknij wiersza, aby wybrać (z potwierdzeniem). Głośnik — podgląd.",
+      "soundHint": "Wybierz dźwięk systemowy lub wbudowany. Dotknij wiersza, aby wybrać (z potwierdzeniem). Głośnik - podgląd.",
       "soundChangeTitle": "Zmienić dźwięk przypomnienia?",
       "soundChangeMessage": "Użyć „{{label}}” do przypomnień o lekach na tym urządzeniu?",
       "confirmColorBlindOff": "Wyłączyć tryb dla daltonistów?",
@@ -415,19 +419,21 @@
     },
     "metrics": {
       "title": "Pomiary zdrowotne",
-      "hint": "Wpisz swoje pomiary (np. ciśnienie lub cukier).",
+      "hint": "Strzałki góra/dół - jeden krok. Przytrzymaj, aby szybciej.",
       "bp": "Ciśnienie",
       "glucose": "Cukier",
-      "systolic": "Skurczowe (SYS)",
-      "diastolic": "Rozkurczowe (DIA)",
+      "systolic": "Skurczowe",
+      "diastolic": "Rozkurczowe",
       "pulseOptional": "Puls (opcjonalnie)",
-      "glucoseValue": "Wartość (mg/dL)",
+      "glucoseValue": "Poziom cukru",
+      "unitMmHg": "mmHg",
+      "unitMgDl": "mg/dL",
       "saving": "Zapisuję…",
       "saved": "Zapisano pomiar."
     },
     "calendar": {
       "screenTitle": "Harmonogram",
-      "weekPlanTitle": "Od dziś — 7 dni",
+      "weekPlanTitle": "Od dziś - 7 dni",
       "prevWeek": "Poprzednie 7 dni",
       "nextWeek": "Kolejne 7 dni",
       "thisWeek": "Od dzisiaj",
@@ -444,14 +450,17 @@
       "dosePieces": "{{count}} szt.",
       "alertDepletion": "Kończy się lek: {{name}}",
       "alertBuyPack": "Kup nową paczkę: {{name}}",
-      "activityLegend": "Kolorowe pole — w tym dniu coś jest zaplanowane"
+      "activityLegend": "Kolorowe pole - w tym dniu coś jest zaplanowane",
+      "scrollHint": "Przewiń w dół, aby zobaczyć kolejne dni. Strzałki - plan na inny tydzień.",
+      "scrollMore": "Przewiń w dół",
+      "backToTop": "Wróć do góry"
     }
   },
   "hybrid": {
     "panelTitle": "Mój plan",
     "takeMedIdle": "Leki i aktywności",
     "takeMedCta": "POTWIERDŹ",
-    "treatmentsSubtitle": "Twoja apteczka i aktywności — dodawaj i edytuj samodzielnie.",
+    "treatmentsSubtitle": "Twoja apteczka i aktywności - dodawaj i edytuj samodzielnie.",
     "logout": "Wyloguj się",
     "settings": {
       "section": "Twoje ustawienia",
@@ -492,6 +501,7 @@
       "title": "Dodaj do Kalendarza",
       "pickActivityTitle": "Wybierz aktywność",
       "pickActivityLead": "Wybierz aktywność z apteczki podopiecznego, którą chcesz dodać do kalendarza.",
+      "slotA11y": "Dodaj aktywność o {{time}}",
       "continue": "Kontynuuj",
       "pickFrequencyTitle": "Jak często?",
       "pickFrequencyLead": "Wybierz, czy podanie jest jednorazowe, stałe, czy tylko przez określony czas.",

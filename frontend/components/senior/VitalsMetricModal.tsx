@@ -1,19 +1,21 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   Modal,
-  TextInput,
   Pressable,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { usersAPI } from '../../services/api';
 import type { SeniorSurfaceColors } from '../../context/DependentDisplayContext';
+import { SeniorNumericStepper } from './SeniorNumericStepper';
+
+const DEFAULT_SYS = 120;
+const DEFAULT_DIA = 80;
+const DEFAULT_GLUCOSE = 100;
 
 type VitalsMetricModalProps = {
   visible: boolean;
@@ -21,7 +23,7 @@ type VitalsMetricModalProps = {
   colors: SeniorSurfaceColors;
   onClose: () => void;
   onSaved?: () => void;
-  /** Podgląd dev — zapis tylko lokalnie, bez API. */
+  /** Podgląd dev - zapis tylko lokalnie, bez API. */
   offlinePreview?: boolean;
 };
 
@@ -34,38 +36,26 @@ export function VitalsMetricModal({
   offlinePreview = false,
 }: VitalsMetricModalProps) {
   const { t } = useTranslation();
-  const [sys, setSys] = useState('');
-  const [dia, setDia] = useState('');
-  const [pulse, setPulse] = useState('');
-  const [glucose, setGlucose] = useState('');
+  const [sys, setSys] = useState(DEFAULT_SYS);
+  const [dia, setDia] = useState(DEFAULT_DIA);
+  const [glucose, setGlucose] = useState(DEFAULT_GLUCOSE);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => {
-    if (type === 'BP') return !!sys.trim() && !!dia.trim();
-    return !!glucose.trim();
-  }, [type, sys, dia, glucose]);
-
-  const reset = () => {
-    setSys('');
-    setDia('');
-    setPulse('');
-    setGlucose('');
+  useEffect(() => {
+    if (!visible) return;
+    setSys(DEFAULT_SYS);
+    setDia(DEFAULT_DIA);
+    setGlucose(DEFAULT_GLUCOSE);
     setError(null);
-  };
-
-  const handleClose = () => {
-    reset();
-    onClose();
-  };
+  }, [visible, type]);
 
   const submit = async () => {
-    if (!canSubmit || loading) return;
+    if (loading) return;
     setLoading(true);
     setError(null);
     try {
       if (offlinePreview) {
-        reset();
         onSaved?.();
         onClose();
         return;
@@ -73,19 +63,17 @@ export function VitalsMetricModal({
       if (type === 'BP') {
         await usersAPI.createMetric({
           type: 'BP',
-          systolic: Number(sys),
-          diastolic: Number(dia),
-          pulse: pulse ? Number(pulse) : undefined,
+          systolic: sys,
+          diastolic: dia,
           unit: 'mmHg',
         });
       } else {
         await usersAPI.createMetric({
           type: 'GLUCOSE',
-          value: Number(glucose),
+          value: glucose,
           unit: 'mg/dL',
         });
       }
-      reset();
       onSaved?.();
       onClose();
     } catch (e) {
@@ -96,58 +84,64 @@ export function VitalsMetricModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        style={styles.backdrop}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={styles.backdrop}>
         <View style={[styles.card, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
           <Text style={[styles.title, { color: colors.textDark }]}>
             {type === 'BP' ? t('dependent.metrics.bp') : t('dependent.metrics.glucose')}
           </Text>
-          <Text style={[styles.hint, { color: colors.textLight }]}>{t('dependent.metrics.hint')}</Text>
 
-          {type === 'BP' ? (
-            <>
-              <Text style={[styles.label, { color: colors.textDark }]}>{t('dependent.metrics.systolic')}</Text>
-              <TextInput
-                value={sys}
-                onChangeText={setSys}
-                keyboardType="numeric"
-                style={[styles.input, { borderColor: colors.border, color: colors.textDark }]}
-              />
-              <Text style={[styles.label, { color: colors.textDark }]}>{t('dependent.metrics.diastolic')}</Text>
-              <TextInput
-                value={dia}
-                onChangeText={setDia}
-                keyboardType="numeric"
-                style={[styles.input, { borderColor: colors.border, color: colors.textDark }]}
-              />
-              <Text style={[styles.label, { color: colors.textDark }]}>{t('dependent.metrics.pulseOptional')}</Text>
-              <TextInput
-                value={pulse}
-                onChangeText={setPulse}
-                keyboardType="numeric"
-                style={[styles.input, { borderColor: colors.border, color: colors.textDark }]}
-              />
-            </>
-          ) : (
-            <>
-              <Text style={[styles.label, { color: colors.textDark }]}>{t('dependent.metrics.glucoseValue')}</Text>
-              <TextInput
+          <View
+            style={[
+              styles.hintBanner,
+              { backgroundColor: colors.primaryLime + '55', borderColor: colors.primaryLimeDark },
+            ]}
+          >
+            <Text style={[styles.hint, { color: colors.textDark }]}>{t('dependent.metrics.hint')}</Text>
+          </View>
+
+          <View style={styles.fields}>
+            {type === 'BP' ? (
+              <View style={styles.bpRow}>
+                <SeniorNumericStepper
+                  label={t('dependent.metrics.systolic')}
+                  value={sys}
+                  min={90}
+                  max={200}
+                  step={1}
+                  unit={t('dependent.metrics.unitMmHg')}
+                  onChange={setSys}
+                />
+                <View style={styles.bpDivider} />
+                <SeniorNumericStepper
+                  label={t('dependent.metrics.diastolic')}
+                  value={dia}
+                  min={50}
+                  max={120}
+                  step={1}
+                  unit={t('dependent.metrics.unitMmHg')}
+                  onChange={setDia}
+                />
+              </View>
+            ) : (
+              <SeniorNumericStepper
+                compact
+                label={t('dependent.metrics.glucoseValue')}
                 value={glucose}
-                onChangeText={setGlucose}
-                keyboardType="numeric"
-                style={[styles.input, { borderColor: colors.border, color: colors.textDark }]}
+                min={50}
+                max={350}
+                step={1}
+                unit={t('dependent.metrics.unitMgDl')}
+                onChange={setGlucose}
               />
-            </>
-          )}
+            )}
+          </View>
 
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
           <View style={styles.actions}>
             <Pressable
-              onPress={handleClose}
+              onPress={onClose}
               style={({ pressed }) => [
                 styles.btnGhost,
                 { borderColor: colors.border },
@@ -157,13 +151,13 @@ export function VitalsMetricModal({
               <Text style={[styles.btnGhostText, { color: colors.textDark }]}>{t('common.cancel')}</Text>
             </Pressable>
             <Pressable
-              disabled={!canSubmit || loading}
+              disabled={loading}
               onPress={() => void submit()}
               style={({ pressed }) => [
                 styles.btnPrimary,
                 { backgroundColor: colors.primaryLimeDark },
-                (!canSubmit || loading) && { opacity: 0.6 },
-                pressed && canSubmit && !loading && { opacity: 0.92 },
+                loading && { opacity: 0.6 },
+                pressed && !loading && { opacity: 0.92 },
               ]}
             >
               {loading ? (
@@ -174,7 +168,7 @@ export function VitalsMetricModal({
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 }
@@ -182,7 +176,7 @@ export function VitalsMetricModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'center',
     padding: Theme.spacing.l,
   },
@@ -190,59 +184,77 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.xlarge,
     borderWidth: 2,
     padding: Theme.spacing.l,
-    maxWidth: 480,
+    maxWidth: 440,
     alignSelf: 'center',
     width: '100%',
   },
   title: {
     fontSize: 26,
     fontWeight: '900',
-    marginBottom: Theme.spacing.xs,
+    marginBottom: Theme.spacing.s,
+    textAlign: 'center',
   },
-  hint: {
-    fontSize: 18,
-    lineHeight: 26,
+  hintBanner: {
+    borderRadius: Theme.borderRadius.medium,
+    borderWidth: 2,
+    paddingVertical: Theme.spacing.s,
+    paddingHorizontal: Theme.spacing.m,
     marginBottom: Theme.spacing.m,
   },
-  label: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginBottom: 6,
-    marginTop: Theme.spacing.s,
+  hint: {
+    fontSize: 17,
+    lineHeight: 24,
+    fontWeight: '800',
+    textAlign: 'center',
   },
-  input: {
-    borderWidth: 2,
-    borderRadius: Theme.borderRadius.medium,
-    paddingHorizontal: Theme.spacing.m,
-    paddingVertical: 14,
-    fontSize: 22,
-    fontWeight: '700',
+  fields: {
+    marginBottom: Theme.spacing.s,
+  },
+  bpRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Theme.spacing.s,
+  },
+  bpDivider: {
+    width: 2,
+    alignSelf: 'stretch',
+    backgroundColor: Theme.colors.border,
+    borderRadius: 1,
+    marginTop: 28,
   },
   errorText: {
-    marginTop: Theme.spacing.s,
+    marginBottom: Theme.spacing.s,
     color: '#B71C1C',
     fontSize: 16,
     fontWeight: '700',
+    textAlign: 'center',
   },
   actions: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     gap: Theme.spacing.m,
-    marginTop: Theme.spacing.l,
+    marginTop: Theme.spacing.m,
+    paddingTop: Theme.spacing.m,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.border,
   },
   btnGhost: {
+    flex: 1,
     paddingVertical: 14,
-    paddingHorizontal: 18,
     borderRadius: Theme.borderRadius.round,
     borderWidth: 2,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   btnGhostText: { fontSize: 18, fontWeight: '700' },
   btnPrimary: {
+    flex: 1,
     paddingVertical: 14,
-    paddingHorizontal: 22,
     borderRadius: Theme.borderRadius.round,
-    minWidth: 120,
+    minHeight: 52,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   btnPrimaryText: { fontSize: 18, fontWeight: '800' },
 });

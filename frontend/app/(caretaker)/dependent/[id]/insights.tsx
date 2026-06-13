@@ -108,7 +108,7 @@ export default function DependentInsightsScreen() {
           setVitalsEntryEnabled(dep?.vitalsEntryEnabled ?? false);
         }
 
-        // Jeśli nie udało się pobrać niczego — pokaż błąd; jeśli tylko część, pokazujemy to co mamy.
+        // Jeśli nie udało się pobrać niczego - pokaż błąd; jeśli tylko część, pokazujemy to co mamy.
         if (
           (statsResult.status === 'rejected' || !statsResult.value) &&
           moodResult.status === 'rejected'

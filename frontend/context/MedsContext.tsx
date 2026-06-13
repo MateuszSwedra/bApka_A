@@ -36,7 +36,7 @@ export interface Treatment {
   currentPills?: number;
 }
 
-/** Próg alertu „kończy się lek” — liczba tabletek w apteczce. */
+/** Próg alertu „kończy się lek” - liczba tabletek w apteczce. */
 export const LOW_STOCK_PILL_THRESHOLD = 10;
 
 export interface InventoryItem {
@@ -52,9 +52,9 @@ export interface ScheduleItem {
   id: string;
   /** Wybrana aktywność z listy Treatment (wszystkie typy) */
   treatmentId?: string;
-  /** @deprecated — używaj treatmentId; zostawione dla starych wpisów */
+  /** @deprecated - używaj treatmentId; zostawione dla starych wpisów */
   inventoryId?: string;
-  /** @deprecated — jednorazowe wpisy bez karty aktywności */
+  /** @deprecated - jednorazowe wpisy bez karty aktywności */
   customName?: string;
   type: MedScheduleType;
   time: string;

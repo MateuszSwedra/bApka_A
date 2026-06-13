@@ -1,5 +1,5 @@
 /**
- * Globalny motyw UI — wartości zsynchronizowane z onboardingiem / logowaniem
+ * Globalny motyw UI - wartości zsynchronizowane z onboardingiem / logowaniem
  * (`onboardingTheme.ts`: niebieski #456882 / #1B3C53, pomarańcz #E9A43D, tło #F9F3EF).
  * Nazwy `primaryLime*` zachowane dla kompatybilności z istniejącymi importami (dawniej zieleń).
  */
@@ -26,7 +26,7 @@ export const Theme = {
     shadowNeutral: 'rgba(27, 60, 83, 0.12)',
     /** Tło siatki kalendarza opiekuna (jaśniejsze, między bielą a beżem). */
     calendarCanvas: '#F7F6F4',
-    /** Kafelek dnia — beż (spójny z surfaceGrey). */
+    /** Kafelek dnia - beż (spójny z surfaceGrey). */
     calendarCell: '#F9F3EF',
   },
   typography: {
@@ -54,7 +54,7 @@ export const Theme = {
   },
 };
 
-/** Dla szablonu (tabs), `ThemedText`, `Collapsible` — spójne z marką. */
+/** Dla szablonu (tabs), `ThemedText`, `Collapsible` - spójne z marką. */
 export const Colors = {
   light: {
     text: '#1B3C53',

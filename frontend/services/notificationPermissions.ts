@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import { InteractionManager, Platform } from 'react-native';
 
 /**
- * Na Androidzie kanał musi istnieć przed prośbą o uprawnienia — inaczej systemowy dialog
+ * Na Androidzie kanał musi istnieć przed prośbą o uprawnienia - inaczej systemowy dialog
  * bywa niepełny lub powiadomienia nie trafiają do użytkownika.
  */
 export async function prepareAndroidNotificationChannel(): Promise<void> {

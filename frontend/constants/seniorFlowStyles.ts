@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { Theme } from './theme';
 
-/** Karty i odstępy — duże, proste, czytelne (senior / słabszy wzrok). */
+/** Karty i odstępy - duże, proste, czytelne (senior / słabszy wzrok). */
 export const SeniorFlow = StyleSheet.create({
   headerStrip: {
     paddingHorizontal: Theme.spacing.l,

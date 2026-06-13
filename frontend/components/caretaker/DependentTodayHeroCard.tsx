@@ -108,7 +108,6 @@ export function DependentTodayHeroCard({
           </View>
           <View style={styles.syncTextCol}>
             <Text style={styles.syncTitle}>{t('caretaker.device.statusOk')}</Text>
-            <Text style={styles.syncSubtitle}>{t('caretaker.device.synced')}</Text>
           </View>
           <MaterialIcons name="check-circle" size={24} color={Theme.colors.success} />
         </View>

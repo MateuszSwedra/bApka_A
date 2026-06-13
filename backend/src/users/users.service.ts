@@ -87,8 +87,28 @@ export class UsersService {
     });
   }
 
+  private readonly moodTimePattern = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+  private normalizeMoodCheckTimes(value: unknown): string[] {
+    if (!Array.isArray(value)) {
+      throw new BadRequestException('moodCheckTimes must be an array of HH:MM strings');
+    }
+    const unique = [
+      ...new Set(
+        value
+          .map(v => String(v).trim())
+          .filter(v => this.moodTimePattern.test(v)),
+      ),
+    ].sort();
+    if (unique.length === 0) {
+      throw new BadRequestException('moodCheckTimes must contain at least one valid time');
+    }
+    return [unique[0]];
+  }
+
   private readonly settingsSelect = {
     moodEnabled: true,
+    moodCheckTimes: true,
     vitalsEntryEnabled: true,
     highContrast: true,
     colorBlindFriendly: true,
@@ -233,7 +253,7 @@ export class UsersService {
     });
   }
 
-  /** Imię / forma zwrotu — m.in. przy łączeniu kont i na liście podopiecznych. */
+  /** Imię / forma zwrotu - m.in. przy łączeniu kont i na liście podopiecznych. */
   async updateDisplayName(userId: string, name: string) {
     const trimmed = (name ?? '').trim();
     if (trimmed.length < 2) {
@@ -250,8 +270,11 @@ export class UsersService {
   }
 
   private normalizeSettingsPatch(body: Record<string, unknown>) {
-    const data: Record<string, boolean | string> = {};
+    const data: Record<string, boolean | string | string[]> = {};
     if (typeof body.moodEnabled === 'boolean') data.moodEnabled = body.moodEnabled;
+    if (body.moodCheckTimes !== undefined) {
+      data.moodCheckTimes = this.normalizeMoodCheckTimes(body.moodCheckTimes);
+    }
     if (typeof body.vitalsEntryEnabled === 'boolean') data.vitalsEntryEnabled = body.vitalsEntryEnabled;
     if (typeof body.highContrast === 'boolean') data.highContrast = body.highContrast;
     if (typeof body.colorBlindFriendly === 'boolean') data.colorBlindFriendly = body.colorBlindFriendly;

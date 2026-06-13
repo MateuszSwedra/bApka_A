@@ -25,7 +25,7 @@ export default function IndexRouter() {
         sessionToken = null;
       }
 
-      // 1) zalogowana sesja — token wystarczy; rola z AuthContext (odświeżona przez getMe)
+      // 1) zalogowana sesja - token wystarczy; rola z AuthContext (odświeżona przez getMe)
       if (sessionToken && userRole) {
         if (userRole === 'CARETAKER') {
           router.replace('/(caretaker)');

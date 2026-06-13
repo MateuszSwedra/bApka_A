@@ -16,6 +16,7 @@ import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
+import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 
 export default function DependentTreatmentsScreen() {
   const { t } = useTranslation();
@@ -42,6 +43,10 @@ export default function DependentTreatmentsScreen() {
     }, [dependentId, refetchFromServer]),
   );
 
+  const handleOpenAddTreatment = () => {
+    if (dependentId) openAddTreatment(dependentId, resolveMedsFlowScope(segments));
+  };
+
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
     type,
     meta: TREATMENT_VISUAL[type],
@@ -53,6 +58,17 @@ export default function DependentTreatmentsScreen() {
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
+
+        <Pressable
+          onPress={handleOpenAddTreatment}
+          style={styles.addRow}
+          accessibilityLabel={t('schedule.add.a11yAddActivity')}
+        >
+          <View style={styles.addIconCircle}>
+            <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
+          </View>
+          <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
+        </Pressable>
 
         {grouped.length === 0 && (
           <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
@@ -151,9 +167,35 @@ const styles = StyleSheet.create({
   },
   sectionSubtitle: {
     marginTop: Theme.spacing.xs,
-    marginBottom: Theme.spacing.l,
+    marginBottom: Theme.spacing.m,
     color: Theme.colors.textLight,
     lineHeight: 20,
+  },
+  addRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.medium,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
+    borderColor: Theme.colors.primaryLimeDark,
+    backgroundColor: Theme.colors.primaryLime + '55',
+    marginBottom: Theme.spacing.l,
+  },
+  addIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Theme.spacing.m,
+    backgroundColor: Theme.colors.surfaceWhite,
+  },
+  addRowText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
   },
   groupSection: {
     marginTop: Theme.spacing.m,

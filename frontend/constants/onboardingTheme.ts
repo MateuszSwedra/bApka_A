@@ -1,5 +1,5 @@
 /**
- * Paleta onboardingu — ta sama baza co `Theme` w `theme.ts` (spójna marka w całej aplikacji).
+ * Paleta onboardingu - ta sama baza co `Theme` w `theme.ts` (spójna marka w całej aplikacji).
  */
 export const OnboardingPalette = {
   /** Główne tło ekranów */
@@ -22,7 +22,7 @@ export const OnboardingPalette = {
   border: 'rgba(27, 60, 83, 0.14)',
 } as const;
 
-/** Główny motyw marki — gradient */
+/** Główny motyw marki - gradient */
 export const OnboardingGradient = {
   colors: ['#456882', '#1B3C53'] as const,
   start: { x: 0, y: 0 },

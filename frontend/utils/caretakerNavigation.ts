@@ -1,6 +1,6 @@
 import { openAddMed, openAddTreatment } from './medsFlowNavigation';
 
-/** Nawigacja do dodawania harmonogramu — ścieżka z UUID (nie object pathname). */
+/** Nawigacja do dodawania harmonogramu - ścieżka z UUID (nie object pathname). */
 export function openAddMedForDependent(dependentUserId: string): void {
   openAddMed(dependentUserId, 'caretaker');
 }

@@ -31,7 +31,7 @@ import { useTranslation } from 'react-i18next';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /** Lekko mniejszy sześciokąt, żeby obrys i animacja nie obcinały górnego wierzchołka. */
 const HEX_SIZE = Math.min(SCREEN_WIDTH * 0.68, 320);
-/** Padding viewBox w SVG — obrys (stroke) nie jest obcinany u góry/dół. */
+/** Padding viewBox w SVG - obrys (stroke) nie jest obcinany u góry/dół. */
 const HEX_SVG_PAD = 8;
 
 type Slide = {
@@ -97,7 +97,7 @@ function hexagonPathD(size: number) {
 
 /**
  * Heksagonalny "frame" z wycentrowana ilustracja. Grafiki maja przezroczyste tlo.
- * Pod spodem — lagodny gradient w srodku heksa (granatowy lub pomaranczowy).
+ * Pod spodem - lagodny gradient w srodku heksa (granatowy lub pomaranczowy).
  * Na wierzchu maska evenodd wypelnia rogi kolorem tla ekranu.
  */
 function HexagonImage({
@@ -366,7 +366,7 @@ export default function WelcomeScreen() {
           />
           <HexagonBorder size={HEX_SIZE} color={slide.accentColor} />
         </Animated.View>
-        {/* Delikatna „podstawka” tylko pod spodem heksa — nie nachodzi na wnetrze */}
+        {/* Delikatna „podstawka” tylko pod spodem heksa - nie nachodzi na wnetrze */}
         <View
           pointerEvents="none"
           style={[

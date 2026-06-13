@@ -66,7 +66,7 @@ export function polishDefaultNameForType(type: TreatmentType): string {
   return readTypeBlock(pl, key).defaultName;
 }
 
-/** Etykieta aktywności dla seniora — zawsze po polsku (także gdy opiekun dodał po angielsku). */
+/** Etykieta aktywności dla seniora - zawsze po polsku (także gdy opiekun dodał po angielsku). */
 export function resolveSeniorActivityName(
   sch: ScheduleItem,
   treatment?: Treatment | null,

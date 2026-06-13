@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
-/** Porty dev-serwera (Metro / Expo) — nigdy nie używamy ich jako portu API. */
+/** Porty dev-serwera (Metro / Expo) - nigdy nie używamy ich jako portu API. */
 const METRO_LIKE_PORTS = new Set([
   '8081',
   '8082',
@@ -16,7 +16,7 @@ function stripTrailingSlash(s: string): string {
   return s.replace(/\/$/, '');
 }
 
-/** hostUri bywa `192.168.1.2:8081` albo `http://localhost:8081` — nie używamy `split(':')`. */
+/** hostUri bywa `192.168.1.2:8081` albo `http://localhost:8081` - nie używamy `split(':')`. */
 function hostnameFromExpoHostUri(hostUri: string): string | null {
   const t = hostUri.trim();
   if (!t) return null;
@@ -49,7 +49,7 @@ function ensureApiBaseNotOnMetroPort(base: string): string {
 }
 
 /**
- * Bazowy URL API — zawsze absolutny (unikamy żądań względnych do Metro :8081).
+ * Bazowy URL API - zawsze absolutny (unikamy żądań względnych do Metro :8081).
  * Ustaw EXPO_PUBLIC_API_URL (np. http://192.168.0.10:3000) na urządzeniu fizycznym / emulatorze,
  * gdy API nie jest na tym samym hoście co bundler.
  *
@@ -87,7 +87,7 @@ function resolveApiBaseUrl(): string {
   return ensureApiBaseNotOnMetroPort('http://localhost:3000');
 }
 
-/** Rozwiązywane przy każdym żądaniu — na webie host strony może być dostępny dopiero po hydracji. */
+/** Rozwiązywane przy każdym żądaniu - na webie host strony może być dostępny dopiero po hydracji. */
 function getApiBaseUrl(): string {
   return resolveApiBaseUrl();
 }

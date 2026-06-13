@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { addMedPrefillParams, formatSlotTime, type AddMedPrefill } from './addMedPrefill';
 
 export type MedsFlowScope = 'caretaker' | 'hybrid';
 
@@ -10,8 +11,27 @@ function flowRoot(scope: MedsFlowScope): string {
   return scope === 'hybrid' ? '/(hybrid)' : '/(caretaker)';
 }
 
-export function openAddMed(userId: string, scope: MedsFlowScope = 'caretaker'): void {
-  router.push(`${flowRoot(scope)}/add-med/${userId}` as any);
+export function openAddMed(
+  userId: string,
+  scope: MedsFlowScope = 'caretaker',
+  prefill?: AddMedPrefill,
+): void {
+  router.push({
+    pathname: `${flowRoot(scope)}/add-med/${userId}` as any,
+    params: addMedPrefillParams(prefill ?? {}),
+  });
+}
+
+export function openAddMedFromCalendarSlot(
+  userId: string,
+  scope: MedsFlowScope,
+  dateStr: string,
+  hour: number,
+): void {
+  openAddMed(userId, scope, {
+    prefillDate: dateStr,
+    prefillTime: formatSlotTime(hour),
+  });
 }
 
 export function openAddTreatment(userId: string, scope: MedsFlowScope = 'caretaker'): void {

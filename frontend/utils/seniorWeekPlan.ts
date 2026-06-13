@@ -11,12 +11,12 @@ import { pl as dateFnsPl } from 'date-fns/locale';
 /** Liczba dni w widoku planu (dziś + kolejne dni). */
 export const SENIOR_PLAN_DAY_COUNT = 7;
 
-/** Pierwszy dzień okna planu — zawsze od podanej daty (zwykle dziś). */
+/** Pierwszy dzień okna planu - zawsze od podanej daty (zwykle dziś). */
 export function startOfSeniorPlanWindow(date: Date): Date {
   return startOfDay(date);
 }
 
-/** @deprecated Użyj startOfSeniorPlanWindow — zachowane dla kompatybilności importów. */
+/** @deprecated Użyj startOfSeniorPlanWindow - zachowane dla kompatybilności importów. */
 export function startOfSeniorWeek(date: Date): Date {
   return startOfSeniorPlanWindow(date);
 }
@@ -37,7 +37,7 @@ export function isCurrentSeniorWeek(planStart: Date, now = new Date()): boolean 
   return isSameDay(startOfSeniorPlanWindow(planStart), startOfDay(now));
 }
 
-/** Np. „28.05–3.06.2026” — zawsze po polsku (date-fns locale). */
+/** Np. „28.05–3.06.2026” - zawsze po polsku (date-fns locale). */
 export function formatSeniorWeekRange(planStart: Date, locale: Locale = dateFnsPl): string {
   const days = daysInSeniorWeek(planStart);
   const first = days[0];

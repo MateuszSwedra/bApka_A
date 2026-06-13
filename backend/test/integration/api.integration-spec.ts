@@ -18,7 +18,7 @@ import { JwtService } from '@nestjs/jwt';
 import { JwtAuthGuard } from '../../src/auth/jwt-auth.guard';
 import { createPrismaMock } from '../helpers/prisma.mock';
 
-/** Integracja HTTP z mockowaną bazą — bez PostgreSQL. */
+/** Integracja HTTP z mockowaną bazą - bez PostgreSQL. */
 describe('API (integration)', () => {
   let app: INestApplication<App>;
   const prisma = createPrismaMock();

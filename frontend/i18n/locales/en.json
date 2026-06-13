@@ -62,7 +62,7 @@
       "cta": "Continue",
       "saving": "Saving…",
       "errorEmpty": "Enter a name or nickname.",
-      "errorMinLength": "Enter at least 2 characters — e.g. a name or nickname.",
+      "errorMinLength": "Enter at least 2 characters - e.g. a name or nickname.",
       "errorMaxLength": "This field can be at most 80 characters.",
       "errorSave": "Could not save. Please try again."
     }
@@ -187,7 +187,7 @@
     "sectionSos": "SOS notification",
     "sectionSosSubtitle": "Separate sound for the SOS alarm.",
     "a11yPreview": "Preview: {{label}}",
-    "webHint": "Preview may be muted in the browser — you'll hear the full sound on your phone."
+    "webHint": "Preview may be muted in the browser - you'll hear the full sound on your phone."
   },
   "caretaker": {
     "dashboard": {
@@ -239,7 +239,11 @@
       "seniorSection": "Senior options",
       "seniorSectionHint": "These changes apply on the dependent's phone.",
       "mood": "Mood question",
-      "moodSub": "When off — the mood tile disappears and \"Take medicine\" spans full width.",
+      "moodSub": "When off - the mood tile disappears and \"Take medicine\" spans full width.",
+      "moodTimesTitle": "Mood check time",
+      "moodTimesHint": "Scroll the wheels to set the time. Tap Save below to apply.",
+      "moodTimesSave": "Save",
+      "moodTimesSaved": "Saved",
       "vitals": "Enter measurement results",
       "vitalsSub": "After confirming a glucose or blood pressure activity, the senior fills in a results form.",
       "accessibility": "Senior screen accessibility",
@@ -290,8 +294,8 @@
       "dayOverview": "Day overview"
     },
     "device": {
-      "synced": "Device synced correctly",
-      "statusOk": "Status: OK"
+      "synced": "Coming soon",
+      "statusOk": "Device: coming soon"
     },
     "alerts": {
       "title": "Alerts",
@@ -310,11 +314,11 @@
     "nameFallback": "dear senior",
     "moodTitle": "How do you feel today?",
     "moodThanks": "Thank you for letting us know.",
-    "mainDue": "Take your medicine or do your exercises — it's time from your calendar.",
+    "mainDue": "Take your medicine or do your exercises - it's time from your calendar.",
     "mainDueCta": "Confirm",
     "mainUpcoming": "Next medicine or activity at: {{time}}",
     "mainEmpty": "No activity is required by your caretaker's calendar right now.",
-    "mainAllDone": "That's all for today — no more planned activities.",
+    "mainAllDone": "That's all for today - no more planned activities.",
     "mainMissed": "Not taken on time",
     "mainMissedHint": "15 minutes have passed since the scheduled time. This activity was marked as missed.",
     "activityMissed": "Missed",
@@ -323,7 +327,7 @@
     "sosMessage": "You tapped the SOS button. No notification was sent to your caretaker in this version.",
     "todayTitle": "Today's activities",
     "todayEmpty": "Nothing scheduled for today.",
-    "calendarCta": "Open calendar — other days",
+    "calendarCta": "Open calendar - other days",
     "inventoryTitle": "Medicine left at home",
     "inventoryEmpty": "No packs were added yet.",
     "inventoryDoses": "{{count}} doses left",
@@ -413,19 +417,21 @@
     },
     "metrics": {
       "title": "Health measurements",
-      "hint": "Enter your measurements (e.g. blood pressure or glucose).",
+      "hint": "Up/down arrows - one step. Hold for faster changes.",
       "bp": "Blood pressure",
       "glucose": "Glucose",
-      "systolic": "Systolic (SYS)",
-      "diastolic": "Diastolic (DIA)",
+      "systolic": "Systolic",
+      "diastolic": "Diastolic",
       "pulseOptional": "Pulse (optional)",
-      "glucoseValue": "Value (mg/dL)",
+      "glucoseValue": "Glucose level",
+      "unitMmHg": "mmHg",
+      "unitMgDl": "mg/dL",
       "saving": "Saving…",
       "saved": "Measurement saved."
     },
     "calendar": {
       "screenTitle": "Schedule",
-      "weekPlanTitle": "From today — 7 days",
+      "weekPlanTitle": "From today - 7 days",
       "prevWeek": "Previous 7 days",
       "nextWeek": "Next 7 days",
       "thisWeek": "From today",
@@ -440,14 +446,17 @@
       "dosePieces": "{{count}} pcs.",
       "alertDepletion": "Running low: {{name}}",
       "alertBuyPack": "Buy a new pack: {{name}}",
-      "activityLegend": "Colored box — something is planned that day"
+      "activityLegend": "Colored box - something is planned that day",
+      "scrollHint": "Scroll down to see more days. Use arrows for another week.",
+      "scrollMore": "Scroll down",
+      "backToTop": "Back to top"
     }
   },
   "hybrid": {
     "panelTitle": "My plan",
     "takeMedIdle": "Medicine & activities",
     "takeMedCta": "CONFIRM",
-    "treatmentsSubtitle": "Your treatments and activities — manage them on your own.",
+    "treatmentsSubtitle": "Your treatments and activities - manage them on your own.",
     "logout": "Sign out",
     "settings": {
       "section": "Your settings",
@@ -488,6 +497,7 @@
       "title": "Add to calendar",
       "pickActivityTitle": "Choose activity",
       "pickActivityLead": "Select an activity from your dependent's kit to add to the calendar.",
+      "slotA11y": "Add activity at {{time}}",
       "continue": "Continue",
       "pickFrequencyTitle": "How often?",
       "pickFrequencyLead": "Choose whether this is a one-time dose, ongoing, or only for a set period.",

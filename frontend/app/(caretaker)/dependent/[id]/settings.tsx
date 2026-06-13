@@ -7,10 +7,9 @@ import {
   Pressable,
   Switch,
   ActivityIndicator,
-  Platform,
   Alert,
 } from 'react-native';
-import { useLocalSearchParams, useGlobalSearchParams, useSegments, useFocusEffect } from 'expo-router';
+import { useLocalSearchParams, useGlobalSearchParams, useSegments, useFocusEffect, router } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { useMeds } from '../../../../context/MedsContext';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -26,9 +25,12 @@ import {
 import { previewNotificationAsset } from '../../../../services/notificationSoundPreview';
 import { applyAppLanguage, normalizeAppLanguage } from '../../../../services/appLanguage';
 import type { AppLanguage } from '../../../../i18n/resolveLanguage';
+import { MoodCheckTimesEditor } from '../../../../components/caretaker/MoodCheckTimesEditor';
+import { normalizeMoodCheckTimes } from '../../../../utils/moodCheckTimes';
 
 type DependentSettings = {
   moodEnabled: boolean;
+  moodCheckTimes: string[];
   vitalsEntryEnabled: boolean;
   highContrast: boolean;
   colorBlindFriendly: boolean;
@@ -38,6 +40,7 @@ type DependentSettings = {
 
 const DEFAULT_SETTINGS: DependentSettings = {
   moodEnabled: true,
+  moodCheckTimes: normalizeMoodCheckTimes(undefined),
   vitalsEntryEnabled: false,
   highContrast: false,
   colorBlindFriendly: false,
@@ -82,6 +85,7 @@ export default function DependentSettingsScreen() {
         setDependentName(dep.name?.trim() || dep.email || '');
         setSettings({
           moodEnabled: dep.moodEnabled ?? true,
+          moodCheckTimes: normalizeMoodCheckTimes(dep.moodCheckTimes),
           vitalsEntryEnabled: dep.vitalsEntryEnabled ?? false,
           highContrast: dep.highContrast ?? false,
           colorBlindFriendly: dep.colorBlindFriendly ?? false,
@@ -107,10 +111,14 @@ export default function DependentSettingsScreen() {
 
   const patchDependent = async (patch: Partial<DependentSettings>, key: string) => {
     if (!dependentId) return;
+    const payload = { ...patch };
+    if (payload.moodCheckTimes) {
+      payload.moodCheckTimes = normalizeMoodCheckTimes(payload.moodCheckTimes);
+    }
     setSavingKey(key);
     try {
-      await usersAPI.updateDependentSettings(dependentId, patch);
-      setSettings(prev => ({ ...prev, ...patch }));
+      await usersAPI.updateDependentSettings(dependentId, payload);
+      setSettings(prev => ({ ...prev, ...payload }));
     } catch {
       Alert.alert(t('common.error'), t('caretaker.settings.saveError'));
       void load();
@@ -181,6 +189,7 @@ export default function DependentSettingsScreen() {
       <DependentProfileHeader
         title={t('caretaker.settings.title')}
         subtitle={dependentName || t('caretaker.dependentFallbackName')}
+        onBack={() => router.back()}
       />
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
         {loading ? (
@@ -202,6 +211,14 @@ export default function DependentSettingsScreen() {
                 trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
               />
             </View>
+
+            {settings.moodEnabled ? (
+              <MoodCheckTimesEditor
+                savedTime={settings.moodCheckTimes[0] ?? '08:00'}
+                busy={savingKey === 'moodCheckTimes'}
+                onSave={time => void patchDependent({ moodCheckTimes: [time] }, 'moodCheckTimes')}
+              />
+            ) : null}
 
             <View style={styles.rowCard}>
               <View style={styles.rowText}>
@@ -300,9 +317,6 @@ export default function DependentSettingsScreen() {
               );
             })}
 
-            {Platform.OS === 'web' ? (
-              <Text style={styles.webHint}>{t('sounds.webHint')}</Text>
-            ) : null}
           </>
         )}
       </ScrollView>
@@ -390,11 +404,5 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.surfaceWhite,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  webHint: {
-    marginTop: Theme.spacing.s,
-    fontSize: Theme.typography.caption,
-    fontStyle: 'italic',
-    color: Theme.colors.textLight,
   },
 });
