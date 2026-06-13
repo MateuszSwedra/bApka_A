@@ -37,6 +37,10 @@ import { MoodIcon } from '../../components/mood/MoodIcon';
 import { useFocusEffect } from '@react-navigation/native';
 import { treatmentTypeForSchedule } from '../../utils/scheduleTreatmentType';
 import { seniorActionTileContent } from '../../utils/seniorActionTile';
+import {
+  DEV_PREVIEW_SENIOR_NAME,
+  isSeniorPreviewActive,
+} from '../../constants/devSeniorPreview';
 
 const DEFAULT_TILE_COLORS = {
   medActive: '#2E7D32',
@@ -55,7 +59,10 @@ export default function DependentDashboard() {
   const [now, setNow] = useState(() => new Date());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
   const [completedMoodSlots, setCompletedMoodSlots] = useState<Set<string>>(new Set());
-  const [seniorName, setSeniorName] = useState(t('dependent.nameFallback'));
+  const previewMode = isSeniorPreviewActive();
+  const [seniorName, setSeniorName] = useState(
+    previewMode ? DEV_PREVIEW_SENIOR_NAME : t('dependent.nameFallback'),
+  );
   const [moodEnabled, setMoodEnabled] = useState(true);
   const [vitalsEntryEnabled, setVitalsEntryEnabled] = useState(false);
 
@@ -93,24 +100,32 @@ export default function DependentDashboard() {
     ]);
     const completed = new Set(ids);
     const missed = new Set<string>();
-    try {
-      const me = await usersAPI.getMe();
-      if (me?.id) {
-        const logs = await scheduleAPI.getTodayLogs(me.id, todayStr);
-        mergeDoseLogsIntoCompletionSets(logs, todayStr, completed, missed);
+    if (!previewMode) {
+      try {
+        const me = await usersAPI.getMe();
+        if (me?.id) {
+          const logs = await scheduleAPI.getTodayLogs(me.id, todayStr);
+          mergeDoseLogsIntoCompletionSets(logs, todayStr, completed, missed);
+        }
+      } catch {
+        /* offline — zostaje lokalny stan */
       }
-    } catch {
-      /* offline — zostaje lokalny stan */
     }
     setCompletedIds(completed);
     setCompletedMoodSlots(new Set(moodSlots));
-  }, [todayStr]);
+  }, [todayStr, previewMode]);
 
   useFocusEffect(
     useCallback(() => {
       void refetchFromServer();
       void loadCompleted();
       void reload();
+      if (previewMode) {
+        setSeniorName(DEV_PREVIEW_SENIOR_NAME);
+        setMoodEnabled(true);
+        setVitalsEntryEnabled(true);
+        return;
+      }
       usersAPI
         .getMe()
         .then(me => {
@@ -121,7 +136,7 @@ export default function DependentDashboard() {
           void applySeniorProfileSettings(me ?? {});
         })
         .catch(() => {});
-    }, [refetchFromServer, loadCompleted, reload]),
+    }, [refetchFromServer, loadCompleted, reload, previewMode]),
   );
 
   const mainState = useMemo(
@@ -187,7 +202,9 @@ export default function DependentDashboard() {
     const scheduleId = mainState.scheduleId;
     setMedConfirmVisible(false);
     try {
-      await scheduleAPI.markTaken(scheduleId);
+      if (!previewMode) {
+        await scheduleAPI.markTaken(scheduleId);
+      }
       await markScheduleCompletedForDate(todayStr, scheduleId);
       await refetchFromServer();
       await loadCompleted();
@@ -206,7 +223,9 @@ export default function DependentDashboard() {
     setMoodPickerVisible(false);
     if (moodState.kind !== 'active') return;
     try {
-      await usersAPI.updateMood(mood);
+      if (!previewMode) {
+        await usersAPI.updateMood(mood);
+      }
       await markMoodSlotCompletedForDate(todayStr, moodState.slotTime);
       await loadCompleted();
     } catch {
@@ -262,6 +281,12 @@ export default function DependentDashboard() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
+      {previewMode ? (
+        <View style={[styles.previewBanner, { backgroundColor: colors.accentOrange }]}>
+          <MaterialIcons name="visibility" size={20} color="#fff" />
+          <Text style={styles.previewBannerText}>Podgląd UI — dane demo, bez API</Text>
+        </View>
+      ) : null}
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
         <View style={styles.headerCenter}>
           <Text style={[styles.seniorName, { color: colors.textDark }]}>{seniorName}</Text>
@@ -414,6 +439,7 @@ export default function DependentDashboard() {
         visible={vitalsModalVisible}
         type={vitalsModalType}
         colors={colors}
+        offlinePreview={previewMode}
         onClose={() => setVitalsModalVisible(false)}
       />
     </View>
@@ -423,6 +449,19 @@ export default function DependentDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  previewBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 8,
+    paddingHorizontal: Theme.spacing.m,
+  },
+  previewBannerText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
   },
   header: {
     flexDirection: 'row',

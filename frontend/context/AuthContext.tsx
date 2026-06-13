@@ -6,6 +6,7 @@ import {
   persistSession,
   clearSessionStorage,
 } from '../services/sessionStorage';
+import { clearSeniorPreview } from '../constants/devSeniorPreview';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('Logout error', e);
     }
+    clearSeniorPreview();
     setUserRole(null);
   };
 
