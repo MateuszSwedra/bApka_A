@@ -235,9 +235,16 @@ export default function DependentDashboard() {
     }
   };
 
-  const onSosConfirm = () => {
+  const onSosConfirm = async () => {
     setSosConfirmVisible(false);
-    Alert.alert(t('dependent.sosTitle'), t('dependent.sosMessage'));
+    try {
+      if (!previewMode) {
+        await usersAPI.createSos();
+      }
+      Alert.alert(t('dependent.sosTitle'), t('dependent.sosSent'));
+    } catch {
+      Alert.alert(t('common.error'), t('dependent.sosError'));
+    }
   };
 
   const medActive = mainState.kind === 'due' || mainState.kind === 'missed';

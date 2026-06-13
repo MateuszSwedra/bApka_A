@@ -40,3 +40,8 @@ _tmp_*.tsx
 
 # Prisma generated (backend)
 backend/generated/
+
+
+# Firebase
+*-firebase-adminsdk*.json
+frontend/.json

@@ -2,16 +2,25 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { createPrismaMock } from '../../test/helpers/prisma.mock';
 
 describe('UsersService', () => {
   let service: UsersService;
   const prisma = createPrismaMock();
+  const notifications = {
+    formatUserName: jest.fn().mockReturnValue('Jan'),
+    notifySos: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [UsersService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        UsersService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notifications },
+      ],
     }).compile();
     service = module.get<UsersService>(UsersService);
   });
@@ -125,6 +134,31 @@ describe('UsersService', () => {
           data: expect.objectContaining({ lastMood: 'happy' }),
         }),
       );
+    });
+  });
+
+  describe('createSosLog', () => {
+    it('creates log and notifies caretakers', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'dep-1',
+        name: 'Jan',
+        email: 'jan@test.pl',
+      });
+      prisma.sosLog.create.mockResolvedValue({ id: 'sos-1' });
+
+      await service.createSosLog('dep-1', '  potrzebuję pomocy ');
+
+      expect(prisma.sosLog.create).toHaveBeenCalled();
+      expect(notifications.notifySos).toHaveBeenCalledWith(
+        'dep-1',
+        'Jan',
+        '  potrzebuję pomocy ',
+      );
+    });
+
+    it('throws when user missing', async () => {
+      prisma.user.findUnique.mockResolvedValue(null);
+      await expect(service.createSosLog('missing')).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -7,6 +7,7 @@ import {
   clearSessionStorage,
 } from '../services/sessionStorage';
 import { clearSeniorPreview } from '../constants/devSeniorPreview';
+import { syncPushTokenWithBackend } from '../services/registerPushToken';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -41,6 +42,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           if (role) {
             await persistSession(token, role);
             setUserRole(role);
+            void syncPushTokenWithBackend();
           }
         } catch (e) {
           if (isAuthApiError(e) || !storedRole) {
@@ -62,6 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const effectiveRole = role ?? ((await getStoredRole()) as Role);
       await persistSession(token, effectiveRole);
       setUserRole(role ?? effectiveRole ?? null);
+      void syncPushTokenWithBackend();
     } catch (e) {
       console.warn('Could not store session', e);
     }

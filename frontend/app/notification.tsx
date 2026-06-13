@@ -24,7 +24,7 @@ import {
 } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { requestUserNotificationPermission } from '../services/notificationPermissions';
+import { requestPermissionAndSyncPushToken } from '../services/registerPushToken';
 import { useTranslation } from 'react-i18next';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
@@ -101,7 +101,7 @@ export default function NotificationScreen() {
     setBusy(true);
     try {
       if (Platform.OS !== 'web') {
-        await requestUserNotificationPermission();
+        await requestPermissionAndSyncPushToken();
       }
     } catch (e) {
       console.warn('Notification permission', e);

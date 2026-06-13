@@ -2,16 +2,27 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { createPrismaMock } from '../../test/helpers/prisma.mock';
 
 describe('SchedulesService', () => {
   let service: SchedulesService;
   const prisma = createPrismaMock();
+  const notifications = {
+    formatUserName: jest.fn().mockReturnValue('Jan'),
+    formatMedName: jest.fn().mockReturnValue('Aspirin'),
+    notifyDoseTaken: jest.fn(),
+    notifyDoseMissed: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
-      providers: [SchedulesService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        SchedulesService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notifications },
+      ],
     }).compile();
     service = module.get<SchedulesService>(SchedulesService);
   });
@@ -47,7 +58,12 @@ describe('SchedulesService', () => {
       scheduled.setSeconds(0, 0);
 
       prisma.doseLog.findFirst.mockResolvedValue({ id: 'log-1', scheduledAt: scheduled, status: 'PENDING' });
-      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time });
+      prisma.schedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        time,
+        user: { id: 'dep-1', name: 'Jan', email: 'jan@test.pl' },
+        inventory: null,
+      });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'TAKEN' });
 
       await service.markDose('sched-1', 'TAKEN');
@@ -58,11 +74,23 @@ describe('SchedulesService', () => {
           source: 'APP_SENIOR',
         }),
       });
+      expect(notifications.notifyDoseTaken).toHaveBeenCalledWith(
+        'dep-1',
+        'Jan',
+        'Aspirin',
+        false,
+        'sched-1',
+      );
     });
 
     it('creates log when none exists today', async () => {
       prisma.doseLog.findFirst.mockResolvedValue(null);
-      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
+      prisma.schedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        time: '08:00',
+        user: { id: 'dep-1', name: 'Jan', email: 'jan@test.pl' },
+        inventory: null,
+      });
       prisma.doseLog.create.mockResolvedValue({ id: 'log-new' });
 
       await service.markDose('sched-1', 'MISSED');
@@ -73,6 +101,12 @@ describe('SchedulesService', () => {
           source: 'APP_SENIOR',
         }),
       });
+      expect(notifications.notifyDoseMissed).toHaveBeenCalledWith(
+        'dep-1',
+        'Jan',
+        'Aspirin',
+        'sched-1',
+      );
     });
 
     it('marks early confirmation as TAKEN (before scheduled time)', async () => {
@@ -88,7 +122,12 @@ describe('SchedulesService', () => {
         scheduledAt: scheduled,
         status: 'PENDING',
       });
-      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '14:00' });
+      prisma.schedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        time: '14:00',
+        user: { id: 'dep-1', name: 'Jan', email: 'jan@test.pl' },
+        inventory: null,
+      });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-early', status: 'TAKEN' });
 
       await service.markDose('sched-1', 'TAKEN');
@@ -113,7 +152,12 @@ describe('SchedulesService', () => {
         scheduledAt: scheduled,
         status: 'PENDING',
       });
-      prisma.schedule.findUnique.mockResolvedValue({ id: 'sched-1', time: '08:00' });
+      prisma.schedule.findUnique.mockResolvedValue({
+        id: 'sched-1',
+        time: '08:00',
+        user: { id: 'dep-1', name: 'Jan', email: 'jan@test.pl' },
+        inventory: null,
+      });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'LATE' });
 
       await service.markDose('sched-1', 'TAKEN');

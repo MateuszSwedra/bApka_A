@@ -6,19 +6,39 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async createSosLog(userId: string, note?: string) {
-    return this.prisma.sosLog.create({
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
+    if (!user) {
+      throw new NotFoundException('Użytkownik nie istnieje');
+    }
+
+    const log = await this.prisma.sosLog.create({
       data: {
         userId,
         note: note?.trim() || null,
         source: 'APP_SENIOR',
       },
     });
+
+    await this.notifications.notifySos(
+      userId,
+      this.notifications.formatUserName(user),
+      note,
+    );
+
+    return log;
   }
 
   async listSosLogs(userId: string, from: Date, to: Date) {

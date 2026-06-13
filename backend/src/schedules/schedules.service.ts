@@ -1,20 +1,26 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import {
+  formatLocalYmd,
+  getLocalDayRange,
+  scheduledAtOnLocalDay,
+} from '../common/app-timezone';
 
 const DOSE_CONFIRMATION_WINDOW_MINUTES = 5;
 
 @Injectable()
 export class SchedulesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   private scheduledAtToday(time: string | null | undefined): Date {
-    const planned = new Date();
-    planned.setHours(0, 0, 0, 0);
     if (time && /^\d{2}:\d{2}$/.test(time)) {
-      const [hh, mm] = time.split(':').map((x) => Number(x));
-      planned.setHours(hh, mm, 0, 0);
+      return scheduledAtOnLocalDay(time);
     }
-    return planned;
+    return scheduledAtOnLocalDay('00:00');
   }
 
   async create(userId: string, data: any) {
@@ -59,19 +65,9 @@ export class SchedulesService {
     });
   }
 
-  /** Zakres [początek dnia, początek następnego) dla yyyy-MM-dd z klienta. */
+  /** Zakres [początek dnia, początek następnego) dla yyyy-MM-dd z klienta (strefa APP_TIMEZONE). */
   private calendarDayRange(dateYmd?: string): { start: Date; end: Date } {
-    const fallback = new Date();
-    fallback.setHours(0, 0, 0, 0);
-    if (!dateYmd || !/^\d{4}-\d{2}-\d{2}$/.test(dateYmd)) {
-      const end = new Date(fallback);
-      end.setDate(end.getDate() + 1);
-      return { start: fallback, end };
-    }
-    const [y, m, d] = dateYmd.split('-').map((x) => Number(x));
-    const start = new Date(y, m - 1, d, 0, 0, 0, 0);
-    const end = new Date(y, m - 1, d + 1, 0, 0, 0, 0);
-    return { start, end };
+    return getLocalDayRange(dateYmd);
   }
 
   async getTodayDoseLogs(userId: string, dateYmd?: string) {
@@ -201,10 +197,16 @@ export class SchedulesService {
 
   async markDose(scheduleId: string, status: 'TAKEN' | 'MISSED') {
     const now = new Date();
-    const todayYmd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const todayYmd = formatLocalYmd(now);
     const { start, end } = this.calendarDayRange(todayYmd);
 
-    const schedule = await this.prisma.schedule.findUnique({ where: { id: scheduleId } });
+    const schedule = await this.prisma.schedule.findUnique({
+      where: { id: scheduleId },
+      include: {
+        user: { select: { id: true, name: true, email: true } },
+        inventory: { select: { name: true } },
+      },
+    });
     const planned = this.scheduledAtToday(schedule?.time ?? undefined);
 
     const existingLog = await this.prisma.doseLog.findFirst({
@@ -227,10 +229,44 @@ export class SchedulesService {
 
     const isCompletionStatus = (s: string) => s === 'TAKEN' || s === 'LATE';
 
+    const notifyCaretakersIfNeeded = async (
+      newStatus: string,
+      previousStatus: string | null,
+    ) => {
+      if (!schedule?.user) return;
+
+      const dependentId = schedule.user.id;
+      const dependentName = this.notifications.formatUserName(schedule.user);
+      const medName = this.notifications.formatMedName(schedule);
+      const prev = previousStatus ?? 'NONE';
+
+      if (
+        (newStatus === 'TAKEN' || newStatus === 'LATE') &&
+        prev !== 'TAKEN' &&
+        prev !== 'LATE'
+      ) {
+        await this.notifications.notifyDoseTaken(
+          dependentId,
+          dependentName,
+          medName,
+          newStatus === 'LATE',
+          scheduleId,
+        );
+      } else if (newStatus === 'MISSED' && prev !== 'MISSED') {
+        await this.notifications.notifyDoseMissed(
+          dependentId,
+          dependentName,
+          medName,
+          scheduleId,
+        );
+      }
+    };
+
     if (existingLog) {
       const newStatus = status === 'TAKEN' ? computeTakenStatus(planned) : status;
       const wasCompleted = isCompletionStatus(existingLog.status);
       const willBeCompleted = isCompletionStatus(newStatus);
+      const previousStatus = existingLog.status;
 
       const updatedLog = await this.prisma.doseLog.update({
         where: { id: existingLog.id },
@@ -263,6 +299,7 @@ export class SchedulesService {
         }
       }
 
+      await notifyCaretakersIfNeeded(newStatus, previousStatus);
       return updatedLog;
     } else {
       const planned = this.scheduledAtToday(schedule?.time ?? undefined);
@@ -294,6 +331,7 @@ export class SchedulesService {
         }
       }
 
+      await notifyCaretakersIfNeeded(newStatus, null);
       return createdLog;
     }
   }

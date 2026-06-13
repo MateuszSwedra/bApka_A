@@ -1,37 +1,36 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { CronService } from './cron.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { createPrismaMock } from '../../test/helpers/prisma.mock';
-
-const sendPushMock = jest.fn().mockResolvedValue([]);
-
-jest.mock('expo-server-sdk', () => {
-  const ExpoMock = jest.fn().mockImplementation(() => ({
-    sendPushNotificationsAsync: sendPushMock,
-  }));
-  (ExpoMock as jest.Mock & { isExpoPushToken: jest.Mock }).isExpoPushToken = jest
-    .fn()
-    .mockReturnValue(true);
-  return { Expo: ExpoMock, __esModule: true };
-});
+import { formatLocalHm } from '../common/app-timezone';
 
 describe('CronService', () => {
   let service: CronService;
   const prisma = createPrismaMock();
+  const notifications = {
+    formatMedName: jest.fn().mockReturnValue('Aspirin'),
+    formatUserName: jest.fn().mockReturnValue('Jan'),
+    sendMedicationReminder: jest.fn(),
+    notifyDoseMissed: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
-    sendPushMock.mockResolvedValue([]);
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [CronService, { provide: PrismaService, useValue: prisma }],
+      providers: [
+        CronService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: notifications },
+      ],
     }).compile();
     service = module.get<CronService>(CronService);
   });
 
   describe('handleMedicationReminders', () => {
     it('creates PENDING log and sends push when schedule matches current minute', async () => {
-      const now = new Date();
-      const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const time = formatLocalHm();
 
       prisma.schedule.findMany.mockResolvedValue([
         {
@@ -42,6 +41,7 @@ describe('CronService', () => {
             email: 'senior@test.pl',
             fcmToken: 'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',
           },
+          inventory: null,
         },
       ]);
       prisma.doseLog.findFirst.mockResolvedValue(null);
@@ -55,34 +55,54 @@ describe('CronService', () => {
           status: 'PENDING',
         }),
       });
-      expect(sendPushMock).toHaveBeenCalled();
+      expect(notifications.sendMedicationReminder).toHaveBeenCalled();
     });
 
     it('skips when log already exists for today', async () => {
-      const now = new Date();
-      const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const time = formatLocalHm();
       prisma.schedule.findMany.mockResolvedValue([
         {
           id: 'sched-1',
           time,
           user: { email: 'x@y.pl', fcmToken: null },
+          inventory: null,
         },
       ]);
       prisma.doseLog.findFirst.mockResolvedValue({ id: 'existing' });
 
       await service.handleMedicationReminders();
       expect(prisma.doseLog.create).not.toHaveBeenCalled();
+      expect(notifications.sendMedicationReminder).not.toHaveBeenCalled();
     });
   });
 
   describe('markMissedDoses', () => {
-    it('updates stale PENDING logs to MISSED', async () => {
-      prisma.doseLog.updateMany.mockResolvedValue({ count: 3 });
+    it('updates stale PENDING logs to MISSED and notifies caretakers', async () => {
+      prisma.doseLog.findMany.mockResolvedValue([
+        {
+          id: 'log-1',
+          schedule: {
+            id: 'sched-1',
+            medication: 'Aspirin',
+            inventory: null,
+            user: { id: 'dep-1', name: 'Jan', email: 'jan@test.pl' },
+          },
+        },
+      ]);
+      prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'MISSED' });
+
       await service.markMissedDoses();
-      expect(prisma.doseLog.updateMany).toHaveBeenCalledWith({
-        where: expect.objectContaining({ status: 'PENDING' }),
+
+      expect(prisma.doseLog.update).toHaveBeenCalledWith({
+        where: { id: 'log-1' },
         data: { status: 'MISSED' },
       });
+      expect(notifications.notifyDoseMissed).toHaveBeenCalledWith(
+        'dep-1',
+        'Jan',
+        'Aspirin',
+        'sched-1',
+      );
     });
   });
 });
