@@ -95,7 +95,12 @@ export default function HybridInsightsScreen() {
         {error && !loading ? <Text style={styles.errorText}>{error}</Text> : null}
         {!loading && !error ? (
           <>
-            <DoseInsightsCard doseStats={doseStats} />
+            <DoseInsightsCard
+              doseStats={doseStats}
+              range={range}
+              fromIso={rangeBounds.fromIso}
+              toIso={rangeBounds.toIso}
+            />
             <VitalsInsightsCharts
               userId={selfUserId}
               fromIso={rangeBounds.fromIso}

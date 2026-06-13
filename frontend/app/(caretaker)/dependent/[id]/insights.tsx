@@ -11,24 +11,11 @@ import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopIns
 import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsInsightsCharts';
 import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
 import { SimpleLineChart } from '../../../../components/insights/SimpleLineChart';
+import { DoseStatsPayload } from '../../../../utils/doseStats';
 
 type RangeKey = 'today' | 'week' | 'month';
 
-interface DoseStatsResponse {
-  range: { from: string; to: string };
-  counts: { taken: number; late?: number; missed: number; pending: number; totalPlanned: number };
-  daily?: Array<{
-    date: string;
-    taken: number;
-    late?: number;
-    missed: number;
-    pending: number;
-    takenOnTime: number;
-    takenTotal: number;
-  }>;
-  onTime: { takenOnTime: number; percentOfTaken: number; windowMinutes: number };
-  byMedication?: Array<{ medKey: string; name: string; taken: number; late: number; missed: number; pending: number }>;
-}
+interface DoseStatsResponse extends DoseStatsPayload {}
 
 interface MoodHistogram {
   [mood: string]: number;
@@ -254,7 +241,12 @@ export default function DependentInsightsScreen() {
 
         {!loading && !error && (
           <>
-            <DoseInsightsCard doseStats={doseStats} />
+            <DoseInsightsCard
+              doseStats={doseStats}
+              range={range}
+              fromIso={rangeBounds.fromIso}
+              toIso={rangeBounds.toIso}
+            />
 
             <View style={styles.card}>
               <Text style={styles.cardTitle}>{t('caretaker.insights.sectionMood')}</Text>

@@ -393,7 +393,7 @@ export const scheduleAPI = {
     } catch {
       return {
         range: { from, to },
-        counts: { taken: 0, late: 0, missed: 0, pending: 0, totalPlanned: 0 },
+        counts: { taken: 0, late: 0, missed: 0, pending: 0, totalPlanned: 0, adherencePercent: 0 },
         daily: [],
         onTime: { takenOnTime: 0, percentOfTaken: 0, windowMinutes: 5 },
       };

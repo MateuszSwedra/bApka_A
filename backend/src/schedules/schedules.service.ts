@@ -6,6 +6,10 @@ import {
   getLocalDayRange,
   scheduledAtOnLocalDay,
 } from '../common/app-timezone';
+import {
+  computeAdherencePercent,
+  enrichDailyEntry,
+} from './dose-stats.helpers';
 
 const DOSE_CONFIRMATION_WINDOW_MINUTES = 5;
 
@@ -117,14 +121,15 @@ export class SchedulesService {
     const totalPlanned = takenCount + missedCount + pendingCount;
 
     const WINDOW_MINUTES = DOSE_CONFIRMATION_WINDOW_MINUTES;
-    const msWindow = WINDOW_MINUTES * 60 * 1000;
 
     const onTimeTakenCount = logs.filter((l) => l.status === 'TAKEN').length;
 
     const onTimePercent =
       takenCount > 0 ? Math.round((onTimeTakenCount / takenCount) * 100) : 0;
 
-    const dayKey = (d: Date) => d.toISOString().slice(0, 10); // UTC yyyy-mm-dd
+    const adherencePercent = computeAdherencePercent(takenCount, totalPlanned);
+
+    const dayKey = (d: Date) => formatLocalYmd(d);
     const dailyMap = new Map<
       string,
       { date: string; taken: number; late: number; missed: number; pending: number; takenOnTime: number; takenTotal: number }
@@ -148,7 +153,9 @@ export class SchedulesService {
       }
       dailyMap.set(k, existing);
     }
-    const daily = Array.from(dailyMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    const daily = Array.from(dailyMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .map((entry) => enrichDailyEntry(entry));
 
     const medMap = new Map<
       string,
@@ -184,6 +191,7 @@ export class SchedulesService {
         missed: missedCount,
         pending: pendingCount,
         totalPlanned,
+        adherencePercent,
       },
       daily,
       byMedication,
