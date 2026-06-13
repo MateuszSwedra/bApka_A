@@ -14,7 +14,8 @@ import * as Clipboard from 'expo-clipboard';
 import { HugeButton } from '../../components/HugeButton';
 import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
-import { usersAPI } from '../../services/api';
+import { isAuthApiError, usersAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
 
 const showAlert = (title: string, message: string) => {
@@ -31,6 +32,7 @@ function formatPinDisplay(pin: string): string {
 
 export default function CaretakerPairingScreen() {
   const { t } = useTranslation();
+  const { logout } = useAuth();
   const [pinCode, setPinCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -40,8 +42,18 @@ export default function CaretakerPairingScreen() {
       try {
         const data = await usersAPI.generatePin();
         setPinCode(data.pin);
-      } catch {
-        showAlert(t('common.error'), t('caretaker.pairing.alertGenerateError'));
+      } catch (e) {
+        if (isAuthApiError(e)) {
+          await logout();
+          showAlert(t('common.error'), t('caretaker.pairing.alertSessionExpired'));
+          router.replace('/login');
+          return;
+        }
+        const detail = e instanceof Error ? e.message : '';
+        showAlert(
+          t('common.error'),
+          detail || t('caretaker.pairing.alertGenerateError'),
+        );
         router.back();
       } finally {
         setIsLoading(false);

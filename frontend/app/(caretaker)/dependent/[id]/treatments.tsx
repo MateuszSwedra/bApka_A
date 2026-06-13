@@ -97,42 +97,41 @@ function TreatmentCard({
 }) {
   const { t } = useTranslation();
   return (
-    <Card variant="white" style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          {item.type === 'MEDICATION' &&
-          (item.currentPills ?? item.totalPills ?? 999) <= 10 ? (
-            <Text style={[styles.itemMeta, { color: accent }]}>
-              {t('dependent.home.lowMedToday', { names: item.name })}
-            </Text>
-          ) : null}
-          {item.description ? (
-            <Text style={styles.itemDescription}>{item.description}</Text>
-          ) : (
-            <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
-          )}
+    <Pressable onPress={onEdit}>
+      <Card variant="white" style={styles.itemCard}>
+        <View style={styles.itemHeader}>
+          <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            {item.type === 'MEDICATION' &&
+            (item.currentPills ?? item.totalPills ?? 999) <= 10 ? (
+              <Text style={[styles.itemMeta, { color: accent }]}>
+                {t('dependent.home.lowMedToday', { names: item.name })}
+              </Text>
+            ) : null}
+            {item.description ? (
+              <Text style={styles.itemDescription}>{item.description}</Text>
+            ) : (
+              <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
+            )}
+          </View>
+          <View style={styles.actions}>
+            {item.type === 'MEDICATION' ? (
+              <Text
+                style={[
+                  styles.stockMarginBadge,
+                  (item.currentPills ?? item.totalPills ?? 999) <= 10 && styles.stockMarginBadgeLow,
+                ]}
+              >
+                {item.currentPills ?? item.totalPills ?? 0}
+              </Text>
+            ) : null}
+            <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
+              <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.actions}>
-          {item.type === 'MEDICATION' ? (
-            <Text
-              style={[
-                styles.stockMarginBadge,
-                (item.currentPills ?? item.totalPills ?? 999) <= 10 && styles.stockMarginBadgeLow,
-              ]}
-            >
-              {item.currentPills ?? item.totalPills ?? 0}
-            </Text>
-          ) : null}
-          <Pressable onPress={onEdit} style={styles.actionBtn} hitSlop={8}>
-            <MaterialIcons name="edit" size={22} color={Theme.colors.primaryLimeDark} />
-          </Pressable>
-          <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
-            <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
-          </Pressable>
-        </View>
-      </View>
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 

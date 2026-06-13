@@ -87,7 +87,15 @@ function resolveApiBaseUrl(): string {
   return ensureApiBaseNotOnMetroPort('http://localhost:3000');
 }
 
-const API_URL = resolveApiBaseUrl();
+/** Rozwiązywane przy każdym żądaniu — na webie host strony może być dostępny dopiero po hydracji. */
+function getApiBaseUrl(): string {
+  return resolveApiBaseUrl();
+}
+
+export function isAuthApiError(error: unknown): boolean {
+  const msg = error instanceof Error ? error.message : String(error ?? '');
+  return /401|403|Unauthorized|Forbidden/i.test(msg);
+}
 
 export async function getStoredAuthToken(): Promise<string | null> {
   try {
@@ -102,7 +110,7 @@ export async function getStoredAuthToken(): Promise<string | null> {
 
 const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
-  const url = `${API_URL.replace(/\/$/, '')}${path}`;
+  const url = `${getApiBaseUrl().replace(/\/$/, '')}${path}`;
 
   if (!/^https?:\/\//i.test(url)) {
     throw new Error(`Nieprawidłowy adres API: ${url}`);
@@ -111,10 +119,13 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   const token = await getStoredAuthToken();
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     Accept: 'application/json',
     ...((options?.headers as Record<string, string>) || {}),
   };
+
+  if (options?.body !== undefined) {
+    headers['Content-Type'] = 'application/json';
+  }
 
   if (token) {
     headers.Authorization = `Bearer ${token}`;

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { usersAPI } from '../services/api';
+import { isAuthApiError, usersAPI } from '../services/api';
 import {
   getStoredToken,
   getStoredRole,
@@ -41,8 +41,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             await persistSession(token, role);
             setUserRole(role);
           }
-        } catch {
-          if (!storedRole) {
+        } catch (e) {
+          if (isAuthApiError(e) || !storedRole) {
             await clearSessionStorage();
             setUserRole(null);
           }

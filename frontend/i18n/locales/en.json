@@ -264,7 +264,8 @@
       "alertCopiedTitle": "Copied",
       "alertCopiedMessage": "Code copied to clipboard.",
       "alertCopyError": "Could not copy the code.",
-      "alertGenerateError": "Could not generate pairing code."
+      "alertGenerateError": "Could not generate pairing code.",
+      "alertSessionExpired": "Your session expired or the account no longer exists. Please sign in again."
     },
     "today": {
       "nextActivitySection": "Next activity",

@@ -77,31 +77,30 @@ function TreatmentCard({
 }) {
   const { t } = useTranslation();
   return (
-    <Card variant="white" style={styles.itemCard}>
-      <View style={styles.itemHeader}>
-        <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
-          <Text style={styles.itemName}>{item.name}</Text>
-          {item.type === 'MEDICATION' && typeof item.totalPills === 'number' ? (
-            <Text style={[styles.itemMeta, { color: accent }]}>
-              {t('treatment.list.stock', { count: item.totalPills })}
-            </Text>
-          ) : null}
-          {item.description ? (
-            <Text style={styles.itemDescription}>{item.description}</Text>
-          ) : (
-            <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
-          )}
+    <Pressable onPress={onEdit}>
+      <Card variant="white" style={styles.itemCard}>
+        <View style={styles.itemHeader}>
+          <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
+            <Text style={styles.itemName}>{item.name}</Text>
+            {item.type === 'MEDICATION' && typeof item.totalPills === 'number' ? (
+              <Text style={[styles.itemMeta, { color: accent }]}>
+                {t('treatment.list.stock', { count: item.totalPills })}
+              </Text>
+            ) : null}
+            {item.description ? (
+              <Text style={styles.itemDescription}>{item.description}</Text>
+            ) : (
+              <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
+            )}
+          </View>
+          <View style={styles.actions}>
+            <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
+              <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
+            </Pressable>
+          </View>
         </View>
-        <View style={styles.actions}>
-          <Pressable onPress={onEdit} style={styles.actionBtn} hitSlop={8}>
-            <MaterialIcons name="edit" size={22} color={Theme.colors.primaryLimeDark} />
-          </Pressable>
-          <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
-            <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
-          </Pressable>
-        </View>
-      </View>
-    </Card>
+      </Card>
+    </Pressable>
   );
 }
 

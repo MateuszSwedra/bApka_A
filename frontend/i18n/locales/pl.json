@@ -266,7 +266,8 @@
       "alertCopiedTitle": "Skopiowano",
       "alertCopiedMessage": "Kod został skopiowany do schowka.",
       "alertCopyError": "Nie udało się skopiować kodu.",
-      "alertGenerateError": "Nie udało się wygenerować kodu parowania."
+      "alertGenerateError": "Nie udało się wygenerować kodu parowania.",
+      "alertSessionExpired": "Sesja wygasła lub konto nie istnieje. Zaloguj się ponownie."
     },
     "today": {
       "nextActivitySection": "Następna aktywność",
