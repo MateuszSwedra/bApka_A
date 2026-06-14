@@ -12,6 +12,7 @@ import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
 import { useTranslation } from 'react-i18next';
 import { AndroidStyleMonthCalendar } from '../../../../../components/caretaker/AndroidStyleMonthCalendar';
+import { CaretakerTourAnchor } from '../../../../../components/caretaker/CaretakerTourAnchor';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
 
 export default function DependentCalendarMonthScreen() {
@@ -74,20 +75,28 @@ export default function DependentCalendarMonthScreen() {
         />
       </View>
 
-      <Pressable
-        style={[styles.fab, { bottom: fabBottomOffset }]}
-        onPress={() => {
-          if (!dependentId) {
-            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
-            return;
-          }
-          openAddMedForDependent(dependentId);
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={t('tabs.calendar')}
+      <CaretakerTourAnchor
+        stepId="calendar-fab"
+        titleKey="caretaker.tour.calendarFab.title"
+        bodyKey="caretaker.tour.calendarFab.body"
+        placement="top"
+        wrapStyle={[styles.fab, { bottom: fabBottomOffset }]}
       >
-        <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
-      </Pressable>
+        <Pressable
+          style={styles.fabInner}
+          onPress={() => {
+            if (!dependentId) {
+              Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+              return;
+            }
+            openAddMedForDependent(dependentId);
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('tabs.calendar')}
+        >
+          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
+        </Pressable>
+      </CaretakerTourAnchor>
     </View>
   );
 }
@@ -109,6 +118,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
+  },
+  fabInner: {
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
     height: 64,

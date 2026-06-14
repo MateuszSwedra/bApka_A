@@ -220,6 +220,85 @@
       "statusAttention": "Needs attention",
       "statusOk": "All good"
     },
+    "tour": {
+      "gotIt": "Got it",
+      "dashboardAddDependent": {
+        "title": "Add a dependent",
+        "body": "Start here — you'll generate a PIN code to pair your dependent's account with your profile."
+      },
+      "dashboardSounds": {
+        "title": "App settings",
+        "body": "The tune icon in the top-right opens medication reminder and SOS alarm sounds — for you as the caretaker."
+      },
+      "pairingPin": {
+        "title": "Pairing code",
+        "body": "Share this code with your dependent. In their app they choose \"I have a caretaker\" and enter it to link accounts."
+      },
+      "dependentTabs": {
+        "title": "Profile navigation",
+        "body": "Today — daily plan. Calendar — schedule. Treatment — meds list. Insights — adherence and mood. Open settings with the gear icon at the top."
+      },
+      "dependentSettings": {
+        "title": "Dependent settings",
+        "body": "Configure mood prompts, vitals, senior screen accessibility, and the language on their phone."
+      },
+      "treatmentsAdd": {
+        "title": "New activity",
+        "body": "Add a medication or other activity, then set the schedule step by step in the wizard."
+      },
+      "treatmentsEdit": {
+        "title": "Edit an activity",
+        "body": "Tap an entry in the medicine cabinet to edit it — change the name, description, or other medication details."
+      },
+      "calendarFab": {
+        "title": "Add to calendar",
+        "body": "The + button adds a new activity to your dependent's schedule — pick the med, frequency, and times."
+      },
+      "calendarEdit": {
+        "title": "Edit activities",
+        "body": "Tap a calendar entry to change the time or dose. Tap an empty time slot to add a new activity."
+      },
+      "insightsRange": {
+        "title": "Stats over time",
+        "body": "Switch the range: today, 7, or 30 days. You'll see dose adherence, mood, and health readings."
+      },
+      "settingsMood": {
+        "title": "Mood prompt",
+        "body": "Turn the daily mood check on the senior's home screen on or off. When off, the mood tile is hidden."
+      },
+      "settingsMoodTime": {
+        "title": "Mood check time",
+        "body": "Set when the senior sees the mood question. After saving, the tile appears daily at that time."
+      },
+      "settingsVitals": {
+        "title": "Vitals entry",
+        "body": "When on, after confirming a glucose or blood pressure activity the senior enters the reading. Values appear in Insights."
+      },
+      "settingsColorBlind": {
+        "title": "Color-blind mode",
+        "body": "Adjusts colors and labels on the senior's screen to tell medication status and alerts apart more easily."
+      },
+      "settingsHighContrast": {
+        "title": "High contrast",
+        "body": "Increases text and button contrast on the senior's phone — helpful for low vision."
+      },
+      "settingsSeniorLanguage": {
+        "title": "Senior's language",
+        "body": "Language of the interface on your dependent's phone: labels, reminders, and home screen."
+      },
+      "settingsCaretakerLanguage": {
+        "title": "Your language",
+        "body": "Language of the caretaker panel on this device. Does not change the senior's app language."
+      },
+      "settingsReminderSound": {
+        "title": "Reminder sound",
+        "body": "Sound played on the senior's phone for medication reminders. Tap the speaker icon to preview."
+      },
+      "soundsMedication": {
+        "title": "Reminder sound",
+        "body": "Pick the medication notification sound. Preview it before saving — you'll hear the full effect on your phone."
+      }
+    },
     "insights": {
       "title": "Insights",
       "range": {
@@ -302,6 +381,7 @@
       "vitals": "Enter measurement results",
       "vitalsSub": "After confirming a glucose or blood pressure activity, the senior fills in a results form.",
       "accessibility": "Senior screen accessibility",
+      "accessibilityHint": "Options that apply only to the app on your dependent's phone.",
       "languageSection": "App language",
       "seniorLanguage": "Senior language",
       "seniorLanguageSub": "Interface on the dependent's phone.",

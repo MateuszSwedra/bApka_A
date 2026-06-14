@@ -13,6 +13,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { HugeButton } from '../../components/HugeButton';
 import { Card } from '../../components/Card';
+import { CaretakerTourAnchor } from '../../components/caretaker/CaretakerTourAnchor';
 import { Theme } from '../../constants/theme';
 import { isAuthApiError, usersAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -85,28 +86,37 @@ export default function CaretakerPairingScreen() {
         <>
           <Card style={styles.card}>
             <Text style={styles.subtitle}>{t('caretaker.pairing.instructions')}</Text>
-            <View style={styles.pinRow}>
-              <Text
-                selectable
-                style={styles.pin}
-                accessibilityLabel={t('caretaker.pairing.a11yCode', { code: pinCode ?? '' })}
-              >
-                {pinCode ? formatPinDisplay(pinCode) : t('pairing.pinPlaceholder')}
-              </Text>
-              <Pressable
-                onPress={() => void handleCopy()}
-                style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.75 }]}
-                accessibilityRole="button"
-                accessibilityLabel={t('caretaker.pairing.a11yCopy')}
-                disabled={!pinCode}
-              >
-                <MaterialIcons
-                  name={copied ? 'check' : 'content-copy'}
-                  size={26}
-                  color={Theme.colors.primaryLimeDark}
-                />
-              </Pressable>
-            </View>
+            <CaretakerTourAnchor
+              stepId="pairing-pin"
+              titleKey="caretaker.tour.pairingPin.title"
+              bodyKey="caretaker.tour.pairingPin.body"
+              placement="bottom"
+              wrapStyle={styles.pinRowWrap}
+              measureDelayMs={500}
+            >
+              <View style={styles.pinRow}>
+                <Text
+                  selectable
+                  style={styles.pin}
+                  accessibilityLabel={t('caretaker.pairing.a11yCode', { code: pinCode ?? '' })}
+                >
+                  {pinCode ? formatPinDisplay(pinCode) : t('pairing.pinPlaceholder')}
+                </Text>
+                <Pressable
+                  onPress={() => void handleCopy()}
+                  style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.75 }]}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('caretaker.pairing.a11yCopy')}
+                  disabled={!pinCode}
+                >
+                  <MaterialIcons
+                    name={copied ? 'check' : 'content-copy'}
+                    size={26}
+                    color={Theme.colors.primaryLimeDark}
+                  />
+                </Pressable>
+              </View>
+            </CaretakerTourAnchor>
             <Text style={styles.pinHint}>{t('caretaker.pairing.hint')}</Text>
           </Card>
 
@@ -148,6 +158,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: Theme.spacing.l,
     color: Theme.colors.textLight,
+  },
+  pinRowWrap: {
+    width: '100%',
   },
   pinRow: {
     flexDirection: 'row',

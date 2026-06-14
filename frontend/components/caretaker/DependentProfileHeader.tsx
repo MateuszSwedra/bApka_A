@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
+import { CaretakerTourAnchor } from '../../components/caretaker/CaretakerTourAnchor';
 
 type DependentProfileHeaderProps = {
   title?: string;
@@ -59,14 +60,23 @@ export function DependentProfileHeader({
         ) : null}
       </View>
       {showSettings && dependentId ? (
-        <Pressable
-          onPress={openSettings}
-          style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('tabs.settings')}
+        <CaretakerTourAnchor
+          stepId="dependent-settings"
+          titleKey="caretaker.tour.dependentSettings.title"
+          bodyKey="caretaker.tour.dependentSettings.body"
+          placement="bottom"
+          afterStepId="dependent-tabs"
+          reserveBottom={0}
         >
-          <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
-        </Pressable>
+          <Pressable
+            onPress={openSettings}
+            style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('tabs.settings')}
+          >
+            <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
+          </Pressable>
+        </CaretakerTourAnchor>
       ) : (
         <View style={styles.sideBtnSpacer} />
       )}

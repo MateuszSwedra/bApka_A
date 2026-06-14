@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
-import { View, StyleSheet, Pressable, Alert } from 'react-native';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import { View, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../../constants/theme';
 import { router, useGlobalSearchParams, useLocalSearchParams, useFocusEffect, useSegments } from 'expo-router';
@@ -12,8 +12,11 @@ import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
 import { useTranslation } from 'react-i18next';
 import { AndroidStyleDayView } from '../../../../../components/caretaker/AndroidStyleDayView';
+import { CaretakerTourAnchor } from '../../../../../components/caretaker/CaretakerTourAnchor';
 import { ScheduleEventSheet } from '../../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
+import { scheduleAppliesToDate, timeToMinutes } from '../../../../../utils/scheduleHelpers';
+import type { ViewStyle } from 'react-native';
 
 export default function DependentCalendarDayScreen() {
   const { t } = useTranslation();
@@ -23,6 +26,8 @@ export default function DependentCalendarDayScreen() {
   const segments = useSegments();
   const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
+  const dayScrollRef = useRef<ScrollView>(null);
+  const dayContentRef = useRef<View>(null);
 
   const dateStr = typeof dateParam === 'string' ? dateParam : Array.isArray(dateParam) ? dateParam[0] : '';
 
@@ -64,6 +69,32 @@ export default function DependentCalendarDayScreen() {
 
   const flowScope = resolveMedsFlowScope(segments as string[]);
 
+  const tourTargetScheduleId = useMemo(() => {
+    const daySchedules = schedules
+      .filter(s => scheduleAppliesToDate(s, dateStr))
+      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
+    return daySchedules[0]?.id ?? null;
+  }, [schedules, dateStr]);
+
+  const wrapTourTarget = useCallback(
+    (node: React.ReactElement, wrapStyle: ViewStyle) => (
+      <CaretakerTourAnchor
+        stepId="calendar-edit"
+        titleKey="caretaker.tour.calendarEdit.title"
+        bodyKey="caretaker.tour.calendarEdit.body"
+        afterStepId="calendar-fab"
+        placement="auto"
+        tooltipLayoutMode="screenCenter"
+        scrollRef={dayScrollRef}
+        contentRef={dayContentRef}
+        wrapStyle={wrapStyle}
+      >
+        {node}
+      </CaretakerTourAnchor>
+    ),
+    [],
+  );
+
   const handleSlotPress = useCallback(
     (hour: number) => {
       if (!dependentId) {
@@ -94,6 +125,10 @@ export default function DependentCalendarDayScreen() {
             labelForSchedule={labelForSchedule}
             onEventPress={sch => setSelectedSchedule(sch)}
             onSlotPress={handleSlotPress}
+            scrollRef={dayScrollRef}
+            timelineContentRef={dayContentRef}
+            tourTargetScheduleId={tourTargetScheduleId}
+            wrapTourTarget={wrapTourTarget}
           />
         </View>
 

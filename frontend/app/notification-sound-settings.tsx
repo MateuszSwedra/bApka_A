@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Pressable,
   Platform,
   ActivityIndicator,
@@ -29,6 +28,11 @@ import {
 } from '../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../services/notificationSoundPreview';
 import { HugeButton } from '../components/HugeButton';
+import { CaretakerTourAnchor } from '../components/caretaker/CaretakerTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../context/CaretakerTourScrollContext';
 
 function exitSettings(userRole: string | null) {
   if (router.canGoBack()) {
@@ -164,7 +168,8 @@ export default function NotificationSoundSettingsScreen() {
   );
 
   return (
-    <View style={styles.root}>
+    <CaretakerTourScrollProvider>
+      <View style={styles.root}>
       <LinearGradient
         colors={['#E8F2F8', Theme.colors.surfaceGrey, Theme.colors.background]}
         locations={[0, 0.45, 1]}
@@ -184,7 +189,7 @@ export default function NotificationSoundSettingsScreen() {
         </Pressable>
       </View>
 
-      <ScrollView
+      <CaretakerTourScrollView
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: insets.bottom + Theme.spacing.xl },
@@ -209,17 +214,27 @@ export default function NotificationSoundSettingsScreen() {
           <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
         ) : (
           <>
-            {renderSoundGroup(
-              t('sounds.sectionMedication'),
-              userRole === 'DEPENDENT'
-                ? t('sounds.sectionMedicationSubtitleDependent')
-                : t('sounds.sectionMedicationSubtitleCaretaker'),
-              med,
-              onSelectMed,
-              onPreviewMed,
-              'med',
-              'medication',
-            )}
+            <CaretakerTourAnchor
+              stepId="sounds-medication"
+              titleKey="caretaker.tour.soundsMedication.title"
+              bodyKey="caretaker.tour.soundsMedication.body"
+              placement="bottom"
+              wrapStyle={styles.sectionTourWrap}
+              enabled={userRole === 'CARETAKER'}
+              measureDelayMs={500}
+            >
+              {renderSoundGroup(
+                t('sounds.sectionMedication'),
+                userRole === 'DEPENDENT'
+                  ? t('sounds.sectionMedicationSubtitleDependent')
+                  : t('sounds.sectionMedicationSubtitleCaretaker'),
+                med,
+                onSelectMed,
+                onPreviewMed,
+                'med',
+                'medication',
+              )}
+            </CaretakerTourAnchor>
             {showSos &&
               renderSoundGroup(
                 t('sounds.sectionSos'),
@@ -235,12 +250,13 @@ export default function NotificationSoundSettingsScreen() {
             )}
           </>
         )}
-      </ScrollView>
+      </CaretakerTourScrollView>
 
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + Theme.spacing.m }]}>
         <HugeButton title={t('common.done')} onPress={() => exitSettings(userRole)} style={styles.doneBtn} />
       </View>
     </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -333,6 +349,9 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 40,
+  },
+  sectionTourWrap: {
+    width: '100%',
   },
   section: {
     marginBottom: Theme.spacing.xl,

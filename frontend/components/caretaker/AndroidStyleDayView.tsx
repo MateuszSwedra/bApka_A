@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  type ViewStyle,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format, isToday, parseISO } from 'date-fns';
@@ -16,6 +17,7 @@ import type { ScheduleItem } from '../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../utils/scheduleHelpers';
 import type { CalendarDepletionAlert } from './AndroidStyleMonthCalendar';
+import { useCaretakerTourLock } from '../../context/CaretakerTourLockContext';
 
 const HOUR_HEIGHT = 56;
 const HOURS = 24;
@@ -31,6 +33,11 @@ type Props = {
   labelForSchedule: (sch: ScheduleItem) => string;
   onEventPress?: (sch: ScheduleItem) => void;
   onSlotPress?: (hour: number) => void;
+  scrollRef?: React.RefObject<ScrollView | null>;
+  timelineContentRef?: React.RefObject<View | null>;
+  tourTargetScheduleId?: string | null;
+  tourFallbackHour?: number;
+  wrapTourTarget?: (node: React.ReactElement, wrapStyle: ViewStyle) => React.ReactElement;
 };
 
 function hourLabel(hour: number): string {
@@ -46,8 +53,14 @@ export function AndroidStyleDayView({
   labelForSchedule,
   onEventPress,
   onSlotPress,
+  scrollRef: scrollRefProp,
+  timelineContentRef: timelineContentRefProp,
+  tourTargetScheduleId,
+  tourFallbackHour = 9,
+  wrapTourTarget,
 }: Props) {
   const { t } = useTranslation();
+  const tourLock = useCaretakerTourLock();
   const [activeSlotHour, setActiveSlotHour] = useState<number | null>(null);
   const day = parseISO(dateStr);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
@@ -70,7 +83,10 @@ export function AndroidStyleDayView({
   );
 
   const timelineHeight = HOURS * HOUR_HEIGHT;
-  const scrollRef = useRef<ScrollView>(null);
+  const internalScrollRef = useRef<ScrollView>(null);
+  const internalContentRef = useRef<View>(null);
+  const scrollRef = scrollRefProp ?? internalScrollRef;
+  const timelineContentRef = timelineContentRefProp ?? internalContentRef;
 
   useFocusEffect(
     useCallback(() => {
@@ -160,7 +176,10 @@ export function AndroidStyleDayView({
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator
+        scrollEnabled={!tourLock?.locked}
+        bounces={!tourLock?.locked}
       >
+        <View ref={timelineContentRef} collapsable={false}>
         {dayAlerts.length > 0 && (
           <View style={styles.allDayRow}>
             <View style={styles.timeGutter}>
@@ -183,66 +202,106 @@ export function AndroidStyleDayView({
         )}
 
         <View style={[styles.timeline, { height: timelineHeight }]}>
-          {Array.from({ length: HOURS }, (_, hour) => (
-            <Pressable
-              key={hour}
-              disabled={!onSlotPress}
-              onPress={() => onSlotPress?.(hour)}
-              onPressIn={() => setActiveSlotHour(hour)}
-              onPressOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
-              onHoverIn={() => setActiveSlotHour(hour)}
-              onHoverOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
-              style={({ pressed, hovered }) => [
-                styles.hourRow,
-                { top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT },
-                (hovered || pressed) && onSlotPress ? styles.hourRowActive : null,
-              ]}
-              accessibilityRole="button"
-              accessibilityLabel={t('schedule.add.slotA11y', { time: hourLabel(hour) })}
-            >
-              <Text style={styles.hourLabel}>{hourLabel(hour)}</Text>
-              <View style={styles.hourLine} />
-              {onSlotPress && activeSlotHour === hour ? (
-                <View style={styles.slotAddBtn}>
-                  <MaterialIcons name="add" size={18} color={Theme.colors.primaryLimeDark} />
-                </View>
-              ) : null}
-            </Pressable>
-          ))}
+          {Array.from({ length: HOURS }, (_, hour) => {
+            const hourRowStyle: ViewStyle = {
+              top: hour * HOUR_HEIGHT,
+              height: HOUR_HEIGHT,
+            };
+            const isTourSlot =
+              !tourTargetScheduleId && wrapTourTarget && hour === tourFallbackHour;
+            const hourNode = (
+              <Pressable
+                disabled={!onSlotPress}
+                onPress={() => onSlotPress?.(hour)}
+                onPressIn={() => setActiveSlotHour(hour)}
+                onPressOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
+                onHoverIn={() => setActiveSlotHour(hour)}
+                onHoverOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
+                style={({ pressed, hovered }) => [
+                  styles.hourRow,
+                  hourRowStyle,
+                  (hovered || pressed) && onSlotPress ? styles.hourRowActive : null,
+                ]}
+                accessibilityRole="button"
+                accessibilityLabel={t('schedule.add.slotA11y', { time: hourLabel(hour) })}
+              >
+                <Text style={styles.hourLabel}>{hourLabel(hour)}</Text>
+                <View style={styles.hourLine} />
+                {onSlotPress && activeSlotHour === hour ? (
+                  <View style={styles.slotAddBtn}>
+                    <MaterialIcons name="add" size={18} color={Theme.colors.primaryLimeDark} />
+                  </View>
+                ) : null}
+              </Pressable>
+            );
+
+            if (isTourSlot) {
+              return (
+                <React.Fragment key={`tour-hour-${hour}`}>
+                  {wrapTourTarget(hourNode, {
+                    position: 'absolute',
+                    left: 0,
+                    right: 0,
+                    ...hourRowStyle,
+                  })}
+                </React.Fragment>
+              );
+            }
+
+            return <React.Fragment key={hour}>{hourNode}</React.Fragment>;
+          })}
 
           <View style={[styles.eventsLayer, { height: timelineHeight }]} pointerEvents="box-none">
             {positionedEvents.map(({ sch, top, height, accent, label, columnIndex, columnCount }) => {
               const gap = 2;
               const widthPct = 100 / columnCount;
               const leftPct = columnIndex * widthPct;
+              const eventLayout = {
+                top,
+                height,
+                backgroundColor: accent,
+                left: `${leftPct}%` as `${number}%`,
+                width: `${widthPct}%` as `${number}%`,
+                paddingRight: columnIndex < columnCount - 1 ? gap : 4,
+                paddingLeft: columnIndex > 0 ? gap : 4,
+              };
+              const eventNode = (
+                <Pressable
+                  style={[styles.timedEvent, eventLayout]}
+                  onPress={() => onEventPress?.(sch)}
+                  disabled={!onEventPress}
+                >
+                  <Text style={styles.timedEventText} numberOfLines={1} ellipsizeMode="tail">
+                    {label}
+                  </Text>
+                  <Text style={styles.timedEventTime} numberOfLines={1}>
+                    {sch.time}
+                  </Text>
+                </Pressable>
+              );
+
+              if (wrapTourTarget && tourTargetScheduleId === sch.id) {
+                return (
+                  <React.Fragment key={sch.id}>
+                    {wrapTourTarget(eventNode, {
+                      position: 'absolute',
+                      top,
+                      height,
+                      left: `${leftPct}%`,
+                      width: `${widthPct}%`,
+                      paddingRight: columnIndex < columnCount - 1 ? gap : 4,
+                      paddingLeft: columnIndex > 0 ? gap : 4,
+                    })}
+                  </React.Fragment>
+                );
+              }
+
               return (
-              <Pressable
-                key={sch.id}
-                style={[
-                  styles.timedEvent,
-                  {
-                    top,
-                    height,
-                    backgroundColor: accent,
-                    left: `${leftPct}%`,
-                    width: `${widthPct}%`,
-                    paddingRight: columnIndex < columnCount - 1 ? gap : 4,
-                    paddingLeft: columnIndex > 0 ? gap : 4,
-                  },
-                ]}
-                onPress={() => onEventPress?.(sch)}
-                disabled={!onEventPress}
-              >
-                <Text style={styles.timedEventText} numberOfLines={1} ellipsizeMode="tail">
-                  {label}
-                </Text>
-                <Text style={styles.timedEventTime} numberOfLines={1}>
-                  {sch.time}
-                </Text>
-              </Pressable>
-            );
+                <React.Fragment key={sch.id}>{eventNode}</React.Fragment>
+              );
             })}
           </View>
+        </View>
         </View>
       </ScrollView>
     </View>

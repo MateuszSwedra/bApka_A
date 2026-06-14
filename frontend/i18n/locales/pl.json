@@ -222,6 +222,85 @@
       "statusAttention": "Wymaga uwagi",
       "statusOk": "Wszystko ok"
     },
+    "tour": {
+      "gotIt": "Rozumiem",
+      "dashboardAddDependent": {
+        "title": "Dodaj podopiecznego",
+        "body": "Tu rozpoczynasz opiekę — wygenerujesz kod PIN do sparowania konta podopiecznego z Twoim profilem."
+      },
+      "dashboardSounds": {
+        "title": "Ustawienia aplikacji",
+        "body": "Ikona regulacji w prawym górnym rogu otwiera dźwięki powiadomień o lekach i alarm SOS — dla Ciebie jako opiekuna."
+      },
+      "pairingPin": {
+        "title": "Kod parowania",
+        "body": "Podaj ten kod podopiecznemu. W aplikacji wybierze „Mam Opiekuna” i wpisze go, aby połączyć konta."
+      },
+      "dependentTabs": {
+        "title": "Nawigacja po profilu",
+        "body": "Dziś — plan na dziś. Kalendarz — harmonogram. Leczenie — lista leków. Statystyki — regularność i humor. Ustawienia otworzysz ikoną koła zębatego u góry."
+      },
+      "dependentSettings": {
+        "title": "Ustawienia podopiecznego",
+        "body": "Tu konfigurujesz humor, pomiary, dostępność ekranu seniora i język aplikacji na jego telefonie."
+      },
+      "treatmentsAdd": {
+        "title": "Nowa aktywność",
+        "body": "Dodaj lek lub inną aktywność, a potem ustaw harmonogram przyjmowania w kreatorze krok po kroku."
+      },
+      "treatmentsEdit": {
+        "title": "Edycja aktywności",
+        "body": "Dotknij wpisu w apteczce, aby go edytować — zmienisz nazwę, opis lub inne szczegóły leku albo aktywności."
+      },
+      "calendarFab": {
+        "title": "Dodaj do kalendarza",
+        "body": "Przycisk + dodaje nową aktywność do harmonogramu podopiecznego — wybierzesz lek, częstotliwość i godziny."
+      },
+      "calendarEdit": {
+        "title": "Edycja aktywności",
+        "body": "Dotknij wpisu w kalendarzu, aby zmienić godzinę lub dawkę. Puste pole godziny pozwala dodać nową aktywność."
+      },
+      "insightsRange": {
+        "title": "Statystyki w czasie",
+        "body": "Przełączaj okres: dziś, 7 lub 30 dni. Zobaczysz regularność leków, humor i pomiary zdrowotne."
+      },
+      "settingsMood": {
+        "title": "Pytanie o humor",
+        "body": "Włącz lub wyłącz codzienne pytanie o samopoczucie na ekranie głównym seniora. Po wyłączeniu kafelek humoru znika."
+      },
+      "settingsMoodTime": {
+        "title": "Godzina pytania o humor",
+        "body": "Ustaw, o której godzinie senior zobaczy pytanie o nastrój. Po zapisie kafelek pojawi się codziennie o tej porze."
+      },
+      "settingsVitals": {
+        "title": "Wpisywanie pomiarów",
+        "body": "Po włączeniu senior po potwierdzeniu aktywności cukru lub ciśnienia uzupełni wynik. Pomiary trafią do zakładki Statystyki."
+      },
+      "settingsColorBlind": {
+        "title": "Tryb daltonizmu",
+        "body": "Dostosowuje kolory i oznaczenia na ekranie seniora, aby łatwiej odróżniać status leków i alerty."
+      },
+      "settingsHighContrast": {
+        "title": "Wysoki kontrast",
+        "body": "Zwiększa kontrast tekstu i przycisków na telefonie seniora — pomaga przy słabszym wzroku."
+      },
+      "settingsSeniorLanguage": {
+        "title": "Język seniora",
+        "body": "Język interfejsu na telefonie podopiecznego: etykiety, przypomnienia i ekran główny."
+      },
+      "settingsCaretakerLanguage": {
+        "title": "Twój język",
+        "body": "Język panelu opiekuna na tym urządzeniu. Nie zmienia języka aplikacji na telefonie seniora."
+      },
+      "settingsReminderSound": {
+        "title": "Dźwięk przypomnienia",
+        "body": "Dźwięk odtwarzany na telefonie seniora, gdy przypomni mu o leku. Dotknij ikony głośnika, aby odsłuchać."
+      },
+      "soundsMedication": {
+        "title": "Dźwięk przypomnień",
+        "body": "Wybierz dźwięk powiadomień o lekach. Możesz go odsłuchać przed zapisaniem — na telefonie usłyszysz pełny efekt."
+      }
+    },
     "insights": {
       "title": "Statystyki",
       "range": {
@@ -304,6 +383,7 @@
       "vitals": "Wpisywanie wyników pomiarów",
       "vitalsSub": "Po potwierdzeniu pomiaru cukru lub ciśnienia senior uzupełni wyniki w formularzu.",
       "accessibility": "Dostępność ekranu seniora",
+      "accessibilityHint": "Ułatwienia widoczne wyłącznie w aplikacji na telefonie podopiecznego.",
       "languageSection": "Język aplikacji",
       "seniorLanguage": "Język seniora",
       "seniorLanguageSub": "Interfejs na telefonie podopiecznego.",

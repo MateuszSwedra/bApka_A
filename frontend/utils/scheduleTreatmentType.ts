@@ -13,3 +13,15 @@ export function treatmentTypeForSchedule(
   const treatment = tid ? treatments.find(tr => tr.id === tid) : undefined;
   return treatment?.type ?? null;
 }
+
+const NO_DOSAGE_EDIT_TYPES = new Set<TreatmentType>([
+  'BLOOD_SUGAR',
+  'BLOOD_PRESSURE',
+  'EXERCISE',
+]);
+
+/** Czy w edycji wpisu kalendarza pokazywać stepper ilości (np. tabletki). */
+export function scheduleEditShowsDosage(type: TreatmentType | null | undefined): boolean {
+  if (!type) return true;
+  return !NO_DOSAGE_EDIT_TYPES.has(type);
+}

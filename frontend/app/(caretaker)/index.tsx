@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Pressable,
   ActivityIndicator,
   Platform,
@@ -21,6 +20,11 @@ import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
 import { useTranslation } from 'react-i18next';
 import { HugeButton } from '../../components/HugeButton';
 import { MoodBadge } from '../../components/mood/MoodBadge';
+import { CaretakerTourAnchor } from '../../components/caretaker/CaretakerTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../../context/CaretakerTourScrollContext';
 
 interface Dependent {
   id: string;
@@ -183,7 +187,8 @@ export default function CaretakerDashboard() {
   const headerTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 8);
 
   return (
-    <View style={styles.root}>
+    <CaretakerTourScrollProvider>
+      <View style={styles.root}>
       <LinearGradient
         colors={['#E8F2F8', Theme.colors.surfaceGrey, Theme.colors.background]}
         locations={[0, 0.45, 1]}
@@ -194,13 +199,22 @@ export default function CaretakerDashboard() {
       <View style={[styles.decorOrb, styles.decorOrbAccent]} />
 
       <View style={[styles.topBar, { paddingTop: headerTop }]}>
-        <Pressable
-          onPress={() => router.push('/notification-sound-settings' as never)}
-          style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
-          accessibilityLabel={t('sounds.screenTitle')}
+        <CaretakerTourAnchor
+          stepId="dashboard-sounds"
+          titleKey="caretaker.tour.dashboardSounds.title"
+          bodyKey="caretaker.tour.dashboardSounds.body"
+          placement="bottom"
+          afterStepId={dependents.length === 0 ? 'dashboard-add-dependent' : undefined}
+          reserveBottom={0}
         >
-          <MaterialIcons name="tune" size={22} color={Theme.colors.primaryLimeDark} />
-        </Pressable>
+          <Pressable
+            onPress={() => router.push('/notification-sound-settings' as never)}
+            style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
+            accessibilityLabel={t('sounds.screenTitle')}
+          >
+            <MaterialIcons name="tune" size={22} color={Theme.colors.primaryLimeDark} />
+          </Pressable>
+        </CaretakerTourAnchor>
         <Pressable
           onPress={handleLogout}
           style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
@@ -209,7 +223,7 @@ export default function CaretakerDashboard() {
         </Pressable>
       </View>
 
-      <ScrollView
+      <CaretakerTourScrollView
         contentContainerStyle={[
           styles.scrollContent,
           { paddingBottom: insets.bottom + Theme.spacing.xl, paddingTop: Theme.spacing.s },
@@ -242,11 +256,22 @@ export default function CaretakerDashboard() {
             </LinearGradient>
             <Text style={styles.emptyTitle}>{t('caretaker.dashboard.emptyTitle')}</Text>
             <Text style={styles.emptySubtitle}>{t('caretaker.dashboard.emptySubtitle')}</Text>
-            <HugeButton
-              title={t('caretaker.dashboard.emptyCta')}
-              onPress={handleAddDependent}
-              style={styles.emptyCta}
-            />
+            <CaretakerTourAnchor
+              stepId="dashboard-add-dependent"
+              titleKey="caretaker.tour.dashboardAddDependent.title"
+              bodyKey="caretaker.tour.dashboardAddDependent.body"
+              placement="top"
+              wrapStyle={styles.emptyCtaWrap}
+              enabled={!isLoading}
+              tooltipGap={44}
+              reserveBottom={0}
+            >
+              <HugeButton
+                title={t('caretaker.dashboard.emptyCta')}
+                onPress={handleAddDependent}
+                style={styles.emptyCta}
+              />
+            </CaretakerTourAnchor>
           </View>
         ) : (
           <View style={styles.cardStack}>
@@ -261,24 +286,36 @@ export default function CaretakerDashboard() {
               />
             ))}
 
-            <Pressable
-              onPress={handleAddDependent}
-              accessibilityRole="button"
-              style={({ pressed }) => [styles.addCard, pressed && styles.profileCardPressed]}
+            <CaretakerTourAnchor
+              stepId="dashboard-add-dependent"
+              titleKey="caretaker.tour.dashboardAddDependent.title"
+              bodyKey="caretaker.tour.dashboardAddDependent.body"
+              placement="top"
+              wrapStyle={styles.addCardWrap}
+              enabled={!isLoading}
+              tooltipGap={44}
+              reserveBottom={0}
             >
-              <View style={styles.addIconWrap}>
-                <MaterialIcons name="person-add-alt-1" size={26} color={Theme.colors.primaryLimeDark} />
-              </View>
-              <View style={styles.addTextWrap}>
-                <Text style={styles.addTitle}>{t('caretaker.dashboard.addCardTitle')}</Text>
-                <Text style={styles.addSubtitle}>{t('caretaker.dashboard.addCardSubtitle')}</Text>
-              </View>
-              <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} />
-            </Pressable>
+              <Pressable
+                onPress={handleAddDependent}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.addCard, pressed && styles.profileCardPressed]}
+              >
+                <View style={styles.addIconWrap}>
+                  <MaterialIcons name="person-add-alt-1" size={26} color={Theme.colors.primaryLimeDark} />
+                </View>
+                <View style={styles.addTextWrap}>
+                  <Text style={styles.addTitle}>{t('caretaker.dashboard.addCardTitle')}</Text>
+                  <Text style={styles.addSubtitle}>{t('caretaker.dashboard.addCardSubtitle')}</Text>
+                </View>
+                <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} />
+              </Pressable>
+            </CaretakerTourAnchor>
           </View>
         )}
-      </ScrollView>
+      </CaretakerTourScrollView>
     </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -472,7 +509,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed',
     borderColor: Theme.colors.primaryLimeDark,
     backgroundColor: 'rgba(255, 255, 255, 0.65)',
-    marginTop: Theme.spacing.xs,
   },
   addIconWrap: {
     width: 52,
@@ -532,8 +568,15 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     marginBottom: Theme.spacing.l,
   },
+  emptyCtaWrap: {
+    width: '100%',
+  },
   emptyCta: {
     width: '100%',
     minHeight: 52,
+  },
+  addCardWrap: {
+    width: '100%',
+    marginTop: Theme.spacing.xs,
   },
 });

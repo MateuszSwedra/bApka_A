@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
@@ -17,6 +17,11 @@ import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopIns
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
+import { CaretakerTourAnchor } from '../../../../components/caretaker/CaretakerTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../../../../context/CaretakerTourScrollContext';
 
 export default function DependentTreatmentsScreen() {
   const { t } = useTranslation();
@@ -53,22 +58,33 @@ export default function DependentTreatmentsScreen() {
     items: treatments.filter(t => t.type === type),
   })).filter(group => group.items.length > 0);
 
+  const firstTreatmentId = grouped.flatMap(group => group.items)[0]?.id;
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
+    <CaretakerTourScrollProvider>
+      <View style={styles.container}>
+        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
-        <Pressable
-          onPress={handleOpenAddTreatment}
-          style={styles.addRow}
-          accessibilityLabel={t('schedule.add.a11yAddActivity')}
+        <CaretakerTourAnchor
+          stepId="treatments-add"
+          titleKey="caretaker.tour.treatmentsAdd.title"
+          bodyKey="caretaker.tour.treatmentsAdd.body"
+          placement="bottom"
+          wrapStyle={styles.addRowWrap}
         >
-          <View style={styles.addIconCircle}>
-            <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
-          </View>
-          <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
-        </Pressable>
+          <Pressable
+            onPress={handleOpenAddTreatment}
+            style={styles.addRow}
+            accessibilityLabel={t('schedule.add.a11yAddActivity')}
+          >
+            <View style={styles.addIconCircle}>
+              <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
+            </View>
+            <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
+          </Pressable>
+        </CaretakerTourAnchor>
 
         {grouped.length === 0 && (
           <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
@@ -84,19 +100,40 @@ export default function DependentTreatmentsScreen() {
               <Text style={styles.groupCount}>{group.items.length}</Text>
             </View>
 
-            {group.items.map(item => (
-              <TreatmentCard
-                key={item.id}
-                item={item}
-                accent={group.meta.accent}
-                onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
-                onRemove={() => void removeTreatment(item.id, dependentId ?? undefined)}
-              />
-            ))}
+            {group.items.map(item => {
+              const card = (
+                <TreatmentCard
+                  item={item}
+                  accent={group.meta.accent}
+                  onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
+                  onRemove={() => void removeTreatment(item.id, dependentId ?? undefined)}
+                />
+              );
+
+              if (item.id !== firstTreatmentId) {
+                return card;
+              }
+
+              return (
+                <CaretakerTourAnchor
+                  key={item.id}
+                  stepId="treatments-edit"
+                  titleKey="caretaker.tour.treatmentsEdit.title"
+                  bodyKey="caretaker.tour.treatmentsEdit.body"
+                  placement="bottom"
+                  afterStepId="treatments-add"
+                  tooltipGap={24}
+                  wrapStyle={styles.tourCardWrap}
+                >
+                  {card}
+                </CaretakerTourAnchor>
+              );
+            })}
           </View>
         ))}
-      </ScrollView>
+      </CaretakerTourScrollView>
     </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -171,6 +208,9 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
     lineHeight: 20,
   },
+  addRowWrap: {
+    width: '100%',
+  },
   addRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -228,6 +268,9 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     marginBottom: Theme.spacing.s,
+  },
+  tourCardWrap: {
+    width: '100%',
   },
   itemHeader: {
     flexDirection: 'row',

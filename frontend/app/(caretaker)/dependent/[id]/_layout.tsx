@@ -4,6 +4,7 @@ import { Theme } from '../../../../constants/theme';
 import { View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { CaretakerTabBarTour } from '../../../../components/caretaker/CaretakerTabBarTour';
 
 export default function DependentTabsLayout() {
   const { t } = useTranslation();
@@ -69,6 +70,7 @@ export default function DependentTabsLayout() {
           }}
         />
       </Tabs>
+      <CaretakerTabBarTour />
     </View>
   );
 }

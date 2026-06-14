@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -13,6 +13,10 @@ import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import type { ScheduleItem } from '../../context/MedsContext';
 import { useMeds } from '../../context/MedsContext';
+import {
+  scheduleEditShowsDosage,
+  treatmentTypeForSchedule,
+} from '../../utils/scheduleTreatmentType';
 import {
   FriendlyTimePicker,
   type FriendlyTimePickerRef,
@@ -29,12 +33,19 @@ type Props = {
 
 export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props) {
   const { t } = useTranslation();
-  const { updateSchedule, removeSchedule } = useMeds();
+  const { treatments, updateSchedule, removeSchedule } = useMeds();
   const timePickerRef = useRef<FriendlyTimePickerRef>(null);
   const [hour, setHour] = useState(8);
   const [minute, setMinute] = useState(0);
   const [dosage, setDosage] = useState('1');
   const [saving, setSaving] = useState(false);
+
+  const treatmentType = useMemo(() => {
+    if (!schedule) return null;
+    return treatmentTypeForSchedule(schedule.id, [schedule], treatments);
+  }, [schedule, treatments]);
+
+  const showsDosage = scheduleEditShowsDosage(treatmentType);
 
   useEffect(() => {
     if (!schedule) return;
@@ -50,14 +61,17 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
     const time = `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`;
     setSaving(true);
     try {
-      await updateSchedule(schedule.id, { time, dosage });
+      await updateSchedule(
+        schedule.id,
+        showsDosage ? { time, dosage } : { time },
+      );
       onClose();
     } catch {
       Alert.alert(t('common.error'), t('calendar.errorUpdate'));
     } finally {
       setSaving(false);
     }
-  }, [schedule, hour, minute, dosage, updateSchedule, onClose, t]);
+  }, [schedule, hour, minute, dosage, showsDosage, updateSchedule, onClose, t]);
 
   const handleDelete = useCallback(() => {
     if (!schedule) return;
@@ -100,11 +114,13 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
             onMinuteChange={setMinute}
           />
 
-          <DosageStepper
-            value={dosage}
-            onChange={setDosage}
-            label={t('schedule.add.dosagePills')}
-          />
+          {showsDosage ? (
+            <DosageStepper
+              value={dosage}
+              onChange={setDosage}
+              label={t('schedule.add.dosagePills')}
+            />
+          ) : null}
 
           <View style={styles.actions}>
             <Pressable

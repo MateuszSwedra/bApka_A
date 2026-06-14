@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Theme } from '../../../../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams, useGlobalSearchParams, useSegments, useFocusEffect } from 'expo-router';
@@ -12,6 +12,11 @@ import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsIns
 import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
 import { MoodWeekChart } from '../../../../components/insights/MoodWeekChart';
 import { MoodDistributionSummary } from '../../../../components/insights/MoodDistributionSummary';
+import { CaretakerTourAnchor } from '../../../../components/caretaker/CaretakerTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../../../../context/CaretakerTourScrollContext';
 import { buildMoodDayCells } from '../../../../utils/moodWeekChart';
 import { buildMoodDistribution } from '../../../../utils/moodDistribution';
 import { DoseStatsPayload } from '../../../../utils/doseStats';
@@ -183,37 +188,46 @@ export default function DependentInsightsScreen() {
   }, [doseStats]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}
-      >
+    <CaretakerTourScrollProvider>
+      <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+        <CaretakerTourScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}
+        >
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
 
-        <View style={styles.rangeSwitcher}>
-          {(['today', 'week', 'month'] as RangeKey[]).map((key) => {
-            const active = key === range;
-            return (
-              <Pressable
-                key={key}
-                onPress={() => onChangeRange(key)}
-                style={[
-                  styles.rangeChip,
-                  active && styles.rangeChipActive,
-                ]}
-              >
-                <Text
+        <CaretakerTourAnchor
+          stepId="insights-range"
+          titleKey="caretaker.tour.insightsRange.title"
+          bodyKey="caretaker.tour.insightsRange.body"
+          placement="bottom"
+          wrapStyle={styles.rangeSwitcherWrap}
+        >
+          <View style={styles.rangeSwitcher}>
+            {(['today', 'week', 'month'] as RangeKey[]).map((key) => {
+              const active = key === range;
+              return (
+                <Pressable
+                  key={key}
+                  onPress={() => onChangeRange(key)}
                   style={[
-                    styles.rangeChipLabel,
-                    active && styles.rangeChipLabelActive,
+                    styles.rangeChip,
+                    active && styles.rangeChipActive,
                   ]}
                 >
-                  {renderRangeLabel(key)}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <Text
+                    style={[
+                      styles.rangeChipLabel,
+                      active && styles.rangeChipLabelActive,
+                    ]}
+                  >
+                    {renderRangeLabel(key)}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </CaretakerTourAnchor>
 
         {currentRangeLabel ? (
           <Text style={styles.rangeHint}>
@@ -256,8 +270,9 @@ export default function DependentInsightsScreen() {
             />
           </>
         )}
-      </ScrollView>
-    </View>
+        </CaretakerTourScrollView>
+      </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -275,6 +290,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: Theme.colors.textDark,
     marginBottom: Theme.spacing.m,
+  },
+  rangeSwitcherWrap: {
+    width: '100%',
   },
   rangeSwitcher: {
     flexDirection: 'row',
