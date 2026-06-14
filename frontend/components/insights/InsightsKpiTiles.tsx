@@ -3,88 +3,109 @@ import { View, Text, StyleSheet } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
-import { DoseCounts, RangeKey, getAdherenceColor, getCountsAdherence } from '../../utils/doseStats';
+import { DoseCounts, RangeKey, getOnTimeRatio } from '../../utils/doseStats';
 
 type Props = {
   counts: DoseCounts;
+  onTimeTaken?: number;
   range: RangeKey;
 };
 
-export function InsightsKpiTiles({ counts, range }: Props) {
+export function InsightsKpiTiles({ counts, onTimeTaken, range }: Props) {
   const { t } = useTranslation();
-  const adherence = getCountsAdherence(counts);
-  const adherenceColor = getAdherenceColor(adherence);
+  const { takenOnTime, totalPlanned } = getOnTimeRatio(counts, onTimeTaken);
+  const late = counts.late ?? 0;
   const missed = counts.missed ?? 0;
 
-  const adherenceSubtitleKey =
+  const periodKey =
     range === 'today'
-      ? 'caretaker.insights.adherenceSubtitleToday'
+      ? 'caretaker.insights.statsPeriodToday'
       : range === 'week'
-        ? 'caretaker.insights.adherenceSubtitleWeek'
-        : 'caretaker.insights.adherenceSubtitleMonth';
+        ? 'caretaker.insights.statsPeriodWeek'
+        : 'caretaker.insights.statsPeriodMonth';
 
   return (
-    <View style={styles.row}>
-      <View style={[styles.tile, { backgroundColor: `${adherenceColor}14`, borderColor: `${adherenceColor}33` }]}>
-        <MaterialIcons name="trending-up" size={22} color={adherenceColor} />
-        <Text style={[styles.value, { color: adherenceColor }]}>{adherence}%</Text>
-        <Text style={styles.label}>{t('caretaker.insights.adherenceRate')}</Text>
-        <Text style={styles.subtitle}>{t(adherenceSubtitleKey, { percent: adherence })}</Text>
+    <View style={styles.card}>
+      <View style={styles.header}>
+        <MaterialIcons name="medication" size={22} color={Theme.colors.accentOrange} />
+        <Text style={styles.title}>{t('caretaker.insights.adherenceRate')}</Text>
+        <Text style={styles.period}>{t(periodKey)}</Text>
       </View>
 
-      <View style={[styles.tile, styles.missedTile]}>
-        <MaterialIcons name="cancel" size={22} color="#C23D3D" />
-        <Text style={[styles.value, styles.missedValue]}>{missed}</Text>
-        <Text style={styles.label}>{t('caretaker.insights.missedDosesTitle')}</Text>
-        <Text style={styles.subtitle}>
-          {range === 'today'
-            ? t('caretaker.insights.missedSubtitleToday')
-            : range === 'week'
-              ? t('caretaker.insights.missedSubtitleWeek')
-              : t('caretaker.insights.missedSubtitleMonth')}
-        </Text>
+      <View style={styles.statsList}>
+        <View style={styles.statRow}>
+          <View style={[styles.dot, { backgroundColor: '#1F7A4D' }]} />
+          <Text style={styles.statText}>
+            {t('caretaker.insights.statOnTime', {
+              onTime: takenOnTime,
+              total: totalPlanned,
+            })}
+          </Text>
+        </View>
+
+        <View style={styles.statRow}>
+          <View style={[styles.dot, { backgroundColor: '#E9A43D' }]} />
+          <Text style={styles.statText}>
+            {t('caretaker.insights.statLate', { count: late })}
+          </Text>
+        </View>
+
+        <View style={styles.statRow}>
+          <View style={[styles.dot, { backgroundColor: '#C23D3D' }]} />
+          <Text style={styles.statText}>
+            {t('caretaker.insights.statMissed', { count: missed })}
+          </Text>
+        </View>
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: Theme.spacing.s,
-    marginBottom: Theme.spacing.m,
-  },
-  tile: {
-    flex: 1,
+  card: {
     borderRadius: Theme.borderRadius.medium,
     borderWidth: 1,
+    borderColor: Theme.colors.border,
     padding: Theme.spacing.m,
-    alignItems: 'center',
+    marginBottom: Theme.spacing.m,
     backgroundColor: Theme.colors.surfaceWhite,
   },
-  missedTile: {
-    backgroundColor: 'rgba(194, 61, 61, 0.08)',
-    borderColor: 'rgba(194, 61, 61, 0.2)',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: Theme.spacing.s,
+    flexWrap: 'wrap',
   },
-  value: {
-    fontSize: 28,
-    fontWeight: '800',
-    marginTop: 4,
-  },
-  missedValue: {
-    color: '#C23D3D',
-  },
-  label: {
-    fontSize: Theme.typography.caption,
+  title: {
+    fontSize: Theme.typography.body,
     fontWeight: '700',
     color: Theme.colors.textDark,
-    marginTop: 2,
-    textAlign: 'center',
+    flex: 1,
   },
-  subtitle: {
-    fontSize: Theme.typography.small,
+  period: {
+    fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
-    marginTop: 2,
-    textAlign: 'center',
+    width: '100%',
+    marginLeft: 30,
+  },
+  statsList: {
+    gap: 10,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+  },
+  statText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '600',
+    color: Theme.colors.textDark,
   },
 });

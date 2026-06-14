@@ -489,6 +489,7 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.l,
     borderWidth: 1,
     borderColor: Theme.colors.border,
+    overflow: 'hidden',
   },
   allDoneIcon: {
     width: 52,
@@ -497,6 +498,8 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.surfaceWhite,
     justifyContent: 'center',
     alignItems: 'center',
+    flexShrink: 0,
+    overflow: 'hidden',
   },
   allDoneText: {
     flex: 1,
@@ -512,6 +515,7 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
     lineHeight: 20,
+    flexShrink: 1,
   },
   cardList: {
     gap: Theme.spacing.s,

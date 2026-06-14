@@ -34,7 +34,17 @@ export async function syncPushTokenWithBackend(): Promise<boolean> {
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     if (!token) return false;
 
-    await usersAPI.updateFcmToken(token);
+    let nativePushToken: string | undefined;
+    try {
+      const device = await Notifications.getDevicePushTokenAsync();
+      if (device?.data && typeof device.data === 'string') {
+        nativePushToken = device.data;
+      }
+    } catch {
+      /* brak natywnego tokenu — zostaje tylko Expo push */
+    }
+
+    await usersAPI.updateFcmToken(token, nativePushToken);
     return true;
   } catch (e) {
     console.warn('Push token sync failed', e);

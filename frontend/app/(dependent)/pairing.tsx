@@ -1,44 +1,89 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, TextInput, Platform, Alert, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
 import { HugeButton } from '../../components/HugeButton';
 import { Theme } from '../../constants/theme';
+import { useAuth } from '../../context/AuthContext';
+import { usersAPI } from '../../services/api';
+import * as SecureStore from 'expo-secure-store';
 import { normalizePinInput } from '../../utils/pin';
 import { useTranslation } from 'react-i18next';
 
+const showAlert = (title: string, message: string) => {
+  if (Platform.OS === 'web') {
+    window.alert(`${title}: ${message}`);
+  } else {
+    Alert.alert(title, message);
+  }
+};
+
 export default function DependentPairingScreen() {
   const { t } = useTranslation();
+  const { loginFake, setUserSession } = useAuth();
   const [pin, setPin] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handlePair = () => {
+  const handlePair = async () => {
     const digits = normalizePinInput(pin);
     if (digits.length !== 6) {
-      alert(t('pairing.validationLength'));
+      showAlert(t('common.error'), t('pairing.validationLength'));
       return;
     }
-    router.replace('/(dependent)');
+
+    setIsLoading(true);
+    try {
+      await usersAPI.pairWithPin(digits);
+      await usersAPI.updateRole('DEPENDENT');
+
+      let token = null;
+      if (Platform.OS === 'web') {
+        token = localStorage.getItem('userToken');
+      } else {
+        token = await SecureStore.getItemAsync('userToken');
+      }
+
+      if (token) {
+        await setUserSession(token, 'DEPENDENT');
+      } else {
+        loginFake('DEPENDENT');
+      }
+
+      showAlert(t('pairing.alertSuccessTitle'), t('pairing.alertSuccessMessage'));
+      router.replace('/(dependent)');
+    } catch {
+      showAlert(t('pairing.alertErrorTitle'), t('pairing.alertInvalidPin'));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <View style={styles.container}>
+      <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>{t('pairing.dependent.title')}</Text>
-      
-      <TextInput 
-        style={styles.pinInput}
-        value={pin}
-        onChangeText={(text) => setPin(normalizePinInput(text))}
-        keyboardType="number-pad"
-        placeholder={t('pairing.pinPlaceholder')}
-        autoFocus
-      />
+      <Text style={styles.subtitle}>{t('pairing.enterPin.subtitle')}</Text>
 
-      <HugeButton 
-        title={t('pairing.ctaConnectUpper')} 
-        size="huge" 
-        onPress={handlePair} 
-        disabled={normalizePinInput(pin).length !== 6}
-        style={styles.button}
-      />
+      <View style={styles.inputContainer}>
+        <TextInput
+          style={styles.input}
+          placeholder={t('pairing.pinPlaceholder')}
+          value={pin}
+          onChangeText={text => setPin(normalizePinInput(text))}
+          keyboardType="number-pad"
+          editable={!isLoading}
+          textAlign="center"
+          autoFocus
+        />
+      </View>
+
+      {isLoading ? (
+        <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
+      ) : (
+        <View style={styles.actions}>
+          <HugeButton title={t('pairing.ctaConnectUpper')} onPress={() => void handlePair()} style={styles.button} />
+        </View>
+      )}
     </View>
   );
 }
@@ -50,28 +95,47 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.background,
     justifyContent: 'center',
   },
+  icon: {
+    alignSelf: 'center',
+    marginBottom: Theme.spacing.m,
+  },
   title: {
     fontSize: Theme.typography.largeTitle,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: Theme.spacing.xxl,
+    color: Theme.colors.textDark,
+    marginBottom: Theme.spacing.s,
   },
-  pinInput: {
-    backgroundColor: Theme.colors.surfaceWhite,
-    fontSize: 64,
-    fontWeight: 'bold',
+  subtitle: {
+    fontSize: Theme.typography.body,
     textAlign: 'center',
-    letterSpacing: 12,
-    borderRadius: Theme.borderRadius.large,
-    padding: Theme.spacing.m,
+    color: Theme.colors.textLight,
     marginBottom: Theme.spacing.xxl,
-    elevation: 2,
-    shadowColor: Theme.colors.shadowNeutral,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    lineHeight: 22,
+  },
+  inputContainer: {
+    marginBottom: Theme.spacing.xxl,
+    alignItems: 'center',
+  },
+  input: {
+    backgroundColor: Theme.colors.surfaceWhite,
+    padding: Theme.spacing.m,
+    borderRadius: Theme.borderRadius.medium,
+    fontSize: 48,
+    fontWeight: 'bold',
+    letterSpacing: 8,
+    borderWidth: 2,
+    borderColor: Theme.colors.primaryLime,
+    color: Theme.colors.primaryLimeDark,
+    width: '100%',
+  },
+  loader: {
+    marginVertical: Theme.spacing.xl,
+  },
+  actions: {
+    gap: Theme.spacing.m,
   },
   button: {
-    marginTop: Theme.spacing.xl,
-  }
+    width: '100%',
+  },
 });

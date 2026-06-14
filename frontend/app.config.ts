@@ -19,6 +19,11 @@ const config: ExpoConfig = {
   android: {
     package: ANDROID_PACKAGE,
     googleServicesFile: './google-services.json',
+    permissions: [
+      'android.permission.USE_FULL_SCREEN_INTENT',
+      'android.permission.VIBRATE',
+      'android.permission.WAKE_LOCK',
+    ],
     adaptiveIcon: {
       backgroundColor: '#E6F4FE',
       foregroundImage: './assets/images/android-icon-foreground.png',
@@ -36,7 +41,14 @@ const config: ExpoConfig = {
     'expo-router',
     'expo-dev-client',
     'expo-font',
-    'expo-notifications',
+    '@react-native-firebase/app',
+    '@react-native-firebase/messaging',
+    [
+      'expo-notifications',
+      {
+        sounds: ['./assets/sounds/sos_alert.ogg'],
+      },
+    ],
     [
       'expo-splash-screen',
       {
@@ -48,6 +60,13 @@ const config: ExpoConfig = {
       },
     ],
     'expo-secure-store',
+    [
+      'react-native-permissions',
+      {
+        iosPermissions: [],
+      },
+    ],
+    './plugins/withSosFullScreenActivity.js',
   ],
   experiments: {
     typedRoutes: true,

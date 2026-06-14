@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             void syncPushTokenWithBackend();
           }
         } catch (e) {
-          if (isAuthApiError(e) || !storedRole) {
+          if (isAuthApiError(e)) {
             await clearSessionStorage();
             setUserRole(null);
           }

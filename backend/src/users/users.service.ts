@@ -144,13 +144,29 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
+        fcmToken: true,
         ...this.settingsSelect,
       },
     });
     if (!user) {
       throw new NotFoundException('Użytkownik nie istnieje');
     }
-    return user;
+
+    let isPairedWithCaretaker = false;
+    if (user.role === 'DEPENDENT') {
+      const connection = await this.prisma.connection.findFirst({
+        where: { dependentId: userId, isPaired: true },
+        select: { id: true },
+      });
+      isPairedWithCaretaker = !!connection;
+    }
+
+    const { fcmToken, ...profile } = user;
+    return {
+      ...profile,
+      isPairedWithCaretaker,
+      hasPushToken: !!fcmToken?.trim(),
+    };
   }
 
   private async assertCaretakerOwnsDependent(caretakerId: string, dependentId: string) {
@@ -245,10 +261,23 @@ export class UsersService {
   }
 
   async updateMood(userId: string, mood: string) {
+    const normalized = mood?.trim()?.toLowerCase();
+    if (!['happy', 'neutral', 'sad'].includes(normalized)) {
+      throw new BadRequestException('Nieprawidłowa wartość nastroju');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, name: true, email: true },
+    });
+    if (!user) {
+      throw new NotFoundException('Użytkownik nie istnieje');
+    }
+
     const updated = await this.prisma.user.update({
       where: { id: userId },
       data: {
-        lastMood: mood,
+        lastMood: normalized,
         lastMoodAt: new Date()
       },
       select: { id: true, lastMood: true, lastMoodAt: true }
@@ -257,19 +286,29 @@ export class UsersService {
     await this.prisma.moodLog.create({
       data: {
         userId,
-        mood,
+        mood: normalized,
         source: 'APP_SENIOR',
       },
     });
 
+    await this.notifications.notifyMood(
+      userId,
+      this.notifications.formatUserName(user),
+      normalized,
+    );
+
     return updated;
   }
 
-  async updateFcmToken(userId: string, fcmToken: string) {
+  async updateFcmToken(userId: string, fcmToken: string, nativePushToken?: string) {
+    const data: { fcmToken: string; nativePushToken?: string | null } = { fcmToken };
+    if (nativePushToken !== undefined) {
+      data.nativePushToken = nativePushToken?.trim() || null;
+    }
     return this.prisma.user.update({
       where: { id: userId },
-      data: { fcmToken },
-      select: { id: true, email: true }
+      data,
+      select: { id: true, email: true },
     });
   }
 

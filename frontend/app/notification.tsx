@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as SecureStore from 'expo-secure-store';
 import { Image } from 'expo-image';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -24,7 +24,11 @@ import {
 } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import Svg, { Defs, RadialGradient, Rect, Stop } from 'react-native-svg';
-import { requestPermissionAndSyncPushToken } from '../services/registerPushToken';
+import { promptFullScreenIntentIfNeeded, needsFullScreenIntentPrompt, openFullScreenIntentSettings } from '../services/fullScreenIntentPermission';
+import { requestPermissionAndSyncPushToken, syncPushTokenWithBackend } from '../services/registerPushToken';
+import * as Notifications from 'expo-notifications';
+import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
+import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
@@ -42,20 +46,19 @@ async function resolveRole(hookRole: Role): Promise<Role> {
   }
 }
 
-function navigateToMainApp(role: Role) {
-  if (role === 'CARETAKER') {
-    router.replace('/(caretaker)');
-  } else if (role === 'DEPENDENT') {
-    router.replace('/enter-pin');
-  } else if (role === 'HYBRID') {
-    router.replace('/(hybrid)/(tabs)');
-  } else {
-    router.replace('/role-selection');
-  }
+async function finishOnboardingAfterNotifications(role: Role) {
+  const me = (await usersAPI.getMe().catch(() => null)) as MeProfile | null;
+  const destination = await resolvePostAuthRoute(me, {
+    storedRole: role,
+    skipNotificationCheck: true,
+  });
+  router.replace(destination as Parameters<typeof router.replace>[0]);
 }
 
 export default function NotificationScreen() {
   const { t } = useTranslation();
+  const { focus } = useLocalSearchParams<{ focus?: string }>();
+  const fsiOnly = focus === 'fsi';
   const { userRole } = useAuth();
   const [busy, setBusy] = useState(false);
   const [exitCover, setExitCover] = useState(false);
@@ -76,9 +79,26 @@ export default function NotificationScreen() {
       : null);
   const isCaretaker = roleForCopy === 'CARETAKER';
 
+  useEffect(() => {
+    if (Platform.OS === 'web' || !fsiOnly) return;
+    const role = roleForCopy;
+    void (async () => {
+      if (!(await needsFullScreenIntentPrompt(role))) {
+        await finishToApp();
+        return;
+      }
+      await promptFullScreenIntentIfNeeded(role, {
+        title: t('notification.fsiTitle'),
+        message: t('notification.fsiMessage'),
+        openSettings: t('notification.fsiOpenSettings'),
+        later: t('notification.fsiLater'),
+      });
+    })();
+  }, [fsiOnly, roleForCopy, t]);
+
   const finishToApp = async () => {
     const role = await resolveRole(userRole);
-    navigateToMainApp(role);
+    await finishOnboardingAfterNotifications(role);
   };
 
   const playExitCoverThenNavigate = () => {
@@ -101,7 +121,23 @@ export default function NotificationScreen() {
     setBusy(true);
     try {
       if (Platform.OS !== 'web') {
-        await requestPermissionAndSyncPushToken();
+        const role = await resolveRole(userRole);
+        if (fsiOnly) {
+          await openFullScreenIntentSettings();
+        } else {
+          const { status } = await Notifications.getPermissionsAsync();
+          if (status !== 'granted') {
+            await requestPermissionAndSyncPushToken();
+          } else {
+            await syncPushTokenWithBackend();
+          }
+          await promptFullScreenIntentIfNeeded(role, {
+            title: t('notification.fsiTitle'),
+            message: t('notification.fsiMessage'),
+            openSettings: t('notification.fsiOpenSettings'),
+            later: t('notification.fsiLater'),
+          });
+        }
       }
     } catch (e) {
       console.warn('Notification permission', e);
@@ -141,10 +177,18 @@ export default function NotificationScreen() {
           />
 
           <Text style={styles.title}>
-            {isCaretaker ? t('notification.titleCaretaker') : t('notification.titleDependent')}
+            {fsiOnly
+              ? t('notification.fsiTitle')
+              : isCaretaker
+                ? t('notification.titleCaretaker')
+                : t('notification.titleDependent')}
           </Text>
           <Text style={styles.subtitle}>
-            {isCaretaker ? t('notification.subtitleCaretaker') : t('notification.subtitleDependent')}
+            {fsiOnly
+              ? t('notification.fsiMessage')
+              : isCaretaker
+                ? t('notification.subtitleCaretaker')
+                : t('notification.subtitleDependent')}
           </Text>
 
           <View style={styles.ctaShadowWrap}>
@@ -164,7 +208,11 @@ export default function NotificationScreen() {
                 style={styles.primaryCta}
               >
                 <Text style={styles.primaryCtaText}>
-                  {busy ? t('notification.loading') : t('notification.cta')}
+                  {busy
+                    ? t('notification.loading')
+                    : fsiOnly
+                      ? t('notification.fsiOpenSettings')
+                      : t('notification.cta')}
                 </Text>
                 <MaterialCommunityIcons
                   name="bell-ring-outline"

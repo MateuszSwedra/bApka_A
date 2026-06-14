@@ -1,18 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
-import { format } from 'date-fns';
+import { parseISO } from 'date-fns';
+import { enUS, pl } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { usersAPI } from '../../services/api';
 import { NumericLineChart } from '../insights/NumericLineChart';
-
-type HealthMetricLog = {
-  type: string;
-  value?: number | null;
-  systolic?: number | null;
-  diastolic?: number | null;
-  measuredAt: string;
-};
+import { VitalsDailyList } from '../insights/VitalsDailyList';
+import {
+  buildBpChartSeries,
+  buildBpDayGroups,
+  buildGlucoseChartPoints,
+  buildGlucoseDayGroups,
+  formatBpValue,
+  formatGlucoseValue,
+  type VitalsLog,
+} from '../../utils/vitalsInsights';
 
 type VitalsInsightsChartsProps = {
   userId: string | null;
@@ -27,10 +30,14 @@ export function VitalsInsightsCharts({
   toIso,
   vitalsEntryEnabled,
 }: VitalsInsightsChartsProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [glucoseLogs, setGlucoseLogs] = useState<HealthMetricLog[]>([]);
-  const [bpLogs, setBpLogs] = useState<HealthMetricLog[]>([]);
+  const [glucoseLogs, setGlucoseLogs] = useState<VitalsLog[]>([]);
+  const [bpLogs, setBpLogs] = useState<VitalsLog[]>([]);
+
+  const locale = i18n.language.startsWith('pl') ? pl : enUS;
+  const rangeFrom = useMemo(() => parseISO(fromIso), [fromIso]);
+  const rangeTo = useMemo(() => parseISO(toIso), [toIso]);
 
   useEffect(() => {
     if (!userId || !vitalsEntryEnabled) {
@@ -63,32 +70,23 @@ export function VitalsInsightsCharts({
     };
   }, [userId, fromIso, toIso, vitalsEntryEnabled]);
 
-  const glucoseSeries = useMemo(() => {
-    const sorted = [...glucoseLogs]
-      .filter(l => typeof l.value === 'number')
-      .sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime());
-    return sorted.map(l => ({
-      label: format(new Date(l.measuredAt), 'dd.MM HH:mm'),
-      value: l.value as number,
-    }));
-  }, [glucoseLogs]);
+  const glucoseSeries = useMemo(
+    () => buildGlucoseChartPoints(glucoseLogs),
+    [glucoseLogs],
+  );
 
-  const bpSeries = useMemo(() => {
-    const sorted = [...bpLogs]
-      .filter(l => typeof l.systolic === 'number')
-      .sort((a, b) => new Date(a.measuredAt).getTime() - new Date(b.measuredAt).getTime());
-    const sys = sorted.map(l => ({
-      label: format(new Date(l.measuredAt), 'dd.MM HH:mm'),
-      value: l.systolic as number,
-    }));
-    const dia = sorted
-      .filter(l => typeof l.diastolic === 'number')
-      .map(l => ({
-        label: format(new Date(l.measuredAt), 'dd.MM HH:mm'),
-        value: l.diastolic as number,
-      }));
-    return { sys, dia };
-  }, [bpLogs]);
+  const bpSeries = useMemo(() => buildBpChartSeries(bpLogs), [bpLogs]);
+
+  const glucoseDays = useMemo(
+    () =>
+      buildGlucoseDayGroups(glucoseLogs, rangeFrom, rangeTo, locale, formatGlucoseValue),
+    [glucoseLogs, rangeFrom, rangeTo, locale],
+  );
+
+  const bpDays = useMemo(
+    () => buildBpDayGroups(bpLogs, rangeFrom, rangeTo, locale, formatBpValue),
+    [bpLogs, rangeFrom, rangeTo, locale],
+  );
 
   if (!vitalsEntryEnabled) return null;
 
@@ -120,9 +118,16 @@ export function VitalsInsightsCharts({
           <NumericLineChart
             series={[{ points: glucoseSeries, strokeColor: Theme.colors.accentOrange }]}
             unit="mg/dL"
+            yMin={60}
+            yMax={250}
+          />
+          <VitalsDailyList
+            days={glucoseDays}
+            title={t('caretaker.insights.vitals.dailyReadings')}
           />
         </View>
       ) : null}
+
       {hasBp ? (
         <View style={styles.card}>
           <Text style={styles.cardTitle}>{t('caretaker.insights.vitals.bp')}</Text>
@@ -144,7 +149,10 @@ export function VitalsInsightsCharts({
                 : []),
             ]}
             unit="mmHg"
+            yMin={80}
+            yMax={200}
           />
+          <VitalsDailyList days={bpDays} title={t('caretaker.insights.vitals.dailyReadings')} />
         </View>
       ) : null}
     </>

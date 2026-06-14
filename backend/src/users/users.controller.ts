@@ -43,8 +43,12 @@ export class UsersController {
 
   @Patch('me/fcm-token')
   @ApiOperation({ summary: 'Update push notification token' })
-  updateFcmToken(@Request() req: any, @Body('fcmToken') fcmToken: string) {
-    return this.usersService.updateFcmToken(req.user.userId, fcmToken);
+  updateFcmToken(
+    @Request() req: any,
+    @Body('fcmToken') fcmToken: string,
+    @Body('nativePushToken') nativePushToken?: string,
+  ) {
+    return this.usersService.updateFcmToken(req.user.userId, fcmToken, nativePushToken);
   }
 
   @Patch('me/mood')

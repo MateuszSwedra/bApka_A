@@ -159,7 +159,17 @@
     "subtitleDependent": "Przypomnimy o lekach i aktywnościach z kalendarza.",
     "loading": "Chwileczkę…",
     "cta": "Zezwól na powiadomienia",
-    "skip": "Nie, podejmuję ryzyko"
+    "skip": "Nie, podejmuję ryzyko",
+    "fsiTitle": "Alarm SOS na pełnym ekranie",
+    "fsiMessage": "Aby alarm SOS od podopiecznego obudził telefon nawet gdy aplikacja jest zamknięta, włącz „Pełnoekranowe intencje” dla bApki w ustawieniach systemowych.",
+    "fsiOpenSettings": "Otwórz ustawienia",
+    "fsiLater": "Później"
+  },
+  "sosAlarm": {
+    "title": "SOS!",
+    "unknownSenior": "Podopieczny",
+    "defaultBody": "{{name}} nacisnął(a) przycisk SOS!",
+    "dismiss": "Wyłącz alarm"
   },
   "pairing": {
     "enterPin": {
@@ -174,7 +184,11 @@
     "alertErrorTitle": "Błąd parowania",
     "alertSuccessTitle": "Sukces",
     "alertSuccessMessage": "Konto zostało połączone.",
-    "alertInvalidPin": "Podany kod PIN jest nieprawidłowy lub wygasł."
+    "alertInvalidPin": "Podany kod PIN jest nieprawidłowy lub wygasł.",
+    "skipLater": "Później",
+    "bannerTitle": "Brak połączenia z opiekunem",
+    "bannerBody": "Wpisz kod PIN od opiekuna, aby synchronizować leki i powiadomienia.",
+    "bannerCta": "Połącz teraz"
   },
   "sounds": {
     "screenTitle": "Dźwięki powiadomień",
@@ -222,9 +236,12 @@
       "allMedications": "Wszystkie leki",
       "sectionMood": "Humor seniora",
       "adherenceRate": "Regularność",
-      "adherenceSubtitleToday": "{{percent}}% dziś",
-      "adherenceSubtitleWeek": "{{percent}}% w tym tygodniu",
-      "adherenceSubtitleMonth": "{{percent}}% w tym miesiącu",
+      "statsPeriodToday": "za dziś",
+      "statsPeriodWeek": "za ostatnie 7 dni",
+      "statsPeriodMonth": "za ostatnie 30 dni",
+      "statOnTime": "{{onTime}}/{{total}} dawek na czas",
+      "statLate": "{{count}} dawek spóźnionych",
+      "statMissed": "{{count}} dawek pominiętych",
       "missedDosesTitle": "Pominięte dawki",
       "missedSubtitleToday": "dziś",
       "missedSubtitleWeek": "w tym tygodniu",
@@ -254,11 +271,23 @@
       "dosesOnTime": "Na czas (±{{window}} min)",
       "dosesEmpty": "Brak danych o dawkach w tym okresie.",
       "moodEmpty": "Brak zapisanych humorów w tym okresie.",
+      "moodSubtitleToday": "Dziś",
+      "moodSubtitleWeek": "Ostatnie 7 dni",
+      "moodSubtitleMonth": "Ostatnie 30 dni",
+      "moodDistributionTitle": "Rozkład nastroju w okresie",
+      "moodDistributionLine": "{{percent}}% ({{count}} wpisów)",
+      "moodLabel": {
+        "happy": "Dobrze",
+        "neutral": "Neutralnie",
+        "sad": "Źle"
+      },
       "vitals": {
         "title": "Pomiary",
         "glucose": "Cukier we krwi",
         "bp": "Ciśnienie krwi",
-        "empty": "Brak zapisanych pomiarów w tym okresie."
+        "empty": "Brak zapisanych pomiarów w tym okresie.",
+        "dailyReadings": "Pomiary wg dni",
+        "noReading": "Brak pomiaru"
       }
     },
     "moodAt": "Humor z {{time}}",
@@ -269,7 +298,7 @@
       "mood": "Pytanie o humor",
       "moodSub": "Gdy wyłączone - kafelek humoru znika, a „Weź lek” zajmuje całą szerokość.",
       "moodTimesTitle": "Godzina pytania o samopoczucie",
-      "moodTimesHint": "Przesuń koła, aby ustawić godzinę. Zmiany zapisujesz przyciskiem poniżej.",
+      "moodTimesHint": "Ustaw godzinę pytania o samopoczucie — wpisz ręcznie lub użyj +/-.",
       "moodTimesSave": "Zapisz",
       "moodTimesSaved": "Zapisano",
       "vitals": "Wpisywanie wyników pomiarów",

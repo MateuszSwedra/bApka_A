@@ -44,4 +44,5 @@ backend/generated/
 
 # Firebase
 *-firebase-adminsdk*.json
+backend/firebase-service-account.json
 frontend/.json

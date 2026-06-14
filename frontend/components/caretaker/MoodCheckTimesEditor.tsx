@@ -3,7 +3,8 @@ import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-nati
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
-import { TimeScrollPicker, formatTimeParts, parseTimeParts } from '../TimeScrollPicker';
+import { FriendlyTimePicker } from './FriendlyTimePicker';
+import { formatTimeParts, parseTimeParts } from '../TimeScrollPicker';
 
 type Props = {
   savedTime: string;
@@ -21,12 +22,8 @@ export function MoodCheckTimesEditor({ savedTime, busy, onSave }: Props) {
 
   useEffect(() => {
     const parts = parseTimeParts(savedTime);
-    const draft = formatTimeParts(hour, minute);
-    if (draft !== savedTime) {
-      setHour(parts.hour);
-      setMinute(parts.minute);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- sync only when savedTime changes externally
+    setHour(parts.hour);
+    setMinute(parts.minute);
   }, [savedTime]);
 
   useEffect(() => {
@@ -42,16 +39,6 @@ export function MoodCheckTimesEditor({ savedTime, busy, onSave }: Props) {
   const handleSave = () => {
     if (!isDirty || busy) return;
     onSave(draftTime);
-  };
-
-  const handleHourChange = (h: number) => {
-    setHour(h);
-    setJustSaved(false);
-  };
-
-  const handleMinuteChange = (m: number) => {
-    setMinute(m);
-    setJustSaved(false);
   };
 
   const saveBtnStyle = isDirty
@@ -71,12 +58,17 @@ export function MoodCheckTimesEditor({ savedTime, busy, onSave }: Props) {
       <Text style={styles.title}>{t('caretaker.settings.moodTimesTitle')}</Text>
       <Text style={styles.hint}>{t('caretaker.settings.moodTimesHint')}</Text>
 
-      <TimeScrollPicker
+      <FriendlyTimePicker
         hour={hour}
         minute={minute}
-        onHourChange={handleHourChange}
-        onMinuteChange={handleMinuteChange}
-        surfaceColor={Theme.colors.surfaceWhite}
+        onHourChange={h => {
+          setHour(h);
+          setJustSaved(false);
+        }}
+        onMinuteChange={m => {
+          setMinute(m);
+          setJustSaved(false);
+        }}
       />
 
       <Pressable

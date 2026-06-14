@@ -6,6 +6,7 @@ import { Theme } from '../../constants/theme';
 export type NumericLinePoint = {
   label: string;
   value: number;
+  showLabel?: boolean;
 };
 
 type Series = {
@@ -141,7 +142,10 @@ export function NumericLineChart({ series, height = 240, unit, yMin, yMax }: Pro
       </Svg>
       {unit ? <Text style={styles.unitHint}>{unit}</Text> : null}
       <View style={[styles.labels, { width: chartWidth, paddingLeft: PADDING_LEFT, paddingRight: PADDING_RIGHT }]}>
-        {labels.map((d, i) => (
+        {labels.map((d, i) => {
+          const show = d.showLabel !== false && d.label.length > 0;
+          if (!show && labels.length > 8) return null;
+          return (
           <Text
             key={`lbl-${i}`}
             style={[
@@ -150,12 +154,14 @@ export function NumericLineChart({ series, height = 240, unit, yMin, yMax }: Pro
                 width: labels.length === 1 ? plotWidth : plotWidth / Math.max(labels.length - 1, 1),
               },
               i === labels.length - 1 && labels.length > 1 && { textAlign: 'right' },
+              !show && { opacity: 0 },
             ]}
             numberOfLines={1}
           >
             {d.label}
           </Text>
-        ))}
+          );
+        })}
       </View>
       {series.length > 1 ? (
         <View style={styles.legendRow}>

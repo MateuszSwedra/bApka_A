@@ -7,6 +7,7 @@ import { OnboardingPalette } from '../constants/onboardingTheme';
 import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
+import { setRequiresCaretakerPairing } from '../services/caretakerPairingState';
 import { useTranslation } from 'react-i18next';
 
 export default function SeniorTypeScreen() {
@@ -14,11 +15,13 @@ export default function SeniorTypeScreen() {
   const { loginFake, setUserSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleWithCaretaker = () => {
+  const handleWithCaretaker = async () => {
+    await setRequiresCaretakerPairing(true);
     router.replace('/profile-ready');
   };
 
   const handleIndependent = async () => {
+    await setRequiresCaretakerPairing(false);
     setIsLoading(true);
     try {
       await usersAPI.updateRole('HYBRID');
@@ -62,7 +65,7 @@ export default function SeniorTypeScreen() {
         <View style={styles.cardsContainer}>
           <Pressable 
             style={({ pressed }) => [styles.card, pressed && styles.cardPressed]}
-            onPress={handleWithCaretaker}
+            onPress={() => void handleWithCaretaker()}
           >
             <View style={[styles.iconWrapper, { backgroundColor: OnboardingPalette.background }]}>
               <MaterialIcons name="group" size={40} color={OnboardingPalette.navy} />

@@ -545,6 +545,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: Theme.spacing.xs,
+    overflow: 'hidden',
   },
   tileFullWidth: {
     width: '100%',

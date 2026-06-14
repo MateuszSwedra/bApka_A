@@ -11,6 +11,7 @@ describe('UsersService', () => {
   const notifications = {
     formatUserName: jest.fn().mockReturnValue('Jan'),
     notifySos: jest.fn(),
+    notifyMood: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -38,10 +39,14 @@ describe('UsersService', () => {
         name: 'Jan',
         role: 'DEPENDENT',
         moodEnabled: true,
+        fcmToken: null,
       });
+      prisma.connection.findFirst.mockResolvedValue({ id: 'c1' });
       await expect(service.getProfile('u1')).resolves.toMatchObject({
         email: 'a@b.com',
         name: 'Jan',
+        isPairedWithCaretaker: true,
+        hasPushToken: false,
       });
     });
   });
@@ -123,12 +128,18 @@ describe('UsersService', () => {
   });
 
   describe('updateMood', () => {
-    it('updates lastMood and timestamp', async () => {
+    it('updates lastMood, logs mood and notifies caretakers', async () => {
+      prisma.user.findUnique.mockResolvedValue({
+        id: 'u1',
+        name: 'Jan',
+        email: 'jan@test.pl',
+      });
       prisma.user.update.mockResolvedValue({
         id: 'u1',
         lastMood: 'happy',
       });
       await service.updateMood('u1', 'happy');
+      expect(notifications.notifyMood).toHaveBeenCalledWith('u1', 'Jan', 'happy');
       expect(prisma.user.update).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({ lastMood: 'happy' }),

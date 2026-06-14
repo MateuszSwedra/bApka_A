@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { calculateInventoryDepletion } from './inventory-depletion';
 
 @Injectable()
 export class InventoryService {
@@ -32,10 +33,32 @@ export class InventoryService {
   }
 
   async update(id: string, data: any) {
-    return this.prisma.inventory.update({
+    const updated = await this.prisma.inventory.update({
       where: { id },
       data,
     });
+
+    if (data.currentPills !== undefined || data.totalPills !== undefined) {
+      const full = await this.prisma.inventory.findUnique({
+        where: { id },
+        include: { schedules: true },
+      });
+      if (full) {
+        const { daysLeft, pillsLeft } = calculateInventoryDepletion(full);
+        const reset: { lowStockAlertSent?: boolean; emptyAlertSent?: boolean } =
+          {};
+        if (daysLeft > 7) reset.lowStockAlertSent = false;
+        if (pillsLeft > 0) reset.emptyAlertSent = false;
+        if (Object.keys(reset).length > 0) {
+          return this.prisma.inventory.update({
+            where: { id },
+            data: reset,
+          });
+        }
+      }
+    }
+
+    return updated;
   }
 
   async remove(id: string) {
@@ -70,52 +93,12 @@ export class InventoryService {
     });
   }
   
-  private parseDosagePills(dosage?: string | null): number {
-    if (!dosage?.trim()) return 1;
-    const n = parseInt(dosage.replace(/[^0-9]/g, ''), 10);
-    if (!n || n <= 0) return 1;
-    return n;
-  }
-
   async calculateDepletion(id: string) {
     const inventory = await this.prisma.inventory.findUnique({
       where: { id },
       include: { schedules: true },
     });
     if (!inventory) return null;
-
-    const currentPills = inventory.currentPills ?? inventory.totalPills ?? 0;
-    const recurring = inventory.schedules.filter(
-      (s) => s.type !== 'ONCE',
-    );
-
-    if (recurring.length === 0) {
-      return { daysLeft: 999, pillsLeft: currentPills };
-    }
-
-    let pillsPerWeek = 0;
-    for (const s of recurring) {
-      const pills = this.parseDosagePills(s.dosage);
-      const days =
-        s.daysOfWeek && s.daysOfWeek.length > 0
-          ? s.daysOfWeek.length
-          : s.type === 'TEMPORARY'
-            ? 7
-            : 0;
-      pillsPerWeek += pills * days;
-    }
-
-    if (pillsPerWeek <= 0) {
-      return { daysLeft: 999, pillsLeft: currentPills };
-    }
-
-    const pillsPerDay = pillsPerWeek / 7;
-    const daysLeft =
-      pillsPerDay > 0 ? Math.floor(currentPills / pillsPerDay) : 999;
-
-    return {
-      daysLeft,
-      pillsLeft: currentPills,
-    };
+    return calculateInventoryDepletion(inventory);
   }
 }

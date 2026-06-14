@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Platform, Alert, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  Platform,
+  Alert,
+  ActivityIndicator,
+  BackHandler,
+} from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { HugeButton } from '../components/HugeButton';
@@ -8,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import { normalizePinInput } from '../utils/pin';
+import { setRequiresCaretakerPairing } from '../services/caretakerPairingState';
+import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
 import { useTranslation } from 'react-i18next';
 
 const showAlert = (title: string, message: string) => {
@@ -24,6 +35,12 @@ export default function EnterPinScreen() {
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => true);
+    return () => sub.remove();
+  }, []);
+
   const handlePair = async () => {
     const digits = normalizePinInput(pin);
     if (digits.length !== 6) {
@@ -33,10 +50,9 @@ export default function EnterPinScreen() {
 
     setIsLoading(true);
     try {
-      // Przypiszemy rolę DEPENDENT po udanym sparowaniu, choć domyślnie rejestracja już to robi
       await usersAPI.pairWithPin(digits);
       await usersAPI.updateRole('DEPENDENT');
-      
+
       let token = null;
       if (Platform.OS === 'web') {
         token = localStorage.getItem('userToken');
@@ -50,20 +66,16 @@ export default function EnterPinScreen() {
         loginFake('DEPENDENT');
       }
 
+      await setRequiresCaretakerPairing(false);
+
       showAlert(t('pairing.alertSuccessTitle'), t('pairing.alertSuccessMessage'));
-      router.replace('/(dependent)');
-    } catch (e: any) {
+      const me = (await usersAPI.getMe().catch(() => null)) as MeProfile | null;
+      const destination = await resolvePostAuthRoute(me, { storedRole: 'DEPENDENT' });
+      router.replace(destination as Parameters<typeof router.replace>[0]);
+    } catch {
       showAlert(t('pairing.alertErrorTitle'), t('pairing.alertInvalidPin'));
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleBack = () => {
-    if (router.canGoBack()) {
-      router.back();
-    } else {
-      router.replace('/login');
     }
   };
 
@@ -72,16 +84,17 @@ export default function EnterPinScreen() {
       <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>{t('pairing.enterPin.title')}</Text>
       <Text style={styles.subtitle}>{t('pairing.enterPin.subtitle')}</Text>
-      
+
       <View style={styles.inputContainer}>
-        <TextInput 
+        <TextInput
           style={styles.input}
           placeholder={t('pairing.pinPlaceholder')}
           value={pin}
-          onChangeText={(t) => setPin(normalizePinInput(t))}
+          onChangeText={text => setPin(normalizePinInput(text))}
           keyboardType="number-pad"
           editable={!isLoading}
           textAlign="center"
+          autoFocus
         />
       </View>
 
@@ -89,8 +102,7 @@ export default function EnterPinScreen() {
         <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
       ) : (
         <View style={styles.actions}>
-          <HugeButton title={t('pairing.ctaConnect')} onPress={handlePair} style={styles.button} />
-          <HugeButton title={t('common.back')} variant="outline" onPress={handleBack} style={styles.button} />
+          <HugeButton title={t('pairing.ctaConnect')} onPress={() => void handlePair()} style={styles.button} />
         </View>
       )}
     </View>
@@ -146,5 +158,5 @@ const styles = StyleSheet.create({
   },
   button: {
     width: '100%',
-  }
+  },
 });

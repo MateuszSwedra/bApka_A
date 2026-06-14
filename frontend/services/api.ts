@@ -193,10 +193,10 @@ export const usersAPI = {
       body: JSON.stringify({ role })
     });
   },
-  updateFcmToken: async (fcmToken: string) => {
+  updateFcmToken: async (fcmToken: string, nativePushToken?: string) => {
     return fetchApi('/users/me/fcm-token', {
       method: 'PATCH',
-      body: JSON.stringify({ fcmToken })
+      body: JSON.stringify({ fcmToken, nativePushToken }),
     });
   },
   generatePin: async () => {

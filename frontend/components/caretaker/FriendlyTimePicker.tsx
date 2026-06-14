@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, ScrollView, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../constants/theme';
 import { formatTimeParts, parseTimeParts } from '../TimeScrollPicker';
@@ -88,14 +88,17 @@ export const FriendlyTimePicker = React.forwardRef<FriendlyTimePickerRef, Props>
         <View style={styles.steppersRow}>
           <Stepper
             label={t('common.hour')}
-            value={hour.toString().padStart(2, '0')}
+            value={hour}
+            max={23}
+            onChange={onHourChange}
             onMinus={() => stepHour(-1)}
             onPlus={() => stepHour(1)}
           />
-          <Text style={styles.stepperColon}>:</Text>
           <Stepper
             label={t('common.minute')}
-            value={minute.toString().padStart(2, '0')}
+            value={minute}
+            max={59}
+            onChange={onMinuteChange}
             onMinus={() => stepMinute(-1)}
             onPlus={() => stepMinute(1)}
           />
@@ -108,26 +111,68 @@ export const FriendlyTimePicker = React.forwardRef<FriendlyTimePickerRef, Props>
 function Stepper({
   label,
   value,
+  max,
+  onChange,
   onMinus,
   onPlus,
 }: {
   label: string;
-  value: string;
+  value: number;
+  max: number;
+  onChange: (n: number) => void;
   onMinus: () => void;
   onPlus: () => void;
 }) {
+  const padded = value.toString().padStart(2, '0');
+  const [draft, setDraft] = useState(padded);
+
+  useEffect(() => {
+    setDraft(padded);
+  }, [padded]);
+
+  const commitDraft = (text: string) => {
+    const digits = text.replace(/\D/g, '');
+    if (digits.length === 0) {
+      setDraft(padded);
+      return;
+    }
+    const parsed = parseInt(digits, 10);
+    if (Number.isNaN(parsed)) {
+      setDraft(padded);
+      return;
+    }
+    const clamped = max === 23 ? clampHour(parsed) : clampMinute(parsed);
+    onChange(clamped);
+    setDraft(clamped.toString().padStart(2, '0'));
+  };
+
   return (
     <View style={styles.stepperCol}>
       <Text style={styles.stepperLabel}>{label}</Text>
       <View style={styles.stepperControls}>
         <Pressable onPress={onMinus} style={styles.stepBtn} accessibilityRole="button">
-          <MaterialIcons name="remove" size={24} color={Theme.colors.primaryLimeDark} />
+          <MaterialIcons name="remove" size={22} color={Theme.colors.primaryLimeDark} />
         </Pressable>
         <View style={styles.stepValueBox}>
-          <Text style={styles.stepValue}>{value}</Text>
+          <TextInput
+            style={styles.stepValueInput}
+            value={draft}
+            onChangeText={text => {
+              const digits = text.replace(/\D/g, '').slice(0, 2);
+              setDraft(digits);
+              if (digits.length === 2) {
+                commitDraft(digits);
+              }
+            }}
+            onBlur={() => commitDraft(draft)}
+            keyboardType="number-pad"
+            maxLength={2}
+            selectTextOnFocus
+            accessibilityLabel={label}
+          />
         </View>
         <Pressable onPress={onPlus} style={styles.stepBtn} accessibilityRole="button">
-          <MaterialIcons name="add" size={24} color={Theme.colors.primaryLimeDark} />
+          <MaterialIcons name="add" size={22} color={Theme.colors.primaryLimeDark} />
         </Pressable>
       </View>
     </View>
@@ -199,11 +244,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
     justifyContent: 'center',
     marginTop: Theme.spacing.l,
-    gap: Theme.spacing.s,
+    gap: Theme.spacing.m,
+    paddingHorizontal: 4,
   },
   stepperCol: {
-    flex: 1,
+    width: 118,
     alignItems: 'center',
+    flexShrink: 0,
   },
   stepperLabel: {
     fontSize: Theme.typography.small,
@@ -215,12 +262,12 @@ const styles = StyleSheet.create({
   stepperControls: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Theme.spacing.xs,
+    gap: 4,
   },
   stepBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Theme.colors.surfaceWhite,
     borderWidth: 1,
     borderColor: Theme.colors.border,
@@ -228,25 +275,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stepValueBox: {
-    minWidth: 56,
-    height: 48,
+    width: 52,
+    height: 44,
     borderRadius: Theme.borderRadius.medium,
     backgroundColor: Theme.colors.surfaceWhite,
     borderWidth: 2,
     borderColor: Theme.colors.primaryLimeDark,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 8,
   },
-  stepValue: {
-    fontSize: 24,
+  stepValueInput: {
+    width: '100%',
+    fontSize: 22,
     fontWeight: '800',
     color: Theme.colors.textDark,
-  },
-  stepperColon: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: Theme.colors.textDark,
-    marginBottom: 12,
+    textAlign: 'center',
+    padding: 0,
+    fontVariant: ['tabular-nums'],
   },
 });

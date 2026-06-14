@@ -17,11 +17,14 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: bapka_api
+    env_file:
+      - ./backend/.env
     environment:
       - DATABASE_URL=postgresql://bapka_user:bapka_password@db:5432/bapka_db?schema=public
       - PORT=3000
       - TZ=Europe/Warsaw
       - APP_TIMEZONE=Europe/Warsaw
+      - FIREBASE_SERVICE_ACCOUNT_PATH=/app/firebase-service-account.json
     ports:
       - '3000:3000'
     depends_on:

@@ -83,6 +83,18 @@ export function enrichDailyEntry(entry: DailyEntry): DailyEntry {
   };
 }
 
+export function getOnTimeRatio(
+  counts: DoseCounts,
+  onTimeTaken?: number,
+): { takenOnTime: number; totalPlanned: number } {
+  const totalPlanned =
+    counts.totalPlanned ?? counts.taken + counts.missed + counts.pending;
+  const takenOnTime =
+    onTimeTaken ??
+    (counts.taken ?? 0) - (counts.late ?? 0);
+  return { takenOnTime: Math.max(0, takenOnTime), totalPlanned };
+}
+
 export function getCountsAdherence(counts: DoseCounts): number {
   if (counts.adherencePercent != null) return counts.adherencePercent;
   const totalPlanned =

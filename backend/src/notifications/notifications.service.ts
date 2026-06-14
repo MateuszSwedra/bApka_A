@@ -1,7 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Expo, ExpoPushMessage } from 'expo-server-sdk';
 import { PrismaService } from '../prisma/prisma.service';
-
+import { FirebaseSosService, SOS_ANDROID_CHANNEL_ID } from './firebase-sos.service';
+import { EXPO_ANDROID_CHANNELS } from '../common/notification-channels';
+import { calculateInventoryDepletion, isMedicationInventory } from '../inventory/inventory-depletion';
 type MedScheduleRef = {
   id: string;
   medication?: string | null;
@@ -13,7 +15,10 @@ export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
   private readonly expo = new Expo();
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private firebaseSos: FirebaseSosService,
+  ) {}
 
   formatMedName(schedule: MedScheduleRef): string {
     return (
@@ -27,14 +32,23 @@ export class NotificationsService {
     return user.name?.trim() || user.email || 'Podopieczny';
   }
 
-  async getCaretakerPushTokens(dependentId: string): Promise<string[]> {
+  async getCaretakerPushTokens(dependentId: string): Promise<
+    Array<{ caretakerId: string; expoToken: string | null; nativeToken: string | null }>
+  > {
     const connections = await this.prisma.connection.findMany({
       where: { dependentId, isPaired: true },
-      include: { caretaker: { select: { fcmToken: true } } },
+      include: {
+        caretaker: { select: { id: true, fcmToken: true, nativePushToken: true } },
+      },
     });
-    return connections
-      .map((c) => c.caretaker.fcmToken)
-      .filter((t): t is string => !!t && Expo.isExpoPushToken(t));
+    return connections.map((c) => ({
+      caretakerId: c.caretaker.id,
+      expoToken:
+        c.caretaker.fcmToken && Expo.isExpoPushToken(c.caretaker.fcmToken)
+          ? c.caretaker.fcmToken
+          : null,
+      nativeToken: c.caretaker.nativePushToken?.trim() || null,
+    }));
   }
 
   async sendToTokens(
@@ -43,7 +57,17 @@ export class NotificationsService {
   ): Promise<void> {
     if (tokens.length === 0) return;
 
-    const messages: ExpoPushMessage[] = tokens.map((to) => ({ ...message, to }));
+    const data =
+      message.data &&
+      Object.fromEntries(
+        Object.entries(message.data).map(([k, v]) => [k, v == null ? '' : String(v)]),
+      );
+
+    const messages: ExpoPushMessage[] = tokens.map((to) => ({
+      ...message,
+      to,
+      data,
+    }));
     const chunks = this.expo.chunkPushNotifications(messages);
 
     for (const chunk of chunks) {
@@ -63,11 +87,14 @@ export class NotificationsService {
       data?: Record<string, unknown>;
       priority?: 'default' | 'high';
       sound?: 'default' | null;
+      channelId?: string;
+      interruptionLevel?: 'active' | 'critical' | 'passive' | 'time-sensitive';
     },
   ): Promise<void> {
-    const tokens = await this.getCaretakerPushTokens(dependentId);
+    const recipients = await this.getCaretakerPushTokens(dependentId);
+    const tokens = recipients.map((r) => r.expoToken).filter((t): t is string => !!t);
     if (tokens.length === 0) {
-      this.logger.debug(`Brak tokenów opiekunów dla podopiecznego ${dependentId}`);
+      this.logger.debug(`Brak tokenów Expo opiekunów dla podopiecznego ${dependentId}`);
       return;
     }
 
@@ -76,10 +103,12 @@ export class NotificationsService {
       body: payload.body,
       sound: payload.sound ?? 'default',
       priority: payload.priority ?? 'default',
+      channelId: payload.channelId,
+      interruptionLevel: payload.interruptionLevel,
       data: payload.data,
     });
     this.logger.log(
-      `Powiadomienie do ${tokens.length} opiekuna(ów): ${payload.title}`,
+      `Powiadomienie Expo do ${tokens.length} opiekuna(ów): ${payload.title}`,
     );
   }
 
@@ -93,10 +122,31 @@ export class NotificationsService {
       title: 'Czas na lek!',
       body: `Pamiętaj o przyjęciu: ${params.medication || 'lek z apteczki'}`,
       sound: 'default',
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
       data: { type: 'med_reminder', scheduleId: params.scheduleId },
     });
     if (params.email) {
       this.logger.log(`Wysłano przypomnienie o leku do ${params.email}`);
+    }
+  }
+
+  async sendMoodCheckReminder(
+    fcmToken: string | null | undefined,
+    params: { slotTime: string; email?: string },
+  ): Promise<void> {
+    if (!fcmToken || !Expo.isExpoPushToken(fcmToken)) return;
+
+    await this.sendToTokens([fcmToken], {
+      title: 'Jak się czujesz?',
+      body: 'Powiedz, jak się dziś czujesz — wybierz buzię w aplikacji.',
+      sound: 'default',
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.MOOD,
+      data: { type: 'mood_reminder', slotTime: params.slotTime },
+    });
+    if (params.email) {
+      this.logger.log(`Wysłano przypomnienie o humorze do ${params.email}`);
     }
   }
 
@@ -112,7 +162,9 @@ export class NotificationsService {
       body: late
         ? `${dependentName} przyjął(a) spóźnionie: ${medName}`
         : `${dependentName} przyjął(a): ${medName}`,
-      data: { type: 'dose_taken', scheduleId, late },
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
+      data: { type: 'dose_taken', scheduleId, dependentId, late: late ? '1' : '0' },
     });
   }
 
@@ -126,8 +178,208 @@ export class NotificationsService {
       title: 'Pominięty lek',
       body: `${dependentName} nie przyjął(a): ${medName}`,
       priority: 'high',
-      data: { type: 'dose_missed', scheduleId },
+      channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
+      data: { type: 'dose_missed_caretaker', scheduleId, dependentId },
     });
+  }
+
+  /** Push do seniora — pominięta dawka. */
+  async sendDoseMissedReminder(
+    fcmToken: string | null | undefined,
+    params: { medication: string; scheduleId: string; email?: string },
+  ): Promise<void> {
+    if (!fcmToken || !Expo.isExpoPushToken(fcmToken)) return;
+
+    await this.sendToTokens([fcmToken], {
+      title: 'Pominięty lek',
+      body: `Nie potwierdziłeś/aś przyjęcia: ${params.medication || 'lek'}`,
+      sound: 'default',
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
+      data: { type: 'dose_missed', scheduleId: params.scheduleId },
+    });
+    if (params.email) {
+      this.logger.log(`Wysłano powiadomienie o pominiętym leku do ${params.email}`);
+    }
+  }
+
+  /** Sprawdza zapas leku i wysyła alerty (niski zapas / brak tabletek). */
+  async processInventoryAlerts(inventoryId: string): Promise<void> {
+    const inventory = await this.prisma.inventory.findUnique({
+      where: { id: inventoryId },
+      include: {
+        schedules: true,
+        user: {
+          select: { id: true, name: true, email: true, role: true, fcmToken: true },
+        },
+      },
+    });
+    if (!inventory?.user) return;
+    if (!isMedicationInventory(inventory.type)) return;
+
+    const { daysLeft, pillsLeft } = calculateInventoryDepletion(inventory);
+    if (daysLeft >= 999 && pillsLeft > 0) return;
+
+    const owner = inventory.user;
+    const medName = inventory.name.trim() || 'lek';
+    const ownerName = this.formatUserName(owner);
+    const dependentId = owner.id;
+
+    const caretakers = await this.getCaretakerPushTokens(dependentId);
+    const hasCaretakers = caretakers.some((c) => !!c.expoToken);
+
+    if (
+      daysLeft <= 7 &&
+      daysLeft > 0 &&
+      pillsLeft > 0 &&
+      !inventory.lowStockAlertSent
+    ) {
+      const body = `${medName} — zapas wystarczy na ok. ${daysLeft} dni. Uzupełnij opakowanie.`;
+
+      if (owner.role === 'DEPENDENT' && hasCaretakers) {
+        await this.notifyCaretakersOfDependent(dependentId, {
+          title: 'Koniec zapasu leku',
+          body: `${ownerName}: ${body}`,
+          priority: 'high',
+          channelId: EXPO_ANDROID_CHANNELS.INVENTORY,
+          data: {
+            type: 'inventory_low',
+            dependentId,
+            inventoryId,
+            daysLeft: String(daysLeft),
+          },
+        });
+      }
+
+      if (owner.role === 'HYBRID' || (owner.role === 'DEPENDENT' && !hasCaretakers)) {
+        await this.sendInventoryLowStockToUser(owner.fcmToken, {
+          medication: medName,
+          daysLeft,
+          inventoryId,
+          email: owner.email,
+        });
+      }
+
+      await this.prisma.inventory.update({
+        where: { id: inventoryId },
+        data: { lowStockAlertSent: true },
+      });
+      this.logger.log(
+        `Alert niskiego zapasu: ${medName} (${daysLeft} dni) użytkownik ${owner.email}`,
+      );
+    }
+
+    if (pillsLeft <= 0 && !inventory.emptyAlertSent) {
+      const body = `${medName} — tabletki się skończyły. Kup nowe opakowanie.`;
+
+      if (owner.role === 'DEPENDENT' && hasCaretakers) {
+        await this.notifyCaretakersOfDependent(dependentId, {
+          title: 'Brak leku w apteczce',
+          body: `${ownerName}: ${body}`,
+          priority: 'high',
+          channelId: EXPO_ANDROID_CHANNELS.INVENTORY,
+          data: {
+            type: 'inventory_empty',
+            dependentId,
+            inventoryId,
+          },
+        });
+      }
+
+      if (owner.role === 'HYBRID' || (owner.role === 'DEPENDENT' && !hasCaretakers)) {
+        await this.sendInventoryEmptyToUser(owner.fcmToken, {
+          medication: medName,
+          inventoryId,
+          email: owner.email,
+        });
+      }
+
+      await this.prisma.inventory.update({
+        where: { id: inventoryId },
+        data: { emptyAlertSent: true },
+      });
+      this.logger.log(
+        `Alert pustego zapasu: ${medName} użytkownik ${owner.email}`,
+      );
+    }
+  }
+
+  async sendInventoryLowStockToUser(
+    fcmToken: string | null | undefined,
+    params: {
+      medication: string;
+      daysLeft: number;
+      inventoryId: string;
+      email?: string;
+    },
+  ): Promise<void> {
+    if (!fcmToken || !Expo.isExpoPushToken(fcmToken)) return;
+
+    await this.sendToTokens([fcmToken], {
+      title: 'Koniec zapasu leku',
+      body: `${params.medication} — zapas wystarczy na ok. ${params.daysLeft} dni. Uzupełnij opakowanie.`,
+      sound: 'default',
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.INVENTORY,
+      data: {
+        type: 'inventory_low',
+        inventoryId: params.inventoryId,
+        daysLeft: String(params.daysLeft),
+      },
+    });
+    if (params.email) {
+      this.logger.log(`Wysłano alert niskiego zapasu do ${params.email}`);
+    }
+  }
+
+  async sendInventoryEmptyToUser(
+    fcmToken: string | null | undefined,
+    params: { medication: string; inventoryId: string; email?: string },
+  ): Promise<void> {
+    if (!fcmToken || !Expo.isExpoPushToken(fcmToken)) return;
+
+    await this.sendToTokens([fcmToken], {
+      title: 'Brak leku w apteczce',
+      body: `${params.medication} — tabletki się skończyły. Kup nowe opakowanie.`,
+      sound: 'default',
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.INVENTORY,
+      data: {
+        type: 'inventory_empty',
+        inventoryId: params.inventoryId,
+      },
+    });
+    if (params.email) {
+      this.logger.log(`Wysłano alert pustego zapasu do ${params.email}`);
+    }
+  }
+
+  private moodLabelPl(mood: string): string {    switch (mood) {
+      case 'happy':
+        return 'dobrze';
+      case 'neutral':
+        return 'średnio';
+      case 'sad':
+        return 'źle';
+      default:
+        return mood;
+    }
+  }
+
+  async notifyMood(
+    dependentId: string,
+    dependentName: string,
+    mood: string,
+  ): Promise<void> {
+    const label = this.moodLabelPl(mood);
+    await this.notifyCaretakersOfDependent(dependentId, {
+      title: 'Samopoczucie',
+      body: `${dependentName} czuje się ${label}`,
+      priority: 'high',
+      sound: 'default',
+      channelId: EXPO_ANDROID_CHANNELS.MOOD,
+      data: { type: 'mood_update', mood, dependentId },
+    });    this.logger.log(`Powiadomienie o humorze: ${dependentName} → ${label}`);
   }
 
   async notifySos(
@@ -138,13 +390,62 @@ export class NotificationsService {
     const body = note?.trim()
       ? `${dependentName} wysłał(a) SOS: ${note.trim()}`
       : `${dependentName} nacisnął(a) przycisk SOS!`;
+    const title = 'SOS!';
 
-    await this.notifyCaretakersOfDependent(dependentId, {
-      title: 'SOS!',
-      body,
-      priority: 'high',
-      sound: 'default',
-      data: { type: 'sos', dependentId },
-    });
+    const recipients = await this.getCaretakerPushTokens(dependentId);
+    let fcmSent = 0;
+    let expoSent = 0;
+
+    for (const { caretakerId, nativeToken, expoToken } of recipients) {
+      let fcmSentForCaretaker = false;
+
+      if (nativeToken && this.firebaseSos.isEnabled()) {
+        const result = await this.firebaseSos.sendSosAlarm({
+          token: nativeToken,
+          title,
+          body,
+          dependentId,
+          dependentName,
+        });
+        if (result.invalidToken) {
+          await this.prisma.user.update({
+            where: { id: caretakerId },
+            data: { nativePushToken: null },
+          });
+          this.logger.warn(
+            `Wyczyszczono wygasły nativePushToken opiekuna ${caretakerId}`,
+          );
+        }
+        if (result.sent) {
+          fcmSentForCaretaker = true;
+          fcmSent += 1;
+        }
+      }
+
+      // Po udanym FCM nie wysyłaj Expo — data-only Expo dawało puste powiadomienie w szufladzie.
+      if (expoToken && !fcmSentForCaretaker) {
+        await this.sendToTokens([expoToken], {
+          title,
+          body,
+          sound: 'default',
+          interruptionLevel: 'time-sensitive',
+          priority: 'high',
+          channelId: SOS_ANDROID_CHANNEL_ID,
+          data: {
+            type: 'sos',
+            title,
+            dependentId,
+            dependentName,
+            body,
+            screen: 'sos-alarm',
+          },
+        });
+        expoSent += 1;
+      }
+    }
+
+    this.logger.log(
+      `SOS: FCM/Notifee=${fcmSent}, Expo=${expoSent} opiekun(ów)`,
+    );
   }
 }

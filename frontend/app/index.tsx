@@ -1,97 +1,98 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { router } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useAuth } from '../context/AuthContext';
 import { OnboardingPalette } from '../constants/onboardingTheme';
+import { isAuthApiError, usersAPI } from '../services/api';
+import { getStoredRole, getStoredToken, clearSessionStorage, persistSession } from '../services/sessionStorage';
+import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
 
-// Punkt wejścia - decyduje czy pokazac welcome, login, czy panel zalogowanego usera.
+async function readNeedsDisplayName(): Promise<boolean> {
+  try {
+    if (Platform.OS === 'web') {
+      return localStorage.getItem('needsDisplayName') === 'true';
+    }
+    return (await SecureStore.getItemAsync('needsDisplayName')) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+async function readOnboardingFlags(): Promise<{ hasSeenWelcome: boolean; hasSeenConsents: boolean }> {
+  try {
+    if (Platform.OS === 'web') {
+      return {
+        hasSeenWelcome: localStorage.getItem('hasSeenWelcome') === 'true',
+        hasSeenConsents: localStorage.getItem('hasSeenConsents') === 'true',
+      };
+    }
+    const [hasSeenWelcome, hasSeenConsents] = await Promise.all([
+      SecureStore.getItemAsync('hasSeenWelcome'),
+      SecureStore.getItemAsync('hasSeenConsents'),
+    ]);
+    return {
+      hasSeenWelcome: hasSeenWelcome === 'true',
+      hasSeenConsents: hasSeenConsents === 'true',
+    };
+  } catch {
+    return { hasSeenWelcome: false, hasSeenConsents: false };
+  }
+}
+
+function routeToGuestOnboarding(hasSeenWelcome: boolean, hasSeenConsents: boolean) {
+  if (!hasSeenWelcome) {
+    router.replace('/welcome');
+  } else if (!hasSeenConsents) {
+    router.replace('/consents');
+  } else {
+    router.replace('/login');
+  }
+}
+
+// Punkt wejścia — sesja z tokenem ma pierwszeństwo przed ekranem powitalnym.
 export default function IndexRouter() {
-  const { userRole, isReady } = useAuth();
-  const [resolved, setResolved] = useState(false);
+  const { isReady } = useAuth();
 
   useEffect(() => {
     if (!isReady) return;
 
     const route = async () => {
-      let sessionToken: string | null = null;
-      try {
-        if (Platform.OS === 'web') {
-          sessionToken = localStorage.getItem('userToken');
-        } else {
-          sessionToken = await SecureStore.getItemAsync('userToken');
-        }
-      } catch {
-        sessionToken = null;
-      }
+      const sessionToken = await getStoredToken();
 
-      // 1) zalogowana sesja - token wystarczy; rola z AuthContext (odświeżona przez getMe)
-      if (sessionToken && userRole) {
-        if (userRole === 'CARETAKER') {
-          router.replace('/(caretaker)');
-        } else if (userRole === 'DEPENDENT') {
-          router.replace('/(dependent)');
-        } else if (userRole === 'HYBRID') {
-          router.replace('/(hybrid)/(tabs)');
-        } else {
-          router.replace('/role-selection');
+      if (sessionToken) {
+        let me: MeProfile | null = null;
+        try {
+          me = (await usersAPI.getMe()) as MeProfile;
+          if (me?.role) {
+            await persistSession(sessionToken, me.role);
+          }
+        } catch (e) {
+          if (isAuthApiError(e)) {
+            await clearSessionStorage();
+            const { hasSeenWelcome, hasSeenConsents } = await readOnboardingFlags();
+            routeToGuestOnboarding(hasSeenWelcome, hasSeenConsents);
+            return;
+          }
+          /* sieć niedostępna — kontynuuj z zapisaną rolą */
         }
+
+        const storedRole = await getStoredRole();
+        const needsDisplayName = await readNeedsDisplayName();
+        const destination = await resolvePostAuthRoute(me, {
+          needsDisplayName,
+          storedRole,
+        });
+        router.replace(destination as Parameters<typeof router.replace>[0]);
         return;
       }
 
-      if (sessionToken && !userRole) {
-        router.replace('/role-selection');
-        return;
-      }
-
-      // 2) onboarding: welcome -> zgody -> login (tylko przy pierwszym uruchomieniu)
-      let hasSeenWelcome: string | null = null;
-      let hasSeenConsents: string | null = null;
-      try {
-        if (Platform.OS === 'web') {
-          hasSeenWelcome = localStorage.getItem('hasSeenWelcome');
-          hasSeenConsents = localStorage.getItem('hasSeenConsents');
-        } else {
-          hasSeenWelcome = await SecureStore.getItemAsync('hasSeenWelcome');
-          hasSeenConsents = await SecureStore.getItemAsync('hasSeenConsents');
-        }
-      } catch {
-        hasSeenWelcome = null;
-        hasSeenConsents = null;
-      }
-
-      let needsDisplayName: string | null = null;
-      let hasToken = false;
-      try {
-        if (Platform.OS === 'web') {
-          needsDisplayName = localStorage.getItem('needsDisplayName');
-          hasToken = !!localStorage.getItem('userToken');
-        } else {
-          needsDisplayName = await SecureStore.getItemAsync('needsDisplayName');
-          hasToken = !!(await SecureStore.getItemAsync('userToken'));
-        }
-      } catch {
-        needsDisplayName = null;
-      }
-
-      if (hasToken && needsDisplayName === 'true') {
-        router.replace('/onboarding-name');
-        setResolved(true);
-        return;
-      }
-
-      if (hasSeenWelcome !== 'true') {
-        router.replace('/welcome');
-      } else if (hasSeenConsents !== 'true') {
-        router.replace('/consents');
-      } else {
-        router.replace('/login');
-      }
-      setResolved(true);
+      const { hasSeenWelcome, hasSeenConsents } = await readOnboardingFlags();
+      routeToGuestOnboarding(hasSeenWelcome, hasSeenConsents);
     };
 
-    route();
-  }, [isReady, userRole]);
+    void route();
+  }, [isReady]);
 
   return (
     <View style={styles.container}>

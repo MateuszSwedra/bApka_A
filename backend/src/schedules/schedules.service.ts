@@ -6,12 +6,10 @@ import {
   getLocalDayRange,
   scheduledAtOnLocalDay,
 } from '../common/app-timezone';
-import {
-  computeAdherencePercent,
-  enrichDailyEntry,
-} from './dose-stats.helpers';
+import { buildDoseStatsPayload } from './dose-stats.build';
 
-const DOSE_CONFIRMATION_WINDOW_MINUTES = 5;
+import { DOSE_CONFIRMATION_WINDOW_MINUTES } from '../common/dose-windows';
+import { isMedicationInventory } from '../inventory/inventory-depletion';
 
 @Injectable()
 export class SchedulesService {
@@ -91,115 +89,32 @@ export class SchedulesService {
   }
 
   async getDoseStats(userId: string, from: Date, to: Date) {
-    const logs = await this.prisma.doseLog.findMany({
-      where: {
-        schedule: {
-          userId,
+    const [schedules, logs] = await Promise.all([
+      this.prisma.schedule.findMany({
+        where: { userId },
+        include: { inventory: { select: { name: true } } },
+      }),
+      this.prisma.doseLog.findMany({
+        where: {
+          schedule: { userId },
+          scheduledAt: { gte: from, lt: to },
         },
-        scheduledAt: {
-          gte: from,
-          lt: to,
+        select: {
+          scheduleId: true,
+          status: true,
+          scheduledAt: true,
         },
-      },
-      include: {
-        schedule: {
-          select: {
-            id: true,
-            medication: true,
-            time: true,
-            inventoryId: true,
-            inventory: { select: { name: true } },
-          },
-        },
-      },
-    });
+      }),
+    ]);
 
-    const takenCount = logs.filter((l) => l.status === 'TAKEN' || l.status === 'LATE').length;
-    const lateCount = logs.filter((l) => l.status === 'LATE').length;
-    const missedCount = logs.filter((l) => l.status === 'MISSED').length;
-    const pendingCount = logs.filter((l) => l.status === 'PENDING').length;
-    const totalPlanned = takenCount + missedCount + pendingCount;
-
-    const WINDOW_MINUTES = DOSE_CONFIRMATION_WINDOW_MINUTES;
-
-    const onTimeTakenCount = logs.filter((l) => l.status === 'TAKEN').length;
-
-    const onTimePercent =
-      takenCount > 0 ? Math.round((onTimeTakenCount / takenCount) * 100) : 0;
-
-    const adherencePercent = computeAdherencePercent(takenCount, totalPlanned);
-
-    const dayKey = (d: Date) => formatLocalYmd(d);
-    const dailyMap = new Map<
-      string,
-      { date: string; taken: number; late: number; missed: number; pending: number; takenOnTime: number; takenTotal: number }
-    >();
-    for (const l of logs) {
-      const k = dayKey(l.scheduledAt);
-      const existing =
-        dailyMap.get(k) ?? { date: k, taken: 0, late: 0, missed: 0, pending: 0, takenOnTime: 0, takenTotal: 0 };
-      if (l.status === 'TAKEN') {
-        existing.taken += 1;
-        existing.takenTotal += 1;
-        existing.takenOnTime += 1;
-      } else if (l.status === 'LATE') {
-        existing.taken += 1;
-        existing.late += 1;
-        existing.takenTotal += 1;
-      } else if (l.status === 'MISSED') {
-        existing.missed += 1;
-      } else {
-        existing.pending += 1;
-      }
-      dailyMap.set(k, existing);
-    }
-    const daily = Array.from(dailyMap.values())
-      .sort((a, b) => a.date.localeCompare(b.date))
-      .map((entry) => enrichDailyEntry(entry));
-
-    const medMap = new Map<
-      string,
-      { medKey: string; name: string; taken: number; late: number; missed: number; pending: number }
-    >();
-    for (const l of logs) {
-      const sch = l.schedule;
-      const medKey = sch.inventoryId ?? sch.medication ?? sch.id;
-      const name =
-        sch.inventory?.name?.trim() ||
-        sch.medication?.trim() ||
-        `${sch.time}`;
-      const row =
-        medMap.get(medKey) ?? { medKey, name, taken: 0, late: 0, missed: 0, pending: 0 };
-      if (l.status === 'TAKEN') row.taken += 1;
-      else if (l.status === 'LATE') {
-        row.taken += 1;
-        row.late += 1;
-      } else if (l.status === 'MISSED') row.missed += 1;
-      else row.pending += 1;
-      medMap.set(medKey, row);
-    }
-    const byMedication = Array.from(medMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    const built = buildDoseStatsPayload({ schedules, logs, from, to });
 
     return {
       range: {
         from: from.toISOString(),
         to: to.toISOString(),
       },
-      counts: {
-        taken: takenCount,
-        late: lateCount,
-        missed: missedCount,
-        pending: pendingCount,
-        totalPlanned,
-        adherencePercent,
-      },
-      daily,
-      byMedication,
-      onTime: {
-        takenOnTime: onTimeTakenCount,
-        percentOfTaken: onTimePercent,
-        windowMinutes: WINDOW_MINUTES,
-      },
+      ...built,
     };
   }
 
@@ -295,15 +210,23 @@ export class SchedulesService {
         if (schedule?.inventoryId) {
           const inv = await this.prisma.inventory.findUnique({
             where: { id: schedule.inventoryId },
-            select: { currentPills: true, totalPills: true, pillsPerDose: true },
+            select: {
+              currentPills: true,
+              totalPills: true,
+              pillsPerDose: true,
+              type: true,
+            },
           });
-          const perDose = inv?.pillsPerDose ?? 1;
-          const cur = inv?.currentPills ?? inv?.totalPills ?? 0;
-          const next = Math.max(0, cur - perDose);
-          await this.prisma.inventory.update({
-            where: { id: schedule.inventoryId },
-            data: { currentPills: next },
-          });
+          if (inv && isMedicationInventory(inv.type)) {
+            const perDose = inv.pillsPerDose ?? 1;
+            const cur = inv.currentPills ?? inv.totalPills ?? 0;
+            const next = Math.max(0, cur - perDose);
+            await this.prisma.inventory.update({
+              where: { id: schedule.inventoryId },
+              data: { currentPills: next },
+            });
+            await this.notifications.processInventoryAlerts(schedule.inventoryId);
+          }
         }
       }
 
@@ -327,15 +250,23 @@ export class SchedulesService {
         if (schedule?.inventoryId) {
           const inv = await this.prisma.inventory.findUnique({
             where: { id: schedule.inventoryId },
-            select: { currentPills: true, totalPills: true, pillsPerDose: true },
+            select: {
+              currentPills: true,
+              totalPills: true,
+              pillsPerDose: true,
+              type: true,
+            },
           });
-          const perDose = inv?.pillsPerDose ?? 1;
-          const cur = inv?.currentPills ?? inv?.totalPills ?? 0;
-          const next = Math.max(0, cur - perDose);
-          await this.prisma.inventory.update({
-            where: { id: schedule.inventoryId },
-            data: { currentPills: next },
-          });
+          if (inv && isMedicationInventory(inv.type)) {
+            const perDose = inv.pillsPerDose ?? 1;
+            const cur = inv.currentPills ?? inv.totalPills ?? 0;
+            const next = Math.max(0, cur - perDose);
+            await this.prisma.inventory.update({
+              where: { id: schedule.inventoryId },
+              data: { currentPills: next },
+            });
+            await this.notifications.processInventoryAlerts(schedule.inventoryId);
+          }
         }
       }
 

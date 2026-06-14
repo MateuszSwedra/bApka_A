@@ -41,7 +41,11 @@ export function DoseInsightsCard({ doseStats, range, fromIso, toIso }: Props) {
         <Text style={styles.emptyText}>{t('caretaker.insights.dosesEmpty')}</Text>
       ) : (
         <>
-          <InsightsKpiTiles counts={doseStats.counts} range={range} />
+          <InsightsKpiTiles
+            counts={doseStats.counts}
+            onTimeTaken={doseStats.onTime?.takenOnTime}
+            range={range}
+          />
           <DisciplineHeatmap
             daily={doseStats.daily}
             range={range}

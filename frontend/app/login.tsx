@@ -212,6 +212,7 @@ export default function LoginScreen() {
     onChangeText: (t: string) => void,
     options?: {
       secure?: boolean;
+      newPassword?: boolean;
       keyboard?: 'default' | 'email-address';
       visible?: boolean;
       onToggleVisible?: () => void;
@@ -233,6 +234,26 @@ export default function LoginScreen() {
         keyboardType={options?.keyboard ?? 'default'}
         autoCapitalize="none"
         autoCorrect={false}
+        spellCheck={false}
+        autoComplete={
+          options?.secure
+            ? options.newPassword
+              ? 'password-new'
+              : 'password'
+            : options?.keyboard === 'email-address'
+              ? 'email'
+              : 'off'
+        }
+        textContentType={
+          options?.secure
+            ? options.newPassword
+              ? 'newPassword'
+              : 'password'
+            : options?.keyboard === 'email-address'
+              ? 'emailAddress'
+              : 'none'
+        }
+        importantForAutofill={options?.secure ? 'yes' : 'no'}
         placeholderTextColor={OnboardingPalette.textSecondary}
       />
       {options?.secure && options.onToggleVisible ? (
@@ -416,6 +437,7 @@ export default function LoginScreen() {
               })}
               {renderField('lock-outline', t('auth.fieldPassword'), password, setPassword, {
                 secure: true,
+                newPassword: true,
                 visible: showPassword,
                 onToggleVisible: () => setShowPassword(v => !v),
               })}
@@ -426,6 +448,7 @@ export default function LoginScreen() {
                 setPasswordRepeat,
                 {
                   secure: true,
+                  newPassword: true,
                   visible: showPasswordRepeat,
                   onToggleVisible: () => setShowPasswordRepeat(v => !v),
                 },
@@ -748,7 +771,7 @@ const styles = StyleSheet.create({
   ctaShadowWrap: {
     borderRadius: Theme.borderRadius.round,
     overflow: 'hidden',
-    marginBottom: 16,
+    marginBottom: 24,
     shadowColor: OnboardingPalette.primaryDark,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.22,

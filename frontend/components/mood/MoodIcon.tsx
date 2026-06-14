@@ -36,7 +36,12 @@ export function MoodIcon({ mood, size = 'md', selected = false, style }: MoodIco
         style,
       ]}
     >
-      <MaterialCommunityIcons name={visual.icon} size={dim.icon} color={visual.color} />
+      <MaterialCommunityIcons
+        name={visual.icon}
+        size={dim.icon}
+        color={visual.color}
+        style={{ width: dim.icon, height: dim.icon, textAlign: 'center' }}
+      />
     </View>
   );
 }
@@ -45,6 +50,7 @@ const styles = StyleSheet.create({
   wrap: {
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   selected: {
     transform: [{ scale: 1.04 }],

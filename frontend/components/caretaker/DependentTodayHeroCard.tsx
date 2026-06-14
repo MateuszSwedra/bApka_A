@@ -150,7 +150,9 @@ export function DependentTodayHeroCard({
           </View>
         ) : (
           <View style={styles.statsEmpty}>
-            <MaterialIcons name="event-available" size={22} color={Theme.colors.textLight} />
+            <View style={styles.statsEmptyIconWrap}>
+              <MaterialIcons name="event-available" size={20} color={Theme.colors.textLight} />
+            </View>
             <Text style={styles.statsEmptyText}>{emptyDayLabel}</Text>
           </View>
         )}
@@ -303,17 +305,30 @@ const styles = StyleSheet.create({
   statsEmpty: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
     gap: Theme.spacing.s,
     paddingVertical: Theme.spacing.m,
+    paddingHorizontal: Theme.spacing.m,
     backgroundColor: Theme.colors.surfaceGrey,
     borderRadius: Theme.borderRadius.large,
     borderWidth: 1,
     borderColor: Theme.colors.border,
+    overflow: 'hidden',
+  },
+  statsEmptyIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Theme.colors.surfaceWhite,
+    justifyContent: 'center',
+    alignItems: 'center',
+    flexShrink: 0,
   },
   statsEmptyText: {
+    flex: 1,
+    flexShrink: 1,
     fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
     fontWeight: '600',
+    lineHeight: 18,
   },
 });

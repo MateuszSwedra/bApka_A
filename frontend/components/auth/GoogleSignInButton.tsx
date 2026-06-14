@@ -89,7 +89,7 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { width: '100%', marginBottom: Theme.spacing.m },
+  wrap: { width: '100%', marginTop: 4, marginBottom: Theme.spacing.m },
   button: {
     flexDirection: 'row',
     alignItems: 'center',

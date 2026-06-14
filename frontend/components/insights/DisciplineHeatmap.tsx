@@ -1,7 +1,14 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import { useTranslation } from 'react-i18next';
-import { format, parseISO } from 'date-fns';
+import {
+  eachDayOfInterval,
+  endOfWeek,
+  format,
+  isToday,
+  parseISO,
+  startOfWeek,
+} from 'date-fns';
 import { pl, enUS } from 'date-fns/locale';
 import { Theme } from '../../constants/theme';
 import {
@@ -20,32 +27,17 @@ type Props = {
 };
 
 const LEGEND_STATUSES: DayStatus[] = ['perfect', 'late', 'missed', 'empty'];
+const WEEK_STARTS_ON = 1 as const;
+const CELL_GAP = 4;
+const MIN_CELL = 40;
 
 function useDateLocale() {
   const { i18n } = useTranslation();
   return i18n.language?.startsWith('pl') ? pl : enUS;
 }
 
-function HeatmapCell({ status, size, label }: { status: DayStatus; size: number; label?: string }) {
-  const bg = getDayStatusColor(status);
-  const isEmpty = status === 'empty';
-  return (
-    <View style={styles.cellWrap}>
-      <View
-        style={[
-          styles.cell,
-          {
-            width: size,
-            height: size,
-            backgroundColor: bg,
-            borderWidth: isEmpty ? 1 : 0,
-            borderColor: Theme.colors.border,
-          },
-        ]}
-      />
-      {label ? <Text style={styles.cellLabel}>{label}</Text> : null}
-    </View>
-  );
+function weekdayLabels(t: (key: string) => string): string[] {
+  return ['1', '2', '3', '4', '5', '6', '7'].map((k) => t(`calendar.weekdayShort.${k}`));
 }
 
 function HeatmapLegend() {
@@ -62,28 +54,164 @@ function HeatmapLegend() {
   );
 }
 
+type CalendarDayProps = {
+  date: Date;
+  entry: DailyEntry;
+  inRange: boolean;
+  cellSize: number;
+  compact?: boolean;
+};
+
+function CalendarDayCell({ date, entry, inRange, cellSize, compact }: CalendarDayProps) {
+  const status = inRange ? (entry.status ?? 'empty') : 'empty';
+  const bg = inRange ? getDayStatusColor(status) : Theme.colors.surfaceGrey;
+  const dayNum = format(date, 'd');
+  const today = isToday(date);
+
+  return (
+    <View
+      style={[
+        styles.dayCell,
+        {
+          width: cellSize,
+          minHeight: compact ? cellSize : Math.max(cellSize, MIN_CELL),
+          backgroundColor: bg,
+          opacity: inRange ? 1 : 0.35,
+        },
+        status === 'empty' && inRange && styles.dayCellEmpty,
+      ]}
+    >
+      {today && inRange ? (
+        <View style={styles.todayPill}>
+          <Text style={styles.todayPillText}>{dayNum}</Text>
+        </View>
+      ) : (
+        <Text
+          style={[
+            styles.dayNumber,
+            !inRange && styles.dayNumberMuted,
+            status === 'missed' && inRange && styles.dayNumberOnDark,
+            status === 'perfect' && inRange && styles.dayNumberOnDark,
+            status === 'late' && inRange && styles.dayNumberOnDark,
+          ]}
+        >
+          {dayNum}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+function CalendarGrid({
+  gridDays,
+  daysByDate,
+  rangeFrom,
+  rangeTo,
+  cellSize,
+  compact,
+}: {
+  gridDays: Date[];
+  daysByDate: Map<string, DailyEntry>;
+  rangeFrom: Date;
+  rangeTo: Date;
+  cellSize: number;
+  compact?: boolean;
+}) {
+  const weeks: Date[][] = [];
+  for (let i = 0; i < gridDays.length; i += 7) {
+    weeks.push(gridDays.slice(i, i + 7));
+  }
+
+  const rangeFromYmd = format(rangeFrom, 'yyyy-MM-dd');
+  const rangeToYmd = format(rangeTo, 'yyyy-MM-dd');
+
+  return (
+    <View style={styles.gridBody}>
+      {weeks.map((week, wi) => (
+        <View key={`w-${wi}`} style={[styles.weekRow, { gap: CELL_GAP }]}>
+          {week.map((day) => {
+            const key = format(day, 'yyyy-MM-dd');
+            const inRange = key >= rangeFromYmd && key <= rangeToYmd;
+            const entry = daysByDate.get(key) ?? {
+              date: key,
+              taken: 0,
+              missed: 0,
+              pending: 0,
+              status: 'empty' as DayStatus,
+            };
+            return (
+              <CalendarDayCell
+                key={key}
+                date={day}
+                entry={entry}
+                inRange={inRange}
+                cellSize={cellSize}
+                compact={compact}
+              />
+            );
+          })}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 export function DisciplineHeatmap({ daily, range, fromIso, toIso }: Props) {
   const { t } = useTranslation();
   const locale = useDateLocale();
+  const { width: windowWidth } = useWindowDimensions();
+
+  const from = parseISO(fromIso);
+  const to = parseISO(toIso);
 
   const days = useMemo(
     () => fillDailyGaps(daily, fromIso, toIso),
     [daily, fromIso, toIso],
   );
 
+  const daysByDate = useMemo(() => {
+    const map = new Map<string, DailyEntry>();
+    for (const d of days) map.set(d.date, d);
+    return map;
+  }, [days]);
+
+  const cardInnerWidth = Math.min(windowWidth - Theme.spacing.l * 2 - Theme.spacing.m * 2, 480);
+  const cellSize = Math.floor((cardInnerWidth - CELL_GAP * 6) / 7);
+
   const todayEntry = days[days.length - 1];
+
+  const monthTitle = useMemo(() => {
+    if (range === 'today') return format(to, 'd MMMM yyyy', { locale });
+    if (range === 'week') {
+      return `${format(from, 'd MMM', { locale })} – ${format(to, 'd MMM yyyy', { locale })}`;
+    }
+    return `${format(from, 'd MMM', { locale })} – ${format(to, 'd MMM yyyy', { locale })}`;
+  }, [from, to, locale, range]);
 
   if (range === 'today') {
     const status = todayEntry?.status ?? 'empty';
+    const todayDate = to;
     return (
       <View style={styles.section}>
         <Text style={styles.title}>{t('caretaker.insights.disciplineCalendar')}</Text>
+        <Text style={styles.periodLabel}>{monthTitle}</Text>
         <View style={styles.todayWrap}>
-          <HeatmapCell status={status} size={72} />
-          <View style={styles.todayTextCol}>
-            <Text style={styles.todayStatus}>
-              {t(`caretaker.insights.dayStatus.${status}`)}
+          <View
+            style={[
+              styles.todayCell,
+              { backgroundColor: getDayStatusColor(status) },
+              status === 'empty' && styles.dayCellEmpty,
+            ]}
+          >
+            <Text style={[styles.todayCellDay, status !== 'empty' && status !== 'pending' && styles.dayNumberOnDark]}>
+              {format(todayDate, 'd')}
             </Text>
+            <Text style={[styles.todayCellWeekday, status !== 'empty' && status !== 'pending' && styles.dayNumberOnDark]}>
+              {format(todayDate, 'EEEE', { locale })}
+            </Text>
+          </View>
+          <View style={styles.todayTextCol}>
+            <Text style={styles.todayStatus}>{t(`caretaker.insights.dayStatus.${status}`)}</Text>
             {todayEntry && todayEntry.status !== 'empty' ? (
               <Text style={styles.todayDetail}>
                 {t('caretaker.insights.dayDetail', {
@@ -101,62 +229,34 @@ export function DisciplineHeatmap({ daily, range, fromIso, toIso }: Props) {
     );
   }
 
-  if (range === 'week') {
-    const cellSize = 36;
-    return (
-      <View style={styles.section}>
-        <Text style={styles.title}>{t('caretaker.insights.disciplineCalendar')}</Text>
-        <View style={styles.weekRow}>
-          {days.map((day) => {
-            const d = parseISO(`${day.date}T12:00:00`);
-            const label = format(d, 'EEE', { locale }).slice(0, 2);
-            return (
-              <HeatmapCell
-                key={day.date}
-                status={day.status ?? 'empty'}
-                size={cellSize}
-                label={label}
-              />
-            );
-          })}
-        </View>
-        <HeatmapLegend />
-      </View>
-    );
-  }
-
-  const cellSize = 14;
-  const gap = 3;
-  const cols = 7;
-  const rows: DailyEntry[][] = [];
-  for (let i = 0; i < days.length; i += cols) {
-    rows.push(days.slice(i, i + cols));
-  }
+  const gridStart = startOfWeek(from, { weekStartsOn: WEEK_STARTS_ON });
+  const gridEnd = endOfWeek(to, { weekStartsOn: WEEK_STARTS_ON });
+  const gridDays = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   return (
     <View style={styles.section}>
       <Text style={styles.title}>{t('caretaker.insights.disciplineCalendar')}</Text>
-      <View style={[styles.monthGrid, { gap }]}>
-        {rows.map((row, ri) => (
-          <View key={`row-${ri}`} style={[styles.monthRow, { gap }]}>
-            {row.map((day) => (
-              <View
-                key={day.date}
-                style={[
-                  styles.cell,
-                  {
-                    width: cellSize,
-                    height: cellSize,
-                    backgroundColor: getDayStatusColor(day.status ?? 'empty'),
-                    borderWidth: day.status === 'empty' ? 1 : 0,
-                    borderColor: Theme.colors.border,
-                  },
-                ]}
-              />
-            ))}
-          </View>
-        ))}
+      <Text style={styles.periodLabel}>{monthTitle}</Text>
+
+      <View style={styles.calendarCard}>
+        <View style={styles.weekdayRow}>
+          {weekdayLabels(t).map((label) => (
+            <View key={label} style={[styles.weekdayCell, { width: cellSize }]}>
+              <Text style={styles.weekdayText}>{label}</Text>
+            </View>
+          ))}
+        </View>
+
+        <CalendarGrid
+          gridDays={gridDays}
+          daysByDate={daysByDate}
+          rangeFrom={from}
+          rangeTo={to}
+          cellSize={cellSize}
+          compact={range === 'week'}
+        />
       </View>
+
       <HeatmapLegend />
     </View>
   );
@@ -170,7 +270,75 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.caption,
     fontWeight: '700',
     color: Theme.colors.textDark,
+    marginBottom: 4,
+  },
+  periodLabel: {
+    fontSize: Theme.typography.small,
+    color: Theme.colors.textLight,
     marginBottom: Theme.spacing.s,
+  },
+  calendarCard: {
+    backgroundColor: Theme.colors.calendarCanvas,
+    borderRadius: Theme.borderRadius.medium,
+    padding: Theme.spacing.s,
+    marginBottom: Theme.spacing.s,
+  },
+  weekdayRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: CELL_GAP,
+    gap: CELL_GAP,
+  },
+  weekdayCell: {
+    alignItems: 'center',
+  },
+  weekdayText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: Theme.colors.textLight,
+    textTransform: 'uppercase',
+  },
+  gridBody: {
+    gap: CELL_GAP,
+  },
+  weekRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  dayCell: {
+    borderRadius: 8,
+    padding: 4,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  dayCellEmpty: {
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  dayNumber: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Theme.colors.textDark,
+  },
+  dayNumberMuted: {
+    color: Theme.colors.textLight,
+  },
+  dayNumberOnDark: {
+    color: Theme.colors.surfaceWhite,
+  },
+  todayPill: {
+    backgroundColor: Theme.colors.accentOrange,
+    borderRadius: 999,
+    minWidth: 26,
+    height: 26,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 6,
+  },
+  todayPillText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: Theme.colors.surfaceWhite,
   },
   todayWrap: {
     flexDirection: 'row',
@@ -180,6 +348,25 @@ const styles = StyleSheet.create({
     padding: Theme.spacing.m,
     backgroundColor: Theme.colors.calendarCanvas,
     borderRadius: Theme.borderRadius.medium,
+  },
+  todayCell: {
+    width: 88,
+    height: 88,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+  },
+  todayCellDay: {
+    fontSize: 32,
+    fontWeight: '800',
+    color: Theme.colors.textDark,
+  },
+  todayCellWeekday: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: Theme.colors.textDark,
+    textTransform: 'capitalize',
   },
   todayTextCol: {
     flex: 1,
@@ -193,35 +380,6 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.small,
     color: Theme.colors.textLight,
     marginTop: 4,
-  },
-  weekRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: Theme.spacing.s,
-    padding: Theme.spacing.s,
-    backgroundColor: Theme.colors.calendarCanvas,
-    borderRadius: Theme.borderRadius.medium,
-  },
-  cellWrap: {
-    alignItems: 'center',
-    gap: 4,
-  },
-  cell: {
-    borderRadius: 4,
-  },
-  cellLabel: {
-    fontSize: 10,
-    color: Theme.colors.textLight,
-    fontWeight: '600',
-  },
-  monthGrid: {
-    marginBottom: Theme.spacing.s,
-    padding: Theme.spacing.s,
-    backgroundColor: Theme.colors.calendarCanvas,
-    borderRadius: Theme.borderRadius.medium,
-  },
-  monthRow: {
-    flexDirection: 'row',
   },
   legendRow: {
     flexDirection: 'row',

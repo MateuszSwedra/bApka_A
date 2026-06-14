@@ -19,7 +19,7 @@ export function useFabBottomOffset(options?: FabBottomOptions): number {
   const minInset = Platform.OS === 'android' ? 28 : 12;
 
   if (options?.aboveTabBar) {
-    return TAB_BAR_HEIGHT + tabBarSafeBottom(insets.bottom) + Theme.spacing.m;
+    return TAB_BAR_HEIGHT + tabBarSafeBottom(insets.bottom) + Theme.spacing.xs;
   }
 
   return Math.max(insets.bottom, minInset) + Theme.spacing.xl;

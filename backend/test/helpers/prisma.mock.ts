@@ -2,6 +2,7 @@
 export type PrismaMock = {
   user: {
     findFirst: jest.Mock;
+    findMany: jest.Mock;
     findUnique: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
@@ -38,6 +39,7 @@ export type PrismaMock = {
   };
   moodLog: {
     findMany: jest.Mock;
+    findFirst: jest.Mock;
     create: jest.Mock;
   };
   sosLog: {
@@ -54,6 +56,7 @@ export function createPrismaMock(): PrismaMock {
   return {
     user: {
       findFirst: jest.fn(),
+      findMany: jest.fn(),
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
@@ -62,6 +65,7 @@ export function createPrismaMock(): PrismaMock {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
       create: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       findMany: jest.fn(),
       update: jest.fn(),
     },
@@ -90,6 +94,7 @@ export function createPrismaMock(): PrismaMock {
     },
     moodLog: {
       findMany: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
     },
     sosLog: {

@@ -159,7 +159,17 @@
     "subtitleDependent": "We'll remind you about medications and calendar activities.",
     "loading": "One moment…",
     "cta": "Allow notifications",
-    "skip": "No, I'll take the risk"
+    "skip": "No, I'll take the risk",
+    "fsiTitle": "Full-screen SOS alarm",
+    "fsiMessage": "So a dependent's SOS can wake your phone even when the app is closed, enable \"Full screen intents\" for bApka in system settings.",
+    "fsiOpenSettings": "Open settings",
+    "fsiLater": "Later"
+  },
+  "sosAlarm": {
+    "title": "SOS!",
+    "unknownSenior": "Dependent",
+    "defaultBody": "{{name}} pressed the SOS button!",
+    "dismiss": "Dismiss alarm"
   },
   "pairing": {
     "enterPin": {
@@ -174,7 +184,11 @@
     "alertErrorTitle": "Pairing error",
     "alertSuccessTitle": "Success",
     "alertSuccessMessage": "Account connected successfully.",
-    "alertInvalidPin": "The PIN code is invalid or has expired."
+    "alertInvalidPin": "The PIN code is invalid or has expired.",
+    "skipLater": "Later",
+    "bannerTitle": "Not linked to a caretaker",
+    "bannerBody": "Enter the PIN from your caretaker to sync medications and notifications.",
+    "bannerCta": "Link now"
   },
   "sounds": {
     "screenTitle": "Notification sounds",
@@ -220,9 +234,12 @@
       "allMedications": "All medications",
       "sectionMood": "Senior's mood",
       "adherenceRate": "Adherence",
-      "adherenceSubtitleToday": "{{percent}}% today",
-      "adherenceSubtitleWeek": "{{percent}}% this week",
-      "adherenceSubtitleMonth": "{{percent}}% this month",
+      "statsPeriodToday": "for today",
+      "statsPeriodWeek": "for the last 7 days",
+      "statsPeriodMonth": "for the last 30 days",
+      "statOnTime": "{{onTime}}/{{total}} doses on time",
+      "statLate": "{{count}} late doses",
+      "statMissed": "{{count}} missed doses",
       "missedDosesTitle": "Missed doses",
       "missedSubtitleToday": "today",
       "missedSubtitleWeek": "this week",
@@ -252,11 +269,23 @@
       "dosesOnTime": "On time (±{{window}} min)",
       "dosesEmpty": "No dose data in this range.",
       "moodEmpty": "No mood entries in this range.",
+      "moodSubtitleToday": "Today",
+      "moodSubtitleWeek": "Last 7 days",
+      "moodSubtitleMonth": "Last 30 days",
+      "moodDistributionTitle": "Mood breakdown for this period",
+      "moodDistributionLine": "{{percent}}% ({{count}} entries)",
+      "moodLabel": {
+        "happy": "Good",
+        "neutral": "Neutral",
+        "sad": "Low"
+      },
       "vitals": {
         "title": "Measurements",
         "glucose": "Blood glucose",
         "bp": "Blood pressure",
-        "empty": "No measurements recorded in this range."
+        "empty": "No measurements recorded in this range.",
+        "dailyReadings": "Readings by day",
+        "noReading": "No reading"
       }
     },
     "moodAt": "Mood at {{time}}",
@@ -267,7 +296,7 @@
       "mood": "Mood question",
       "moodSub": "When off - the mood tile disappears and \"Take medicine\" spans full width.",
       "moodTimesTitle": "Mood check time",
-      "moodTimesHint": "Scroll the wheels to set the time. Tap Save below to apply.",
+      "moodTimesHint": "Set the mood check time — type it or use +/-.",
       "moodTimesSave": "Save",
       "moodTimesSaved": "Saved",
       "vitals": "Enter measurement results",

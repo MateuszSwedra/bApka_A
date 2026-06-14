@@ -31,7 +31,14 @@ export function MoodPickerModal({ visible, onPick, onClose }: Props) {
                 style={({ pressed }) => [styles.faceBtn, pressed && styles.pressed]}
               >
                 <MoodIcon mood={m.key} size="lg" />
-                <Text style={styles.faceLabel}>{m.label}</Text>
+                <Text
+                  style={styles.faceLabel}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.72}
+                >
+                  {m.label}
+                </Text>
               </Pressable>
             ))}
           </View>
@@ -79,18 +86,23 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     marginBottom: Theme.spacing.l,
+    gap: Theme.spacing.s,
   },
   faceBtn: {
+    flex: 1,
     alignItems: 'center',
-    padding: Theme.spacing.m,
+    padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.large,
-    minWidth: 96,
+    maxWidth: 120,
+    overflow: 'hidden',
   },
   faceLabel: {
+    width: '100%',
     fontSize: 16,
     fontWeight: '700',
     color: Theme.colors.textDark,
     marginTop: Theme.spacing.s,
+    textAlign: 'center',
   },
   closeBtn: {
     alignSelf: 'center',

@@ -10,8 +10,12 @@ import { useMeds } from '../../../../context/MedsContext';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsInsightsCharts';
 import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
-import { SimpleLineChart } from '../../../../components/insights/SimpleLineChart';
+import { MoodWeekChart } from '../../../../components/insights/MoodWeekChart';
+import { MoodDistributionSummary } from '../../../../components/insights/MoodDistributionSummary';
+import { buildMoodDayCells } from '../../../../utils/moodWeekChart';
+import { buildMoodDistribution } from '../../../../utils/moodDistribution';
 import { DoseStatsPayload } from '../../../../utils/doseStats';
+import { enUS, pl } from 'date-fns/locale';
 
 type RangeKey = 'today' | 'week' | 'month';
 
@@ -28,7 +32,7 @@ interface MoodHistoryResponse {
 }
 
 export default function DependentInsightsScreen() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -128,54 +132,43 @@ export default function DependentInsightsScreen() {
     return t('caretaker.insights.range.month');
   };
 
-  const renderMoodLine = () => {
-    if (!moodHistory?.items?.length) {
+  const moodChartSubtitle = useMemo(() => {
+    if (range === 'today') return t('caretaker.insights.moodSubtitleToday');
+    if (range === 'week') return t('caretaker.insights.moodSubtitleWeek');
+    return t('caretaker.insights.moodSubtitleMonth');
+  }, [range, t]);
+
+  const moodDayCells = useMemo(() => {
+    if (!moodHistory?.items) return [];
+    const locale = i18n.language.startsWith('pl') ? pl : enUS;
+    const from = new Date(rangeBounds.fromIso);
+    const to = new Date(rangeBounds.toIso);
+    return buildMoodDayCells(moodHistory.items, from, to, locale);
+  }, [moodHistory, rangeBounds.fromIso, rangeBounds.toIso, i18n.language]);
+
+  const moodDistribution = useMemo(
+    () => buildMoodDistribution(moodHistory?.histogram),
+    [moodHistory?.histogram],
+  );
+
+  const renderMoodChart = () => {
+    if (!moodHistory || moodDayCells.length === 0) {
       return <Text style={styles.emptyText}>{t('caretaker.insights.moodEmpty')}</Text>;
     }
 
-    const moodValue = (m: string) => (m === 'happy' ? 1 : m === 'neutral' ? 0.5 : 0);
+    const hasAnyMood = moodDayCells.some((d) => d.mood != null);
 
-    let chartData: Array<{ label: string; value: number }>;
-
-    if (range === 'today') {
-      // 1 punkt dla każdej zarejestrowanej buźki (`MoodLog`) dzisiaj.
-      const itemsSorted = [...moodHistory.items].sort(
-        (a, b) =>
-          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
-      );
-
-      chartData = itemsSorted.map((it) => {
-        const d = new Date(it.createdAt);
-        return {
-          label: `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`,
-          value: moodValue(it.mood),
-        };
-      });
-    } else {
-      // Dla tygodnia i miesiąca: średnia buziek z każdego dnia.
-      const byDay = new Map<string, { sum: number; count: number }>();
-      for (const it of moodHistory.items) {
-        const d = new Date(it.createdAt);
-        if (Number.isNaN(d.getTime())) continue;
-        const day = d.toISOString().slice(0, 10); // yyyy-mm-dd (UTC)
-        const v = moodValue(it.mood);
-        const cur = byDay.get(day) ?? { sum: 0, count: 0 };
-        cur.sum += v;
-        cur.count += 1;
-        byDay.set(day, cur);
-      }
-
-      const daysSorted = Array.from(byDay.entries())
-        .map(([day, agg]) => ({ day, avg: agg.count ? agg.sum / agg.count : 0 }))
-        .sort((a, b) => a.day.localeCompare(b.day));
-
-      chartData = daysSorted.map((d) => ({
-        label: d.day.slice(5, 10), // MM-DD
-        value: d.avg, // 0..1
-      }));
-    }
-
-    return <SimpleLineChart data={chartData} height={200} strokeColor={Theme.colors.accentOrange} />;
+    return (
+      <>
+        <MoodWeekChart days={moodDayCells} subtitle={moodChartSubtitle} />
+        {!hasAnyMood ? (
+          <Text style={[styles.emptyText, styles.emptyHint]}>
+            {t('caretaker.insights.moodEmpty')}
+          </Text>
+        ) : null}
+        {moodDistribution ? <MoodDistributionSummary rows={moodDistribution} /> : null}
+      </>
+    );
   };
 
   const currentRangeLabel = useMemo(() => {
@@ -249,8 +242,10 @@ export default function DependentInsightsScreen() {
             />
 
             <View style={styles.card}>
-              <Text style={styles.cardTitle}>{t('caretaker.insights.sectionMood')}</Text>
-              {renderMoodLine()}
+              <View style={styles.cardHeader}>
+                <Text style={styles.cardTitle}>{t('caretaker.insights.sectionMood')}</Text>
+              </View>
+              {renderMoodChart()}
             </View>
 
             <VitalsInsightsCharts
@@ -335,6 +330,8 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.body,
     fontWeight: '700',
     color: Theme.colors.textDark,
+  },
+  cardHeader: {
     marginBottom: Theme.spacing.s,
   },
   metricRow: {
@@ -355,31 +352,8 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.small,
     color: Theme.colors.textLight,
   },
-  moodRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  moodEmoji: {
-    fontSize: 20,
-    width: 28,
-  },
-  moodBarContainer: {
-    flex: 1,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: Theme.colors.surfaceGrey,
-    marginHorizontal: Theme.spacing.s,
-    overflow: 'hidden',
-  },
-  moodBarFill: {
-    height: 8,
-    backgroundColor: Theme.colors.accentOrange,
-  },
-  moodLabel: {
-    fontSize: Theme.typography.small,
-    color: Theme.colors.textDark,
-    minWidth: 60,
-    textAlign: 'right',
+  emptyHint: {
+    marginTop: Theme.spacing.m,
+    textAlign: 'center',
   },
 });
