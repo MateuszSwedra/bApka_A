@@ -4,6 +4,7 @@ import { Platform, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../../constants/theme';
+import { SeniorTabBarTour } from '../../../components/senior/SeniorTabBarTour';
 
 export default function HybridTabsLayout() {
   const { t } = useTranslation();
@@ -69,6 +70,7 @@ export default function HybridTabsLayout() {
           }}
         />
       </Tabs>
+      <SeniorTabBarTour />
     </View>
   );
 }

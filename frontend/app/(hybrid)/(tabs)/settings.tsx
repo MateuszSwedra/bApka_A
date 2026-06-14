@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Pressable,
   Switch,
   ActivityIndicator,
@@ -26,6 +25,11 @@ import { previewNotificationAsset } from '../../../services/notificationSoundPre
 import { applyAppLanguage, normalizeAppLanguage } from '../../../services/appLanguage';
 import type { AppLanguage } from '../../../i18n/resolveLanguage';
 import { applySeniorProfileSettings } from '../../../services/seniorProfileSync';
+import { SeniorTourAnchor } from '../../../components/senior/SeniorTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../../../context/CaretakerTourScrollContext';
 
 type SelfSettings = {
   vitalsEntryEnabled: boolean;
@@ -96,32 +100,106 @@ export default function HybridSettingsScreen() {
   };
 
   return (
+    <CaretakerTourScrollProvider>
     <View style={styles.root}>
-      <HybridProfileHeader title={t('tabs.settings')} subtitle={displayName} showSettings={false} />
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <HybridProfileHeader
+        title={t('tabs.settings')}
+        subtitle={displayName}
+        showSettings={false}
+        showBack
+        onBack={() => router.push('/(hybrid)/(tabs)/' as any)}
+      />
+      <CaretakerTourScrollView contentContainerStyle={styles.scroll}>
         {loading ? (
           <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 32 }} />
         ) : (
           <>
             <Text style={styles.sectionTitle}>{t('hybrid.settings.section')}</Text>
             <Text style={styles.sectionHint}>{t('hybrid.settings.sectionHint')}</Text>
-            <RowSwitch label={t('caretaker.settings.vitals')} sub={t('caretaker.settings.vitalsSub')} value={settings.vitalsEntryEnabled} busy={savingKey === 'vitalsEntryEnabled'} onChange={v => void patch({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')} />
+
+            <SeniorTourAnchor
+              stepId="settings-vitals"
+              titleKey="senior.tour.settingsVitals.title"
+              bodyKey="senior.tour.settingsVitals.body"
+              placement="bottom"
+              wrapStyle={styles.rowCardWrap}
+            >
+              <RowSwitch label={t('caretaker.settings.vitals')} sub={t('caretaker.settings.vitalsSub')} value={settings.vitalsEntryEnabled} busy={savingKey === 'vitalsEntryEnabled'} onChange={v => void patch({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')} />
+            </SeniorTourAnchor>
+
             <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.accessibility')}</Text>
-            <RowSwitch label={t('dependent.settings.colorBlind')} sub={t('dependent.settings.colorBlindSub')} value={settings.colorBlindFriendly} busy={savingKey === 'colorBlindFriendly'} onChange={v => void patch({ colorBlindFriendly: v }, 'colorBlindFriendly')} />
-            <RowSwitch label={t('dependent.settings.highContrast')} sub={t('dependent.settings.highContrastSub')} value={settings.highContrast} busy={savingKey === 'highContrast'} onChange={v => void patch({ highContrast: v }, 'highContrast')} />
+
+            <SeniorTourAnchor
+              stepId="settings-color-blind"
+              titleKey="senior.tour.settingsColorBlind.title"
+              bodyKey="senior.tour.settingsColorBlind.body"
+              placement="bottom"
+              afterStepId="settings-vitals"
+              wrapStyle={styles.rowCardWrap}
+            >
+              <RowSwitch label={t('dependent.settings.colorBlind')} sub={t('dependent.settings.colorBlindSub')} value={settings.colorBlindFriendly} busy={savingKey === 'colorBlindFriendly'} onChange={v => void patch({ colorBlindFriendly: v }, 'colorBlindFriendly')} />
+            </SeniorTourAnchor>
+
+            <SeniorTourAnchor
+              stepId="settings-high-contrast"
+              titleKey="senior.tour.settingsHighContrast.title"
+              bodyKey="senior.tour.settingsHighContrast.body"
+              placement="bottom"
+              afterStepId="settings-color-blind"
+              wrapStyle={styles.rowCardWrap}
+            >
+              <RowSwitch label={t('dependent.settings.highContrast')} sub={t('dependent.settings.highContrastSub')} value={settings.highContrast} busy={savingKey === 'highContrast'} onChange={v => void patch({ highContrast: v }, 'highContrast')} />
+            </SeniorTourAnchor>
+
             <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.languageSection')}</Text>
-            <View style={styles.langBlock}>
-              <Text style={styles.rowTitle}>{t('hybrid.settings.language')}</Text>
-              <View style={styles.langRow}>
-                {(['pl', 'en'] as AppLanguage[]).map(lang => (
-                  <Pressable key={lang} disabled={savingKey === 'lang'} onPress={() => void patch({ appLanguage: lang }, 'lang')} style={[styles.langChip, settings.appLanguage === lang && styles.langChipActive]}>
-                    <Text style={[styles.langChipText, settings.appLanguage === lang && styles.langChipTextActive]}>{t(`caretaker.settings.language.${lang}`)}</Text>
-                  </Pressable>
-                ))}
+
+            <SeniorTourAnchor
+              stepId="settings-language"
+              titleKey="senior.tour.settingsLanguage.title"
+              bodyKey="senior.tour.settingsLanguage.body"
+              placement="bottom"
+              afterStepId="settings-high-contrast"
+              wrapStyle={styles.rowCardWrap}
+            >
+              <View style={styles.langBlock}>
+                <Text style={styles.rowTitle}>{t('hybrid.settings.language')}</Text>
+                <View style={styles.langRow}>
+                  {(['pl', 'en'] as AppLanguage[]).map(lang => (
+                    <Pressable key={lang} disabled={savingKey === 'lang'} onPress={() => void patch({ appLanguage: lang }, 'lang')} style={[styles.langChip, settings.appLanguage === lang && styles.langChipActive]}>
+                      <Text style={[styles.langChipText, settings.appLanguage === lang && styles.langChipTextActive]}>{t(`caretaker.settings.language.${lang}`)}</Text>
+                    </Pressable>
+                  ))}
+                </View>
               </View>
-            </View>
-            <Text style={[styles.sectionTitle, styles.gap]}>{t('dependent.settings.reminderSound')}</Text>
-            {NOTIFICATION_SOUND_CHOICE_IDS.map(soundId => {
+            </SeniorTourAnchor>
+
+            <SeniorTourAnchor
+              stepId="settings-reminder-sound"
+              titleKey="senior.tour.settingsReminderSound.title"
+              bodyKey="senior.tour.settingsReminderSound.body"
+              placement="top"
+              afterStepId="settings-language"
+              wrapStyle={styles.soundSectionWrap}
+            >
+              <Text style={[styles.sectionTitle, styles.gap]}>{t('dependent.settings.reminderSound')}</Text>
+              {NOTIFICATION_SOUND_CHOICE_IDS.slice(0, 1).map(soundId => {
+                const label = t(`sounds.${soundId}.label`);
+                const selected = settings.medicationSoundChoice === soundId;
+                return (
+                  <View key={soundId} style={styles.soundRow}>
+                    <Pressable onPress={() => void patch({ medicationSoundChoice: soundId }, `sound-${soundId}`)} style={[styles.soundCard, selected && styles.soundCardSelected]}>
+                      <MaterialIcons name={selected ? 'radio-button-checked' : 'radio-button-unchecked'} size={28} color={Theme.colors.primaryLimeDark} />
+                      <View style={{ flex: 1 }}><Text style={styles.rowTitle}>{label}</Text></View>
+                    </Pressable>
+                    <Pressable onPress={() => void previewNotificationAsset(resolveMedicationSoundAsset(soundId))} style={styles.previewBtn}>
+                      <MaterialIcons name="volume-up" size={28} color={Theme.colors.primaryLimeDark} />
+                    </Pressable>
+                  </View>
+                );
+              })}
+            </SeniorTourAnchor>
+
+            {NOTIFICATION_SOUND_CHOICE_IDS.slice(1).map(soundId => {
               const label = t(`sounds.${soundId}.label`);
               const selected = settings.medicationSoundChoice === soundId;
               return (
@@ -136,6 +214,7 @@ export default function HybridSettingsScreen() {
                 </View>
               );
             })}
+
             <Pressable
               onPress={() => void handleLogout()}
               style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
@@ -147,8 +226,9 @@ export default function HybridSettingsScreen() {
             </Pressable>
           </>
         )}
-      </ScrollView>
+      </CaretakerTourScrollView>
     </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -164,6 +244,8 @@ function RowSwitch({ label, sub, value, busy, onChange }: { label: string; sub: 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Theme.colors.background },
   scroll: { padding: Theme.spacing.l, paddingBottom: 120 },
+  rowCardWrap: { width: '100%' },
+  soundSectionWrap: { width: '100%' },
   sectionTitle: { fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.textDark, marginBottom: Theme.spacing.s },
   sectionHint: { fontSize: Theme.typography.caption, color: Theme.colors.textLight, marginBottom: Theme.spacing.m, lineHeight: 20 },
   gap: { marginTop: Theme.spacing.xl },

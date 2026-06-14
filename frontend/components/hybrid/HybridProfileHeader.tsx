@@ -5,21 +5,49 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
+import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
 
 type HybridProfileHeaderProps = {
   title?: string;
   subtitle?: string;
   showSettings?: boolean;
+  showBack?: boolean;
+  onBack?: () => void;
 };
 
-export function HybridProfileHeader({ title, subtitle, showSettings = false }: HybridProfileHeaderProps) {
+export function HybridProfileHeader({
+  title,
+  subtitle,
+  showSettings = false,
+  showBack = false,
+  onBack,
+}: HybridProfileHeaderProps) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 0) + Theme.spacing.m;
 
+  const handleBack = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    router.push('/(hybrid)/(tabs)/' as any);
+  };
+
   return (
     <View style={[styles.bar, { paddingTop }]}>
-      <View style={styles.iconSpacer} />
+      {showBack ? (
+        <Pressable
+          onPress={handleBack}
+          style={styles.sideBtn}
+          accessibilityRole="button"
+          accessibilityLabel={t('common.back')}
+        >
+          <MaterialIcons name="arrow-back" size={26} color={Theme.colors.textDark} />
+        </Pressable>
+      ) : (
+        <View style={styles.iconSpacer} />
+      )}
       <View style={styles.titleWrap}>
         <Text style={styles.title} numberOfLines={1}>
           {title?.trim() || t('hybrid.panelTitle')}
@@ -31,14 +59,23 @@ export function HybridProfileHeader({ title, subtitle, showSettings = false }: H
         ) : null}
       </View>
       {showSettings ? (
-        <Pressable
-          onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
-          style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
-          accessibilityRole="button"
-          accessibilityLabel={t('tabs.settings')}
+        <SeniorTourAnchor
+          stepId="hybrid-settings"
+          titleKey="senior.tour.hybridSettings.title"
+          bodyKey="senior.tour.hybridSettings.body"
+          placement="bottom"
+          afterStepId="hybrid-tabs"
+          reserveBottom={0}
         >
-          <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
-        </Pressable>
+          <Pressable
+            onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
+            style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
+            accessibilityRole="button"
+            accessibilityLabel={t('tabs.settings')}
+          >
+            <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
+          </Pressable>
+        </SeniorTourAnchor>
       ) : (
         <View style={styles.iconSpacer} />
       )}
@@ -91,6 +128,12 @@ const styles = StyleSheet.create({
   settingsBtnPressed: {
     opacity: 0.85,
     backgroundColor: Theme.colors.surfaceWarmHighlight,
+  },
+  sideBtn: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   iconSpacer: { width: 48 },
 });

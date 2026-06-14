@@ -612,6 +612,67 @@
     "now": "NOW",
     "medTakenAlert": "Medication taken!"
   },
+  "senior": {
+    "tour": {
+      "gotIt": "Got it",
+      "todayTakeMed": {
+        "title": "Confirm medication",
+        "body": "When it's time, tap this tile to confirm you took your medication or completed the activity."
+      },
+      "todayPlan": {
+        "title": "Today's plan",
+        "body": "Here you'll see all medications and activities scheduled for today with their status."
+      },
+      "hybridSettings": {
+        "title": "Settings",
+        "body": "The gear icon opens settings — language, accessibility, vitals, and reminder sounds."
+      },
+      "hybridTabs": {
+        "title": "Navigation",
+        "body": "Today — daily plan. Calendar — schedule. Medicine cabinet — meds and activities. Insights — adherence summary."
+      },
+      "treatmentsAdd": {
+        "title": "New activity",
+        "body": "Add a medication or other activity to your cabinet, then set the schedule in the wizard."
+      },
+      "treatmentsEdit": {
+        "title": "Edit an activity",
+        "body": "Tap an entry in the cabinet to change the name, description, or pill count."
+      },
+      "calendarFab": {
+        "title": "Add to calendar",
+        "body": "The + button adds an activity to your schedule — pick the med, frequency, and times."
+      },
+      "calendarEdit": {
+        "title": "Edit in calendar",
+        "body": "Tap an entry to change the time or dose. Tap an empty time slot to add a new activity."
+      },
+      "insightsRange": {
+        "title": "Stats over time",
+        "body": "Switch the range: today, 7, or 30 days to see medication adherence and vitals."
+      },
+      "settingsVitals": {
+        "title": "Vitals entry",
+        "body": "When on, after confirming glucose or blood pressure you'll enter the reading. Values appear in Insights."
+      },
+      "settingsColorBlind": {
+        "title": "Color-blind mode",
+        "body": "Adjusts colors and labels to tell medication status and alerts apart more easily."
+      },
+      "settingsHighContrast": {
+        "title": "High contrast",
+        "body": "Increases text and button contrast — helpful for low vision."
+      },
+      "settingsLanguage": {
+        "title": "App language",
+        "body": "Choose the language for labels and reminders in the app."
+      },
+      "settingsReminderSound": {
+        "title": "Reminder sound",
+        "body": "Sound played for medication reminders. Tap the speaker icon to preview."
+      }
+    }
+  },
   "schedule": {
     "activityFallback": "Activity",
     "dosagePieces": " ({{count}} pcs.)",

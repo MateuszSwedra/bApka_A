@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { AndroidStyleMonthCalendar } from '../../../../components/caretaker/AndroidStyleMonthCalendar';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
+import { SeniorTourAnchor } from '../../../../components/senior/SeniorTourAnchor';
 
 export default function HybridCalendarMonthScreen() {
   const { t } = useTranslation();
@@ -58,20 +59,29 @@ export default function HybridCalendarMonthScreen() {
           labelForSchedule={labelForSchedule}
         />
       </View>
-      <Pressable
-        style={[styles.fab, { bottom: fabBottomOffset }]}
-        onPress={() => {
-          if (!selfUserId) {
-            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
-            return;
-          }
-          openAddMed(selfUserId, 'hybrid');
-        }}
-        accessibilityRole="button"
-        accessibilityLabel={t('schedule.add.pickActivityTitle')}
+
+      <SeniorTourAnchor
+        stepId="calendar-fab"
+        titleKey="senior.tour.calendarFab.title"
+        bodyKey="senior.tour.calendarFab.body"
+        placement="top"
+        wrapStyle={StyleSheet.flatten([styles.fab, { bottom: fabBottomOffset }])}
       >
-        <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
-      </Pressable>
+        <Pressable
+          style={styles.fabInner}
+          onPress={() => {
+            if (!selfUserId) {
+              Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+              return;
+            }
+            openAddMed(selfUserId, 'hybrid');
+          }}
+          accessibilityRole="button"
+          accessibilityLabel={t('schedule.add.pickActivityTitle')}
+        >
+          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
+        </Pressable>
+      </SeniorTourAnchor>
     </View>
   );
 }
@@ -96,5 +106,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: Theme.colors.primaryLimeDark,
+  },
+  fabInner: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

@@ -1,8 +1,10 @@
 import { Stack } from 'expo-router';
 import { DependentDisplayProvider } from '../../context/DependentDisplayContext';
+import { CaretakerTourLockProvider } from '../../context/CaretakerTourLockContext';
 
 export default function HybridRootLayout() {
   return (
+    <CaretakerTourLockProvider>
     <DependentDisplayProvider>
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
@@ -11,5 +13,6 @@ export default function HybridRootLayout() {
         <Stack.Screen name="edit-treatment/[treatmentId]" options={{ animation: 'slide_from_right' }} />
       </Stack>
     </DependentDisplayProvider>
+    </CaretakerTourLockProvider>
   );
 }

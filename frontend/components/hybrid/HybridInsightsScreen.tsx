@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Theme } from '../../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
@@ -9,6 +9,11 @@ import { DoseInsightsCard } from '../caretaker/DoseInsightsCard';
 import { VitalsInsightsCharts } from '../caretaker/VitalsInsightsCharts';
 import { useDependentTabTopInset } from '../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
+import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../../context/CaretakerTourScrollContext';
 
 type RangeKey = 'today' | 'week' | 'month';
 
@@ -75,9 +80,17 @@ export default function HybridInsightsScreen() {
   }, [doseStats]);
 
   return (
+    <CaretakerTourScrollProvider>
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      <ScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
+      <CaretakerTourScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
+        <SeniorTourAnchor
+          stepId="insights-range"
+          titleKey="senior.tour.insightsRange.title"
+          bodyKey="senior.tour.insightsRange.body"
+          placement="bottom"
+          wrapStyle={styles.rangeSwitcherWrap}
+        >
         <View style={styles.rangeSwitcher}>
           {(['today', 'week', 'month'] as RangeKey[]).map(key => (
             <Pressable key={key} onPress={() => setRange(key)} style={[styles.rangeChip, key === range && styles.rangeChipActive]}>
@@ -85,6 +98,7 @@ export default function HybridInsightsScreen() {
             </Pressable>
           ))}
         </View>
+        </SeniorTourAnchor>
         {currentRangeLabel ? <Text style={styles.rangeHint}>{t('caretaker.insights.rangeLabel', { range: currentRangeLabel })}</Text> : null}
         {loading ? (
           <View style={styles.loadingBox}>
@@ -109,8 +123,9 @@ export default function HybridInsightsScreen() {
             />
           </>
         ) : null}
-      </ScrollView>
+      </CaretakerTourScrollView>
     </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -118,6 +133,7 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
   content: { padding: Theme.spacing.l, paddingBottom: Theme.spacing.xl },
   title: { fontSize: Theme.typography.title, fontWeight: 'bold', color: Theme.colors.textDark, marginBottom: Theme.spacing.m },
+  rangeSwitcherWrap: { width: '100%' },
   rangeSwitcher: { flexDirection: 'row', backgroundColor: Theme.colors.surfaceGrey, borderRadius: 999, padding: 4, marginBottom: Theme.spacing.s },
   rangeChip: { flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: 'center' },
   rangeChipActive: { backgroundColor: Theme.colors.surfaceWhite },

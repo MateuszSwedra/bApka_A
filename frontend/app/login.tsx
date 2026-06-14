@@ -185,7 +185,9 @@ export default function LoginScreen() {
     try {
       const response = await authAPI.register({ email: em, password });
       const { resetCaretakerTourState } = await import('../services/caretakerTourState');
+      const { resetSeniorTourState } = await import('../services/seniorTourState');
       await resetCaretakerTourState();
+      await resetSeniorTourState();
       if (Platform.OS === 'web') {
         localStorage.setItem('userToken', response.access_token);
         localStorage.removeItem('userRole');

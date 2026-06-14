@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -31,6 +31,11 @@ import {
   todayStatsBucketFromKind,
 } from '../../utils/todayScheduleStatus';
 import { findDoseLogForScheduleOnDate, mergeDoseLogsIntoCompletionSets } from '../../utils/doseLogDay';
+import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
+import {
+  CaretakerTourScrollProvider,
+  CaretakerTourScrollView,
+} from '../../context/CaretakerTourScrollContext';
 
 const AVATAR_PALETTE = [
   { solid: Theme.colors.primaryLimeDark, soft: 'rgba(69, 104, 130, 0.14)' },
@@ -171,16 +176,25 @@ export default function HybridTodayScreen() {
   }, [now, t]);
 
   return (
+    <CaretakerTourScrollProvider>
     <View style={styles.screen}>
       <LinearGradient colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} showSettings />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <HybridTakeMedCard
-          mainState={mainState}
-          schedules={schedules}
-          treatments={treatments}
-          onPress={() => setMedConfirmVisible(true)}
-        />
+      <CaretakerTourScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <SeniorTourAnchor
+          stepId="today-take-med"
+          titleKey="senior.tour.todayTakeMed.title"
+          bodyKey="senior.tour.todayTakeMed.body"
+          placement="bottom"
+          wrapStyle={styles.tourFullWidth}
+        >
+          <HybridTakeMedCard
+            mainState={mainState}
+            schedules={schedules}
+            treatments={treatments}
+            onPress={() => setMedConfirmVisible(true)}
+          />
+        </SeniorTourAnchor>
         <DependentTodayHeroCard
           initials={displayName.substring(0, 2).toUpperCase()}
           greeting={greetingLine}
@@ -195,6 +209,15 @@ export default function HybridTodayScreen() {
           overviewLabel={t('caretaker.today.dayOverview')}
           emptyDayLabel={t('caretaker.today.empty')}
         />
+        <SeniorTourAnchor
+          stepId="today-plan"
+          titleKey="senior.tour.todayPlan.title"
+          bodyKey="senior.tour.todayPlan.body"
+          placement="bottom"
+          afterStepId="today-take-med"
+          wrapStyle={styles.tourFullWidth}
+        >
+        <View>
         <View style={styles.sectionHead}>
           <MaterialIcons name="view-agenda" size={20} color={Theme.colors.primaryLimeDark} />
           <Text style={styles.sectionTitle}>{t('caretaker.today.plan')}</Text>
@@ -218,6 +241,8 @@ export default function HybridTodayScreen() {
             );
           })
         )}
+        </View>
+        </SeniorTourAnchor>
         {depletionAlerts.filter(a => a.date === todayStr).map((alert, idx) => (
           <View key={idx} style={styles.alertCard}>
             <MaterialIcons name="warning-amber" size={22} color={Theme.colors.accentOrange} />
@@ -225,10 +250,11 @@ export default function HybridTodayScreen() {
             <Text style={styles.alertStockMargin}>{alert.pillsLeft}</Text>
           </View>
         ))}
-      </ScrollView>
+      </CaretakerTourScrollView>
       <SeniorConfirmModal visible={medConfirmVisible} title={t('dependent.home.confirmTitle')} message={medConfirmMessage} onConfirm={() => void confirmMed()} onCancel={() => setMedConfirmVisible(false)} confirmColor={Theme.colors.primaryLimeDark} />
       <VitalsMetricModal visible={vitalsModalVisible} type={vitalsModalType} colors={colors} onClose={() => setVitalsModalVisible(false)} />
     </View>
+    </CaretakerTourScrollProvider>
   );
 }
 
@@ -247,4 +273,5 @@ const styles = StyleSheet.create({
   alertCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, padding: Theme.spacing.m, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, borderWidth: 1, borderColor: 'rgba(233,164,61,0.4)', marginTop: Theme.spacing.s },
   alertText: { flex: 1, color: Theme.colors.accentOrange, fontWeight: '600' },
   alertStockMargin: { fontSize: 20, fontWeight: '900', color: Theme.colors.accentOrange, minWidth: 32, textAlign: 'center' },
+  tourFullWidth: { width: '100%' },
 });

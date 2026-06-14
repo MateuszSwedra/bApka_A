@@ -616,6 +616,67 @@
     "now": "TERAZ",
     "medTakenAlert": "Wzięto lek!"
   },
+  "senior": {
+    "tour": {
+      "gotIt": "Rozumiem",
+      "todayTakeMed": {
+        "title": "Potwierdź lek",
+        "body": "Gdy nadejdzie pora, dotknij ten kafelek, aby potwierdzić przyjęcie leku lub wykonanie aktywności."
+      },
+      "todayPlan": {
+        "title": "Plan na dziś",
+        "body": "Tu zobaczysz wszystkie zaplanowane na dziś leki i aktywności wraz ze statusem."
+      },
+      "hybridSettings": {
+        "title": "Ustawienia",
+        "body": "Koło zębate otwiera ustawienia — język, dostępność, pomiary i dźwięk przypomnień."
+      },
+      "hybridTabs": {
+        "title": "Nawigacja",
+        "body": "Dziś — plan dnia. Kalendarz — harmonogram. Apteczka — leki i aktywności. Statystyki — podsumowanie regularności."
+      },
+      "treatmentsAdd": {
+        "title": "Nowa aktywność",
+        "body": "Dodaj lek lub inną aktywność do swojej apteczki, a potem ustaw harmonogram w kreatorze."
+      },
+      "treatmentsEdit": {
+        "title": "Edycja aktywności",
+        "body": "Dotknij wpisu w apteczce, aby zmienić nazwę, opis lub ilość tabletek."
+      },
+      "calendarFab": {
+        "title": "Dodaj do kalendarza",
+        "body": "Przycisk + dodaje aktywność do harmonogramu — wybierzesz lek, częstotliwość i godziny."
+      },
+      "calendarEdit": {
+        "title": "Edycja w kalendarzu",
+        "body": "Dotknij wpisu, aby zmienić godzinę lub dawkę. Puste pole godziny pozwala dodać nową aktywność."
+      },
+      "insightsRange": {
+        "title": "Statystyki w czasie",
+        "body": "Przełącz okres: dziś, 7 lub 30 dni, aby zobaczyć regularność przyjmowania leków i pomiary."
+      },
+      "settingsVitals": {
+        "title": "Wpisywanie pomiarów",
+        "body": "Po włączeniu po potwierdzeniu cukru lub ciśnienia uzupełnisz wynik. Pomiary trafią do Statystyk."
+      },
+      "settingsColorBlind": {
+        "title": "Tryb daltonizmu",
+        "body": "Dostosowuje kolory i oznaczenia, aby łatwiej odróżniać status leków i alerty."
+      },
+      "settingsHighContrast": {
+        "title": "Wysoki kontrast",
+        "body": "Zwiększa kontrast tekstu i przycisków — pomaga przy słabszym wzroku."
+      },
+      "settingsLanguage": {
+        "title": "Język aplikacji",
+        "body": "Wybierz język interfejsu, etykiet i przypomnień w aplikacji."
+      },
+      "settingsReminderSound": {
+        "title": "Dźwięk przypomnienia",
+        "body": "Dźwięk odtwarzany przy przypomnieniu o leku. Dotknij ikony głośnika, aby odsłuchać."
+      }
+    }
+  },
   "schedule": {
     "activityFallback": "Aktywność",
     "dosagePieces": " ({{count}} szt.)",
