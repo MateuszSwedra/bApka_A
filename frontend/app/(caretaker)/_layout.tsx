@@ -3,6 +3,7 @@ import { Stack, useRouter } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { CaretakerLanguageSync } from '../../components/CaretakerLanguageSync';
 import { CaretakerTourLockProvider } from '../../context/CaretakerTourLockContext';
+import { CaretakerGuidedTourProvider } from '../../context/CaretakerGuidedTourContext';
 import { useAuth } from '../../context/AuthContext';
 import { getStoredRole } from '../../services/sessionStorage';
 import { resolvePostAuthRoute } from '../../services/postAuthRouting';
@@ -54,8 +55,10 @@ export default function CaretakerLayout() {
 
   return (
     <CaretakerTourLockProvider>
-      <CaretakerLanguageSync />
-      <Stack screenOptions={{ headerShown: false }} />
+      <CaretakerGuidedTourProvider>
+        <CaretakerLanguageSync />
+        <Stack screenOptions={{ headerShown: false }} />
+      </CaretakerGuidedTourProvider>
     </CaretakerTourLockProvider>
   );
 }

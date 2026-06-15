@@ -14,7 +14,6 @@ import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { HugeButton } from '../../components/HugeButton';
 import { Card } from '../../components/Card';
-import { CaretakerTourAnchor } from '../../components/caretaker/CaretakerTourAnchor';
 import { Theme } from '../../constants/theme';
 import { isAuthApiError, usersAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -92,14 +91,7 @@ export default function CaretakerPairingScreen() {
         <>
           <Card style={styles.card}>
             <Text style={styles.subtitle}>{t('caretaker.pairing.instructions')}</Text>
-            <CaretakerTourAnchor
-              stepId="pairing-pin"
-              titleKey="caretaker.tour.pairingPin.title"
-              bodyKey="caretaker.tour.pairingPin.body"
-              placement="bottom"
-              wrapStyle={styles.pinRowWrap}
-              measureDelayMs={500}
-            >
+            <View style={styles.pinRowWrap}>
               <View style={styles.pinRow}>
                 <Text
                   selectable
@@ -128,7 +120,7 @@ export default function CaretakerPairingScreen() {
                   />
                 </Pressable>
               </View>
-            </CaretakerTourAnchor>
+            </View>
             <Text style={styles.pinHint}>{t('caretaker.pairing.hint')}</Text>
           </Card>
 

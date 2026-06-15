@@ -14,7 +14,6 @@ import { AndroidStyleDayView } from '../../../../components/caretaker/AndroidSty
 import { ScheduleEventSheet } from '../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
-import { SeniorTourAnchor } from '../../../../components/senior/SeniorTourAnchor';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
 import type { ViewStyle } from 'react-native';
 
@@ -60,19 +59,7 @@ export default function HybridCalendarDayScreen() {
 
   const wrapTourTarget = useCallback(
     (node: React.ReactElement, wrapStyle: ViewStyle) => (
-      <SeniorTourAnchor
-        stepId="calendar-edit"
-        titleKey="senior.tour.calendarEdit.title"
-        bodyKey="senior.tour.calendarEdit.body"
-        afterStepId="calendar-fab"
-        placement="auto"
-        tooltipLayoutMode="screenCenter"
-        scrollRef={dayScrollRef}
-        contentRef={dayContentRef}
-        wrapStyle={wrapStyle}
-      >
-        {node}
-      </SeniorTourAnchor>
+      <View style={wrapStyle}>{node}</View>
     ),
     [],
   );

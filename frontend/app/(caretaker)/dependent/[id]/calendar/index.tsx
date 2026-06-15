@@ -12,7 +12,7 @@ import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
 import { useTranslation } from 'react-i18next';
 import { AndroidStyleMonthCalendar } from '../../../../../components/caretaker/AndroidStyleMonthCalendar';
-import { CaretakerTourAnchor } from '../../../../../components/caretaker/CaretakerTourAnchor';
+import { CaretakerTourTarget } from '../../../../../components/caretaker/CaretakerTourTarget';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
 
 export default function DependentCalendarMonthScreen() {
@@ -75,13 +75,7 @@ export default function DependentCalendarMonthScreen() {
         />
       </View>
 
-      <CaretakerTourAnchor
-        stepId="calendar-fab"
-        titleKey="caretaker.tour.calendarFab.title"
-        bodyKey="caretaker.tour.calendarFab.body"
-        placement="top"
-        wrapStyle={[styles.fab, { bottom: fabBottomOffset }]}
-      >
+      <CaretakerTourTarget stepId="calendar-fab" wrapStyle={[styles.fab, { bottom: fabBottomOffset }]}>
         <Pressable
           style={styles.fabInner}
           onPress={() => {
@@ -96,7 +90,7 @@ export default function DependentCalendarMonthScreen() {
         >
           <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
         </Pressable>
-      </CaretakerTourAnchor>
+      </CaretakerTourTarget>
     </View>
   );
 }

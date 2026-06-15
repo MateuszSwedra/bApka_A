@@ -1,87 +1,40 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import { Platform, useWindowDimensions } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import React, { useEffect, useRef } from 'react';
+import { Platform, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useTranslation } from 'react-i18next';
-import { useAuth } from '../../context/AuthContext';
-import { useCaretakerTourScrollLock } from '../../context/CaretakerTourLockContext';
-import {
-  getCaretakerTourStepSeen,
-  setCaretakerTourStepSeen,
-} from '../../services/caretakerTourState';
-import { getCoachMarkOverlayHeight } from '../../utils/coachMarkCoordinates';
-import { getTabBarTotalHeight } from '../../utils/safeAreaInsets';
-import {
-  CaretakerCoachMarkOverlay,
-  type CoachMarkTarget,
-} from './CaretakerCoachMarkOverlay';
+import { useCaretakerGuidedTourOptional } from '../../context/CaretakerGuidedTourContext';
 
-/** Zgodne z tabBarStyle w dependent/[id]/_layout.tsx */
+const TAB_BAR_CONTENT_HEIGHT = 56;
 
+/** Cel tour dla prawdziwego paska zakładek profilu podopiecznego (faza post). */
 export function CaretakerTabBarTour() {
-  const { t } = useTranslation();
-  const { userRole } = useAuth();
-  const { width, height } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState(false);
-  const [target, setTarget] = useState<CoachMarkTarget | null>(null);
+  const guidedTour = useCaretakerGuidedTourOptional();
+  const tabBarRef = useRef<View>(null);
 
-  const tabBarBottom = getTabBarTotalHeight(insets.bottom);
-  const totalTabBarHeight = tabBarBottom;
-
-  const updateTarget = useCallback(() => {
-    const overlayHeight = getCoachMarkOverlayHeight(height, insets.top);
-    setTarget({
-      x: 0,
-      y: overlayHeight - totalTabBarHeight,
-      width,
-      height: totalTabBarHeight,
-    });
-  }, [height, insets.top, totalTabBarHeight, width]);
-
-  useFocusEffect(
-    useCallback(() => {
-      let cancelled = false;
-      (async () => {
-        if (userRole !== 'CARETAKER') return;
-        if (await getCaretakerTourStepSeen('dependent-tabs')) return;
-        setTimeout(() => {
-          if (!cancelled) {
-            updateTarget();
-            setVisible(true);
-          }
-        }, Platform.OS === 'web' ? 80 : 120);
-      })();
-      return () => {
-        cancelled = true;
-      };
-    }, [updateTarget, userRole]),
-  );
+  const tabBarBottom =
+    Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
+  const totalTabBarHeight = TAB_BAR_CONTENT_HEIGHT + tabBarBottom;
 
   useEffect(() => {
-    if (visible) updateTarget();
-  }, [visible, width, height, updateTarget]);
-
-  const dismiss = useCallback(async () => {
-    await setCaretakerTourStepSeen('dependent-tabs');
-    setVisible(false);
-  }, []);
-
-  useCaretakerTourScrollLock(visible);
+    if (!guidedTour) return;
+    guidedTour.registerTarget('dependent-tabs', tabBarRef);
+    return () => guidedTour.unregisterTarget('dependent-tabs');
+  }, [guidedTour]);
 
   return (
-    <CaretakerCoachMarkOverlay
-      visible={visible}
-      target={target}
-      title={t('caretaker.tour.dependentTabs.title')}
-      body={t('caretaker.tour.dependentTabs.body')}
-      placement="top"
-      clearanceAboveHighlight={24}
-      tooltipHeightEstimate={240}
-      reserveBottom={totalTabBarHeight}
-      onDismiss={() => void dismiss()}
-      onShow={() => updateTarget()}
-      maskId="coach-dependent-tabs"
+    <View
+      ref={tabBarRef}
+      collapsable={false}
+      pointerEvents="none"
+      style={{
+        position: 'absolute',
+        left: 0,
+        bottom: 0,
+        width,
+        height: totalTabBarHeight,
+        zIndex: 0,
+      }}
     />
   );
 }

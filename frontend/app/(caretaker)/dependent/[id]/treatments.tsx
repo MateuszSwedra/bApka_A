@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
@@ -17,12 +17,8 @@ import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopIns
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
-import { CaretakerTourAnchor } from '../../../../components/caretaker/CaretakerTourAnchor';
+import { CaretakerTourTarget } from '../../../../components/caretaker/CaretakerTourTarget';
 import { RestockMedicationSheet } from '../../../../components/caretaker/RestockMedicationSheet';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../../../context/CaretakerTourScrollContext';
 
 export default function DependentTreatmentsScreen() {
   const { t } = useTranslation();
@@ -30,7 +26,6 @@ export default function DependentTreatmentsScreen() {
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
   const topInset = useDependentTabTopInset();
-  const scrollBottomPadding = Theme.spacing.xl;
   const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
 
   const [restockTarget, setRestockTarget] = useState<Treatment | null>(null);
@@ -80,22 +75,12 @@ export default function DependentTreatmentsScreen() {
   const firstTreatmentId = grouped.flatMap(group => group.items)[0]?.id;
 
   return (
-    <CaretakerTourScrollProvider>
-      <View style={styles.container}>
-        <CaretakerTourScrollView
-          style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}
-        >
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
-        <CaretakerTourAnchor
-          stepId="treatments-add"
-          titleKey="caretaker.tour.treatmentsAdd.title"
-          bodyKey="caretaker.tour.treatmentsAdd.body"
-          placement="bottom"
-          wrapStyle={styles.addRowWrap}
-        >
+        <CaretakerTourTarget stepId="treatments-add" wrapStyle={styles.addRowWrap}>
           <Pressable
             onPress={handleOpenAddTreatment}
             style={styles.addRow}
@@ -106,7 +91,7 @@ export default function DependentTreatmentsScreen() {
             </View>
             <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
           </Pressable>
-        </CaretakerTourAnchor>
+        </CaretakerTourTarget>
 
         {grouped.length === 0 && (
           <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
@@ -139,24 +124,11 @@ export default function DependentTreatmentsScreen() {
                 return <React.Fragment key={item.id}>{card}</React.Fragment>;
               }
 
-              return (
-                <CaretakerTourAnchor
-                  key={item.id}
-                  stepId="treatments-edit"
-                  titleKey="caretaker.tour.treatmentsEdit.title"
-                  bodyKey="caretaker.tour.treatmentsEdit.body"
-                  placement="bottom"
-                  afterStepId="treatments-add"
-                  tooltipGap={24}
-                  wrapStyle={styles.tourCardWrap}
-                >
-                  {card}
-                </CaretakerTourAnchor>
-              );
+              return <View key={item.id} style={styles.tourCardWrap}>{card}</View>;
             })}
           </View>
         ))}
-      </CaretakerTourScrollView>
+      </ScrollView>
 
       <RestockMedicationSheet
         treatment={restockTarget}
@@ -167,7 +139,6 @@ export default function DependentTreatmentsScreen() {
         }}
       />
     </View>
-    </CaretakerTourScrollProvider>
   );
 }
 
@@ -242,6 +213,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Theme.spacing.l,
+    paddingBottom: 120,
   },
   sectionTitle: {
     fontSize: Theme.typography.title,

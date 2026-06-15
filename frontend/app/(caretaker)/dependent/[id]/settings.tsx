@@ -7,6 +7,7 @@ import {
   Switch,
   ActivityIndicator,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, useGlobalSearchParams, useSegments, useFocusEffect, router } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
@@ -25,12 +26,7 @@ import { previewNotificationAsset } from '../../../../services/notificationSound
 import { applyAppLanguage, normalizeAppLanguage } from '../../../../services/appLanguage';
 import type { AppLanguage } from '../../../../i18n/resolveLanguage';
 import { MoodCheckTimesEditor } from '../../../../components/caretaker/MoodCheckTimesEditor';
-import { CaretakerTourAnchor } from '../../../../components/caretaker/CaretakerTourAnchor';
 import { normalizeMoodCheckTimes } from '../../../../utils/moodCheckTimes';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../../../context/CaretakerTourScrollContext';
 import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 
 type DependentSettings = {
@@ -228,14 +224,13 @@ export default function DependentSettingsScreen() {
   };
 
   return (
-    <CaretakerTourScrollProvider>
-      <View style={styles.root}>
-        <DependentProfileHeader
-          title={t('caretaker.settings.title')}
-          subtitle={dependentName || t('caretaker.dependentFallbackName')}
-          onBack={() => router.back()}
-        />
-        <CaretakerTourScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]} keyboardShouldPersistTaps="handled">
+    <View style={styles.root}>
+      <DependentProfileHeader
+        title={t('caretaker.settings.title')}
+        subtitle={dependentName || t('caretaker.dependentFallbackName')}
+        onBack={() => router.back()}
+      />
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]} keyboardShouldPersistTaps="handled">
         {loading ? (
           <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 32 }} />
         ) : (
@@ -243,177 +238,93 @@ export default function DependentSettingsScreen() {
             <Text style={styles.sectionTitle}>{t('caretaker.settings.seniorSection')}</Text>
             <Text style={styles.sectionHint}>{t('caretaker.settings.seniorSectionHint')}</Text>
 
-            <CaretakerTourAnchor
-              stepId="settings-mood"
-              titleKey="caretaker.tour.settingsMood.title"
-              bodyKey="caretaker.tour.settingsMood.body"
-              placement="bottom"
-              tooltipEstimateHeight={200}
-              measureDelayMs={200}
-              wrapStyle={styles.rowCardWrap}
-            >
-              <View style={styles.rowCard}>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowTitle}>{t('caretaker.settings.mood')}</Text>
-                  <Text style={styles.rowSub}>{t('caretaker.settings.moodSub')}</Text>
-                </View>
-                <Switch
-                  value={settings.moodEnabled}
-                  disabled={savingKey === 'moodEnabled'}
-                  onValueChange={v => void patchDependent({ moodEnabled: v }, 'moodEnabled')}
-                  trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
-                />
+            <View style={styles.rowCard}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{t('caretaker.settings.mood')}</Text>
+                <Text style={styles.rowSub}>{t('caretaker.settings.moodSub')}</Text>
               </View>
-            </CaretakerTourAnchor>
+              <Switch
+                value={settings.moodEnabled}
+                disabled={savingKey === 'moodEnabled'}
+                onValueChange={v => void patchDependent({ moodEnabled: v }, 'moodEnabled')}
+                trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+              />
+            </View>
 
             {settings.moodEnabled ? (
-              <CaretakerTourAnchor
-                stepId="settings-mood-time"
-                titleKey="caretaker.tour.settingsMoodTime.title"
-                bodyKey="caretaker.tour.settingsMoodTime.body"
-                placement="top"
-                tooltipLayoutMode="screenCenter"
-                tooltipEstimateHeight={220}
-                measureDelayMs={280}
-                afterStepId="settings-mood"
-                wrapStyle={styles.rowCardWrap}
-              >
-                <MoodCheckTimesEditor
-                  savedTime={settings.moodCheckTimes[0] ?? '08:00'}
-                  busy={savingKey === 'moodCheckTimes'}
-                  onSave={time => void patchDependent({ moodCheckTimes: [time] }, 'moodCheckTimes')}
-                />
-              </CaretakerTourAnchor>
+              <MoodCheckTimesEditor
+                savedTime={settings.moodCheckTimes[0] ?? '08:00'}
+                busy={savingKey === 'moodCheckTimes'}
+                onSave={time => void patchDependent({ moodCheckTimes: [time] }, 'moodCheckTimes')}
+              />
             ) : null}
 
-            <CaretakerTourAnchor
-              stepId="settings-vitals"
-              titleKey="caretaker.tour.settingsVitals.title"
-              bodyKey="caretaker.tour.settingsVitals.body"
-              placement="bottom"
-              tooltipEstimateHeight={200}
-              measureDelayMs={200}
-              afterStepId={settings.moodEnabled ? 'settings-mood-time' : 'settings-mood'}
-              wrapStyle={styles.rowCardWrap}
-            >
-              <View style={styles.rowCard}>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowTitle}>{t('caretaker.settings.vitals')}</Text>
-                  <Text style={styles.rowSub}>{t('caretaker.settings.vitalsSub')}</Text>
-                </View>
-                <Switch
-                  value={settings.vitalsEntryEnabled}
-                  disabled={savingKey === 'vitalsEntryEnabled'}
-                  onValueChange={v => void patchDependent({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')}
-                  trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
-                />
+            <View style={styles.rowCard}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{t('caretaker.settings.vitals')}</Text>
+                <Text style={styles.rowSub}>{t('caretaker.settings.vitalsSub')}</Text>
               </View>
-            </CaretakerTourAnchor>
+              <Switch
+                value={settings.vitalsEntryEnabled}
+                disabled={savingKey === 'vitalsEntryEnabled'}
+                onValueChange={v => void patchDependent({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')}
+                trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+              />
+            </View>
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.accessibility')}</Text>
             <Text style={styles.sectionHint}>{t('caretaker.settings.accessibilityHint')}</Text>
 
-            <CaretakerTourAnchor
-              stepId="settings-color-blind"
-              titleKey="caretaker.tour.settingsColorBlind.title"
-              bodyKey="caretaker.tour.settingsColorBlind.body"
-              placement="bottom"
-              afterStepId="settings-vitals"
-              wrapStyle={styles.rowCardWrap}
-            >
-              <View style={styles.rowCard}>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowTitle}>{t('dependent.settings.colorBlind')}</Text>
-                  <Text style={styles.rowSub}>{t('dependent.settings.colorBlindSub')}</Text>
-                </View>
-                <Switch
-                  value={settings.colorBlindFriendly}
-                  disabled={savingKey === 'colorBlindFriendly'}
-                  onValueChange={v => void patchDependent({ colorBlindFriendly: v }, 'colorBlindFriendly')}
-                  trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
-                />
+            <View style={styles.rowCard}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{t('dependent.settings.colorBlind')}</Text>
+                <Text style={styles.rowSub}>{t('dependent.settings.colorBlindSub')}</Text>
               </View>
-            </CaretakerTourAnchor>
+              <Switch
+                value={settings.colorBlindFriendly}
+                disabled={savingKey === 'colorBlindFriendly'}
+                onValueChange={v => void patchDependent({ colorBlindFriendly: v }, 'colorBlindFriendly')}
+                trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+              />
+            </View>
 
-            <CaretakerTourAnchor
-              stepId="settings-high-contrast"
-              titleKey="caretaker.tour.settingsHighContrast.title"
-              bodyKey="caretaker.tour.settingsHighContrast.body"
-              placement="bottom"
-              afterStepId="settings-color-blind"
-              wrapStyle={styles.rowCardWrap}
-            >
-              <View style={styles.rowCard}>
-                <View style={styles.rowText}>
-                  <Text style={styles.rowTitle}>{t('dependent.settings.highContrast')}</Text>
-                  <Text style={styles.rowSub}>{t('dependent.settings.highContrastSub')}</Text>
-                </View>
-                <Switch
-                  value={settings.highContrast}
-                  disabled={savingKey === 'highContrast'}
-                  onValueChange={v => void patchDependent({ highContrast: v }, 'highContrast')}
-                  trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
-                />
+            <View style={styles.rowCard}>
+              <View style={styles.rowText}>
+                <Text style={styles.rowTitle}>{t('dependent.settings.highContrast')}</Text>
+                <Text style={styles.rowSub}>{t('dependent.settings.highContrastSub')}</Text>
               </View>
-            </CaretakerTourAnchor>
+              <Switch
+                value={settings.highContrast}
+                disabled={savingKey === 'highContrast'}
+                onValueChange={v => void patchDependent({ highContrast: v }, 'highContrast')}
+                trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+              />
+            </View>
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.languageSection')}</Text>
-            <CaretakerTourAnchor
-              stepId="settings-senior-language"
-              titleKey="caretaker.tour.settingsSeniorLanguage.title"
-              bodyKey="caretaker.tour.settingsSeniorLanguage.body"
-              placement="bottom"
-              afterStepId="settings-high-contrast"
-              wrapStyle={styles.rowCardWrap}
-            >
-              {renderLanguageRow(
-                t('caretaker.settings.seniorLanguage'),
-                t('caretaker.settings.seniorLanguageSub'),
-                settings.appLanguage,
-                lang => void patchDependent({ appLanguage: lang }, 'seniorLang'),
-                savingKey === 'seniorLang',
-              )}
-            </CaretakerTourAnchor>
-            <CaretakerTourAnchor
-              stepId="settings-caretaker-language"
-              titleKey="caretaker.tour.settingsCaretakerLanguage.title"
-              bodyKey="caretaker.tour.settingsCaretakerLanguage.body"
-              placement="bottom"
-              afterStepId="settings-senior-language"
-              wrapStyle={styles.rowCardWrap}
-            >
-              {renderLanguageRow(
-                t('caretaker.settings.caretakerLanguage'),
-                t('caretaker.settings.caretakerLanguageSub'),
-                caretakerLanguage,
-                lang => void patchCaretakerLanguage(lang),
-                savingKey === 'caretakerLang',
-              )}
-            </CaretakerTourAnchor>
+            {renderLanguageRow(
+              t('caretaker.settings.seniorLanguage'),
+              t('caretaker.settings.seniorLanguageSub'),
+              settings.appLanguage,
+              lang => void patchDependent({ appLanguage: lang }, 'seniorLang'),
+              savingKey === 'seniorLang',
+            )}
+            {renderLanguageRow(
+              t('caretaker.settings.caretakerLanguage'),
+              t('caretaker.settings.caretakerLanguageSub'),
+              caretakerLanguage,
+              lang => void patchCaretakerLanguage(lang),
+              savingKey === 'caretakerLang',
+            )}
 
-            <CaretakerTourAnchor
-              stepId="settings-reminder-sound"
-              titleKey="caretaker.tour.settingsReminderSound.title"
-              bodyKey="caretaker.tour.settingsReminderSound.body"
-              placement="top"
-              tooltipLayoutMode="screenCenter"
-              tooltipEstimateHeight={220}
-              measureDelayMs={280}
-              afterStepId="settings-caretaker-language"
-              wrapStyle={styles.soundSectionWrap}
-            >
-              <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('dependent.settings.reminderSound')}</Text>
-              <Text style={styles.sectionHint}>{t('caretaker.settings.soundHint')}</Text>
-              {renderSoundRow(NOTIFICATION_SOUND_CHOICE_IDS[0])}
-            </CaretakerTourAnchor>
-
-            {NOTIFICATION_SOUND_CHOICE_IDS.slice(1).map(soundId => renderSoundRow(soundId))}
+            <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('dependent.settings.reminderSound')}</Text>
+            <Text style={styles.sectionHint}>{t('caretaker.settings.soundHint')}</Text>
+            {NOTIFICATION_SOUND_CHOICE_IDS.map(soundId => renderSoundRow(soundId))}
 
           </>
         )}
-        </CaretakerTourScrollView>
-      </View>
-    </CaretakerTourScrollProvider>
+      </ScrollView>
+    </View>
   );
 }
 

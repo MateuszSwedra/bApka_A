@@ -13,7 +13,6 @@ import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
 import { useTranslation } from 'react-i18next';
 import { AndroidStyleDayView } from '../../../../../components/caretaker/AndroidStyleDayView';
-import { CaretakerTourAnchor } from '../../../../../components/caretaker/CaretakerTourAnchor';
 import { ScheduleEventSheet } from '../../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../../utils/scheduleHelpers';
@@ -79,19 +78,7 @@ export default function DependentCalendarDayScreen() {
 
   const wrapTourTarget = useCallback(
     (node: React.ReactElement, wrapStyle: ViewStyle) => (
-      <CaretakerTourAnchor
-        stepId="calendar-edit"
-        titleKey="caretaker.tour.calendarEdit.title"
-        bodyKey="caretaker.tour.calendarEdit.body"
-        afterStepId="calendar-fab"
-        placement="auto"
-        tooltipLayoutMode="screenCenter"
-        scrollRef={dayScrollRef}
-        contentRef={dayContentRef}
-        wrapStyle={wrapStyle}
-      >
-        {node}
-      </CaretakerTourAnchor>
+      <View style={wrapStyle}>{node}</View>
     ),
     [],
   );
