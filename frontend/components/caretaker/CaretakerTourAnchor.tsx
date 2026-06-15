@@ -22,6 +22,7 @@ import {
   delay,
   ensureCoachMarkTargetVisible,
   isCoachMarkHighlightVisible,
+  measureTargetStable,
 } from '../../utils/ensureCoachMarkTargetVisible';
 import {
   CaretakerCoachMarkOverlay,
@@ -41,6 +42,7 @@ type Props = {
   measureDelayMs?: number;
   tooltipGap?: number;
   reserveBottom?: number;
+  tooltipEstimateHeight?: number;
   scrollRef?: RefObject<ScrollView | null>;
   contentRef?: RefObject<View | null>;
   tooltipLayoutMode?: 'anchor' | 'screenCenter';
@@ -62,6 +64,7 @@ export function CaretakerTourAnchor({
   measureDelayMs = 0,
   tooltipGap,
   reserveBottom = TAB_BAR_RESERVE,
+  tooltipEstimateHeight,
   scrollRef: scrollRefOverride,
   contentRef: contentRefOverride,
   tooltipLayoutMode = 'anchor',
@@ -91,8 +94,11 @@ export function CaretakerTourAnchor({
       placement,
       tooltipGap,
       reserveBottom,
+      tooltipEstimateHeight,
+      tooltipLayoutMode,
       scrollRef: scrollRefOverride ?? tourScroll?.scrollRef,
       contentRef: contentRefOverride ?? tourScroll?.contentRef,
+      safeAreaTop: insets.top,
     }),
     [
       height,
@@ -101,6 +107,8 @@ export function CaretakerTourAnchor({
       placement,
       tooltipGap,
       reserveBottom,
+      tooltipEstimateHeight,
+      tooltipLayoutMode,
       scrollRefOverride,
       contentRefOverride,
       tourScroll?.contentRef,
@@ -195,13 +203,20 @@ export function CaretakerTourAnchor({
     }
   }, [isReady, isCaretaker, userRole, storedRole, enabled, visible, preparing, tryShow]);
 
+  const remeasureTarget = useCallback(async () => {
+    const measured = await measureTargetStable(containerRef, 6, undefined, insets.top);
+    if (measured) {
+      setTarget(measured);
+    }
+  }, [insets.top]);
+
   const dismiss = useCallback(async () => {
     await setCaretakerTourStepSeen(stepId);
     setVisible(false);
     setTarget(null);
   }, [stepId]);
 
-  useCaretakerTourScrollLock(visible || preparing);
+  useCaretakerTourScrollLock(visible);
 
   return (
     <>
@@ -215,9 +230,11 @@ export function CaretakerTourAnchor({
         body={t(bodyKey)}
         placement={placement}
         onDismiss={() => void dismiss()}
+        onShow={() => void remeasureTarget()}
         maskId={`coach-${stepId}`}
         tooltipGap={tooltipGap}
         reserveBottom={reserveBottom}
+        tooltipHeightEstimate={tooltipEstimateHeight}
         tooltipLayoutMode={tooltipLayoutMode}
       />
     </>

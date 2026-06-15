@@ -19,10 +19,12 @@ import { useMeds, Treatment } from '../../../context/MedsContext';
 import { inventoryAPI } from '../../../services/api';
 import type { TreatmentType } from '../../../constants/treatmentVisuals';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../../utils/safeAreaInsets';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 
 export default function EditTreatmentScreen() {
   const { t } = useTranslation();
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.xl);
   const params = useLocalSearchParams<{ treatmentId: string }>();
   const treatmentId = Array.isArray(params.treatmentId) ? params.treatmentId[0] : params.treatmentId;
 
@@ -157,7 +159,7 @@ export default function EditTreatmentScreen() {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled">
         <View style={styles.typePill}>
           <View style={[styles.typeIconCircle, { backgroundColor: vis.accent + '22' }]}>
             <MaterialIcons name={vis.icon} size={22} color={vis.accent} />
@@ -252,7 +254,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Theme.spacing.l,
-    paddingBottom: Theme.spacing.xxl,
   },
   typePill: {
     flexDirection: 'row',

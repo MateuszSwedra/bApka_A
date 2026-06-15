@@ -8,11 +8,13 @@ import { useAuth } from '../context/AuthContext';
 import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 export default function RoleSelectionScreen() {
   const { t } = useTranslation();
   const { loginFake, setUserSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   const updateAndNavigate = async (role: 'CARETAKER' | 'DEPENDENT') => {
     setIsLoading(true);
@@ -49,7 +51,7 @@ export default function RoleSelectionScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.header}>
         <MaterialIcons name="account-circle" size={64} color={OnboardingPalette.navy} />
         <Text style={styles.title}>{t('role.title')}</Text>

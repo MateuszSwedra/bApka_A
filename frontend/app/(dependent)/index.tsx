@@ -16,6 +16,7 @@ import { useMeds } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { format } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../utils/safeAreaInsets';
 import {
   computeDependentMainScheduleState,
   computeMoodScheduleState,
@@ -53,6 +54,7 @@ const DEFAULT_TILE_COLORS = {
 
 export default function DependentDashboard() {
   const { t } = useTranslation();
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.s);
   const { logout } = useAuth();
   const { colors, colorBlindFriendly, highContrast, reload } = useDependentDisplay();
   const { schedules, treatments, refetchFromServer } = useMeds();
@@ -330,7 +332,7 @@ export default function DependentDashboard() {
         </View>
       </View>
 
-      <View style={styles.grid}>
+      <View style={[styles.grid, { paddingBottom: bottomPadding }]}>
         <Pressable
           onPress={onMedPress}
           disabled={!medActive}

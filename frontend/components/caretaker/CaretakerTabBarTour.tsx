@@ -9,13 +9,14 @@ import {
   getCaretakerTourStepSeen,
   setCaretakerTourStepSeen,
 } from '../../services/caretakerTourState';
+import { getCoachMarkOverlayHeight } from '../../utils/coachMarkCoordinates';
+import { getTabBarTotalHeight } from '../../utils/safeAreaInsets';
 import {
   CaretakerCoachMarkOverlay,
   type CoachMarkTarget,
 } from './CaretakerCoachMarkOverlay';
 
 /** Zgodne z tabBarStyle w dependent/[id]/_layout.tsx */
-const TAB_BAR_CONTENT_HEIGHT = 56;
 
 export function CaretakerTabBarTour() {
   const { t } = useTranslation();
@@ -25,18 +26,18 @@ export function CaretakerTabBarTour() {
   const [visible, setVisible] = useState(false);
   const [target, setTarget] = useState<CoachMarkTarget | null>(null);
 
-  const tabBarBottom =
-    Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
-  const totalTabBarHeight = TAB_BAR_CONTENT_HEIGHT + tabBarBottom;
+  const tabBarBottom = getTabBarTotalHeight(insets.bottom);
+  const totalTabBarHeight = tabBarBottom;
 
   const updateTarget = useCallback(() => {
+    const overlayHeight = getCoachMarkOverlayHeight(height, insets.top);
     setTarget({
       x: 0,
-      y: height - totalTabBarHeight,
+      y: overlayHeight - totalTabBarHeight,
       width,
       height: totalTabBarHeight,
     });
-  }, [height, totalTabBarHeight, width]);
+  }, [height, insets.top, totalTabBarHeight, width]);
 
   useFocusEffect(
     useCallback(() => {
@@ -79,6 +80,7 @@ export function CaretakerTabBarTour() {
       tooltipHeightEstimate={240}
       reserveBottom={totalTabBarHeight}
       onDismiss={() => void dismiss()}
+      onShow={() => updateTarget()}
       maskId="coach-dependent-tabs"
     />
   );

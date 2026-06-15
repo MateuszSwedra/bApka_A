@@ -31,6 +31,7 @@ import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
 } from '../../../../context/CaretakerTourScrollContext';
+import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 
 type DependentSettings = {
   moodEnabled: boolean;
@@ -54,6 +55,7 @@ const DEFAULT_SETTINGS: DependentSettings = {
 
 export default function DependentSettingsScreen() {
   const { t } = useTranslation();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -233,7 +235,7 @@ export default function DependentSettingsScreen() {
           subtitle={dependentName || t('caretaker.dependentFallbackName')}
           onBack={() => router.back()}
         />
-        <CaretakerTourScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+        <CaretakerTourScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]} keyboardShouldPersistTaps="handled">
         {loading ? (
           <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 32 }} />
         ) : (
@@ -246,6 +248,8 @@ export default function DependentSettingsScreen() {
               titleKey="caretaker.tour.settingsMood.title"
               bodyKey="caretaker.tour.settingsMood.body"
               placement="bottom"
+              tooltipEstimateHeight={200}
+              measureDelayMs={200}
               wrapStyle={styles.rowCardWrap}
             >
               <View style={styles.rowCard}>
@@ -267,7 +271,10 @@ export default function DependentSettingsScreen() {
                 stepId="settings-mood-time"
                 titleKey="caretaker.tour.settingsMoodTime.title"
                 bodyKey="caretaker.tour.settingsMoodTime.body"
-                placement="bottom"
+                placement="top"
+                tooltipLayoutMode="screenCenter"
+                tooltipEstimateHeight={220}
+                measureDelayMs={280}
                 afterStepId="settings-mood"
                 wrapStyle={styles.rowCardWrap}
               >
@@ -284,6 +291,8 @@ export default function DependentSettingsScreen() {
               titleKey="caretaker.tour.settingsVitals.title"
               bodyKey="caretaker.tour.settingsVitals.body"
               placement="bottom"
+              tooltipEstimateHeight={200}
+              measureDelayMs={200}
               afterStepId={settings.moodEnabled ? 'settings-mood-time' : 'settings-mood'}
               wrapStyle={styles.rowCardWrap}
             >
@@ -387,6 +396,9 @@ export default function DependentSettingsScreen() {
               titleKey="caretaker.tour.settingsReminderSound.title"
               bodyKey="caretaker.tour.settingsReminderSound.body"
               placement="top"
+              tooltipLayoutMode="screenCenter"
+              tooltipEstimateHeight={220}
+              measureDelayMs={280}
               afterStepId="settings-caretaker-language"
               wrapStyle={styles.soundSectionWrap}
             >
@@ -409,7 +421,6 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Theme.colors.background },
   scroll: {
     padding: Theme.spacing.l,
-    paddingBottom: 120,
   },
   sectionTitle: {
     fontSize: Theme.typography.title,

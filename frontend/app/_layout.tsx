@@ -3,7 +3,7 @@ import '../services/sosBootstrap';
 import { Stack, usePathname } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, View } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { MedsProvider } from '../context/MedsContext';
@@ -18,6 +18,9 @@ import { enforcePushPermissionsOnResume } from '../services/pushPermissionGuard'
 import { useTranslation } from 'react-i18next';
 import { parseSosPayload, presentSosAlarm } from '../services/presentSosAlarm';
 import { routeIncomingPush } from '../services/incomingPushRouter';
+import * as SystemUI from 'expo-system-ui';
+import { Theme } from '../constants/theme';
+import { ANDROID_NAV_BAR_COLOR } from '../utils/safeAreaInsets';
 
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
@@ -105,9 +108,18 @@ function PushPermissionGuard() {
 }
 
 export default function RootLayout() {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      void SystemUI.setBackgroundColorAsync(ANDROID_NAV_BAR_COLOR);
+    } else {
+      void SystemUI.setBackgroundColorAsync(Theme.colors.background);
+    }
+  }, []);
+
   return (
     <SafeAreaProvider>
-    <AuthProvider>
+    <View style={{ flex: 1, backgroundColor: Platform.OS === 'android' ? ANDROID_NAV_BAR_COLOR : Theme.colors.background }}>
+      <AuthProvider>
       <MedsProvider>
       <PushPermissionGuard />
       <SosAlarmBootstrap />
@@ -142,6 +154,7 @@ export default function RootLayout() {
       </Stack>
       </MedsProvider>
     </AuthProvider>
+    </View>
     </SafeAreaProvider>
   );
 }

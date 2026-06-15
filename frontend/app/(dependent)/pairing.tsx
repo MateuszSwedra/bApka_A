@@ -9,6 +9,7 @@ import { usersAPI } from '../../services/api';
 import * as SecureStore from 'expo-secure-store';
 import { normalizePinInput } from '../../utils/pin';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../utils/safeAreaInsets';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -23,6 +24,7 @@ export default function DependentPairingScreen() {
   const { loginFake, setUserSession } = useAuth();
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   const handlePair = async () => {
     const digits = normalizePinInput(pin);
@@ -59,7 +61,7 @@ export default function DependentPairingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>{t('pairing.dependent.title')}</Text>
       <Text style={styles.subtitle}>{t('pairing.enterPin.subtitle')}</Text>

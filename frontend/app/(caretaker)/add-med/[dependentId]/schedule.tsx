@@ -12,6 +12,7 @@ import { useLocalSearchParams, router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../../../../utils/safeAreaInsets';
 import { Theme } from '../../../../constants/theme';
 import { useMeds, MedScheduleType } from '../../../../context/MedsContext';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
@@ -221,7 +222,7 @@ export default function AddScheduleDetailsScreen() {
         )}
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + Theme.spacing.m }]}>
+      <View style={[styles.footer, { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.m) }]}>
         <HugeButton
           title={t('common.save')}
           onPress={handleSave}

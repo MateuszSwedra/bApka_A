@@ -32,6 +32,11 @@ const config: ExpoConfig = {
     },
     edgeToEdgeEnabled: true,
     predictiveBackGestureEnabled: false,
+    androidNavigationBar: {
+      backgroundColor: '#000000',
+      barStyle: 'light-content',
+      enforceContrast: true,
+    },
   },
   web: {
     output: 'static',

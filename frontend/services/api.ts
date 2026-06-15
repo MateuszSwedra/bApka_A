@@ -199,6 +199,9 @@ export const usersAPI = {
       body: JSON.stringify({ fcmToken, nativePushToken }),
     });
   },
+  clearFcmToken: async () => {
+    return fetchApi('/users/me/fcm-token', { method: 'DELETE' });
+  },
   generatePin: async () => {
     return fetchApi('/users/generate-pin', {
       method: 'POST'

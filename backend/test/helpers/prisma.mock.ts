@@ -6,6 +6,7 @@ export type PrismaMock = {
     findUnique: jest.Mock;
     create: jest.Mock;
     update: jest.Mock;
+    updateMany: jest.Mock;
   };
   connection: {
     deleteMany: jest.Mock;
@@ -60,6 +61,7 @@ export function createPrismaMock(): PrismaMock {
       findUnique: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
+      updateMany: jest.fn().mockResolvedValue({ count: 0 }),
     },
     connection: {
       deleteMany: jest.fn().mockResolvedValue({ count: 0 }),

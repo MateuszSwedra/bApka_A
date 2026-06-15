@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { resolveSosSoundAsset } from '../constants/notificationSounds';
 import { getSosSoundChoice } from '../services/notificationSoundPreferences';
+import { navigateAfterSosDismiss } from '../services/sosDismissRouting';
 
 const SOS_SOUND = resolveSosSoundAsset('strong');
 
@@ -64,8 +65,8 @@ export default function SosAlarmScreen() {
       router.back();
       return;
     }
-    router.replace('/(caretaker)');
-  }, [stopAlarm]);
+    await navigateAfterSosDismiss(params.dependentId);
+  }, [stopAlarm, params.dependentId]);
 
   useEffect(() => {
     let mounted = true;

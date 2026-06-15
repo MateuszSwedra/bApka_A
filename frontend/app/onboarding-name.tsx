@@ -23,6 +23,7 @@ import {
 } from '../constants/onboardingTheme';
 import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 
@@ -38,6 +39,7 @@ export default function OnboardingNameScreen() {
   const { t } = useTranslation();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   const handleContinue = async () => {
     const trimmed = name.trim();
@@ -75,7 +77,11 @@ export default function OnboardingNameScreen() {
     >
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, styles.scrollNameCentered]}
+        contentContainerStyle={[
+          styles.scrollContent,
+          styles.scrollNameCentered,
+          { paddingBottom: bottomPadding },
+        ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -173,7 +179,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     minHeight: SCREEN_H,
     paddingTop: Platform.OS === 'ios' ? 20 : 12,
-    paddingBottom: 32,
   },
   nameColumn: {
     width: '100%',

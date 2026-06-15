@@ -7,6 +7,7 @@ import { useMeds, Treatment } from '../../../context/MedsContext';
 import { Card } from '../../../components/Card';
 import { useFocusEffect } from 'expo-router';
 import { useDependentTabTopInset } from '../../../utils/useDependentTabTopInset';
+import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { useSelfUserId } from '../../../hooks/useSelfUserId';
@@ -22,6 +23,7 @@ export default function HybridTreatmentsScreen() {
   const { t } = useTranslation();
   const selfUserId = useSelfUserId();
   const topInset = useDependentTabTopInset();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const { treatments, removeTreatment, refetchFromServer } = useMeds();
 
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
@@ -50,7 +52,7 @@ export default function HybridTreatmentsScreen() {
   return (
     <CaretakerTourScrollProvider>
       <View style={styles.container}>
-        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
+        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
           <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
           <Text style={styles.sectionSubtitle}>{t('hybrid.treatmentsSubtitle')}</Text>
 
@@ -166,7 +168,7 @@ function TreatmentCard({
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
-  content: { padding: Theme.spacing.l, paddingBottom: 120 },
+  content: { padding: Theme.spacing.l },
   sectionTitle: { fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.textDark },
   sectionSubtitle: { marginTop: Theme.spacing.xs, marginBottom: Theme.spacing.m, color: Theme.colors.textLight, lineHeight: 20 },
   addRowWrap: { width: '100%' },

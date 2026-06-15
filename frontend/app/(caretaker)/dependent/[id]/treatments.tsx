@@ -14,6 +14,7 @@ import {
 } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
+import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
@@ -29,6 +30,7 @@ export default function DependentTreatmentsScreen() {
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
   const topInset = useDependentTabTopInset();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
 
   const dependentId = useMemo(
@@ -63,7 +65,7 @@ export default function DependentTreatmentsScreen() {
   return (
     <CaretakerTourScrollProvider>
       <View style={styles.container}>
-        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
+        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
@@ -195,7 +197,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Theme.spacing.l,
-    paddingBottom: 120,
   },
   sectionTitle: {
     fontSize: Theme.typography.title,

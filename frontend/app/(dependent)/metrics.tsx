@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../utils/safeAreaInsets';
 import { Theme } from '../../constants/theme';
 import { usersAPI } from '../../services/api';
 import { SeniorNumericStepper } from '../../components/senior/SeniorNumericStepper';
@@ -19,6 +20,7 @@ export default function DependentMetricsScreen() {
   const [dia, setDia] = useState(DEFAULT_DIA);
   const [glucose, setGlucose] = useState(DEFAULT_GLUCOSE);
   const [loading, setLoading] = useState(false);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   const submit = async () => {
     setLoading(true);
@@ -55,7 +57,7 @@ export default function DependentMetricsScreen() {
         <Text style={styles.title}>{t('dependent.metrics.title')}</Text>
       </View>
 
-      <View style={styles.body}>
+      <View style={[styles.body, { paddingBottom: bottomPadding }]}>
         <View style={styles.hintBanner}>
           <Text style={styles.hint}>{t('dependent.metrics.hint')}</Text>
         </View>

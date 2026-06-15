@@ -172,4 +172,39 @@ describe('UsersService', () => {
       await expect(service.createSosLog('missing')).rejects.toThrow(NotFoundException);
     });
   });
+
+  describe('updateFcmToken', () => {
+    it('clears duplicate tokens from other users before saving', async () => {
+      prisma.user.updateMany.mockResolvedValue({ count: 1 });
+      prisma.user.update.mockResolvedValue({ id: 'u2', email: 'b@test.pl' });
+
+      await service.updateFcmToken('u2', 'ExponentPushToken[abc]', 'native-1');
+
+      expect(prisma.user.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: { not: 'u2' },
+          OR: [{ fcmToken: 'ExponentPushToken[abc]' }, { nativePushToken: 'native-1' }],
+        },
+        data: { fcmToken: null, nativePushToken: null },
+      });
+      expect(prisma.user.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'u2' },
+          data: { fcmToken: 'ExponentPushToken[abc]', nativePushToken: 'native-1' },
+        }),
+      );
+    });
+  });
+
+  describe('clearFcmToken', () => {
+    it('nulls push tokens for user', async () => {
+      prisma.user.update.mockResolvedValue({ id: 'u1' });
+      await service.clearFcmToken('u1');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'u1' },
+        data: { fcmToken: null, nativePushToken: null },
+        select: { id: true },
+      });
+    });
+  });
 });

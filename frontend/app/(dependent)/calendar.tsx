@@ -12,6 +12,7 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../constants/theme';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../utils/safeAreaInsets';
 import { useMeds } from '../../context/MedsContext';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { SeniorWeekPlanView } from '../../components/senior/SeniorWeekPlanView';
@@ -22,6 +23,7 @@ import {
 
 export default function DependentCalendarScreen() {
   const { t } = useTranslation();
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.m);
   const { colors } = useDependentDisplay();
   const { depletionAlerts, schedules, treatments } = useMeds();
   const [weekAnchor, setWeekAnchor] = useState(() => startOfSeniorPlanWindow(new Date()));
@@ -70,7 +72,7 @@ export default function DependentCalendarScreen() {
         <ScrollView
           ref={scrollRef}
           style={styles.scroll}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: bottomPadding + 72 }]}
           showsVerticalScrollIndicator
           scrollEventThrottle={16}
           onScroll={onScroll}
@@ -100,6 +102,7 @@ export default function DependentCalendarScreen() {
             onPress={handleScrollMore}
             style={({ pressed }) => [
               styles.floatingBtn,
+              { bottom: bottomPadding },
               { backgroundColor: colors.surfaceWhite, borderColor: colors.primaryLimeDark },
               pressed && styles.floatingBtnPressed,
             ]}
@@ -118,6 +121,7 @@ export default function DependentCalendarScreen() {
             onPress={handleScrollToTop}
             style={({ pressed }) => [
               styles.floatingBtn,
+              { bottom: bottomPadding },
               { backgroundColor: colors.surfaceWhite, borderColor: colors.primaryLimeDark },
               pressed && styles.floatingBtnPressed,
             ]}
@@ -165,13 +169,11 @@ const styles = StyleSheet.create({
   scroll: { flex: 1 },
   scrollContent: {
     padding: Theme.spacing.m,
-    paddingBottom: Theme.spacing.xxl + 56,
   },
   floatingBtn: {
     position: 'absolute',
     left: Theme.spacing.l,
     right: Theme.spacing.l,
-    bottom: Theme.spacing.m,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

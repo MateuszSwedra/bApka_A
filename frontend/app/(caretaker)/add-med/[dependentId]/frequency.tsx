@@ -11,6 +11,7 @@ import { router, useLocalSearchParams, useSegments } from 'expo-router';
 import { addMedRoute, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 import { addMedPrefillParams, readAddMedPrefill } from '../../../../utils/addMedPrefill';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../../../../utils/safeAreaInsets';
 import { Theme } from '../../../../constants/theme';
 import type { MedScheduleType } from '../../../../context/MedsContext';
 import { ScheduleFrequencyIllustration } from '../../../../components/caretaker/ScheduleFrequencyIllustration';
@@ -147,7 +148,7 @@ export default function PickScheduleFrequencyScreen() {
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + Theme.spacing.m }]}>
+      <View style={[styles.footer, { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.m) }]}>
         <HugeButton
           title={t('schedule.add.continue')}
           onPress={handleContinue}

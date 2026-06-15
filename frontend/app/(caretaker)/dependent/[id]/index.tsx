@@ -13,6 +13,7 @@ import type { ScheduleItem } from '../../../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
 import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { useTranslation } from 'react-i18next';
+import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 import { DependentProfileHeader } from '../../../../components/caretaker/DependentProfileHeader';
 import { DependentTodayHeroCard } from '../../../../components/caretaker/DependentTodayHeroCard';
 import {
@@ -50,6 +51,7 @@ function accentIndexFromId(id: string) {
 
 export default function DependentTodayDashboard() {
   const { t } = useTranslation();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const localParams = useLocalSearchParams<{ id?: string }>();
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
@@ -229,7 +231,7 @@ export default function DependentTodayDashboard() {
       />
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingBottom: Theme.spacing.xl }]}
+        contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         <DependentTodayHeroCard

@@ -1,5 +1,9 @@
-import { Platform, type ScrollView, type View } from 'react-native';
+import { Platform, InteractionManager, type ScrollView, type View } from 'react-native';
 import type { RefObject } from 'react';
+import {
+  adjustCoachMarkTargetForOverlay,
+  getCoachMarkOverlayHeight,
+} from './coachMarkCoordinates';
 
 export type CoachMarkInsets = {
   top: number;
@@ -16,6 +20,10 @@ export type EnsureVisibleOptions = {
   contentRef?: RefObject<View | null>;
   /** Dolna strefa zarezerwowana (np. pasek zakładek). */
   reserveBottom?: number;
+  /** Korekta Y dla Modala na Androidzie (safe area top). */
+  safeAreaTop?: number;
+  /** Tooltip na środku ekranu — wystarczy widoczne podświetlenie. */
+  tooltipLayoutMode?: 'anchor' | 'screenCenter';
 };
 
 const HIGHLIGHT_PAD = 8;
@@ -57,7 +65,8 @@ export function measureTargetInWindow(
 export async function measureTargetStable(
   targetRef: RefObject<View | null>,
   attempts = 6,
-  intervalMs = Platform.OS === 'web' ? 80 : 60,
+  intervalMs = Platform.OS === 'web' ? 80 : Platform.OS === 'android' ? 90 : 60,
+  safeAreaTop = 0,
 ): Promise<MeasuredTarget | null> {
   let last: MeasuredTarget | null = null;
 
@@ -67,10 +76,11 @@ export async function measureTargetStable(
       await delay(intervalMs);
       continue;
     }
-    if (last && targetsMatch(last, measured)) {
-      return measured;
+    const adjusted = adjustCoachMarkTargetForOverlay(measured, safeAreaTop);
+    if (last && targetsMatch(last, adjusted)) {
+      return adjusted;
     }
-    last = measured;
+    last = adjusted;
     await delay(intervalMs);
   }
 
@@ -93,13 +103,21 @@ function findDomNodeFromViewRef(node: unknown): HTMLElement | null {
 }
 
 /** Minimalna widoczność podświetlenia — element nie może być ucięty poza ekran. */
+function getOverlayViewportLimits(options: EnsureVisibleOptions) {
+  const safeTop = options.safeAreaTop ?? options.insets.top;
+  const overlayHeight = getCoachMarkOverlayHeight(options.windowHeight, safeTop);
+  return {
+    topLimit: options.insets.top + VIEWPORT_PAD,
+    bottomLimit:
+      overlayHeight - Math.max(options.insets.bottom, options.reserveBottom ?? 0) - VIEWPORT_PAD,
+  };
+}
+
 export function isCoachMarkHighlightVisible(
   target: MeasuredTarget,
   options: EnsureVisibleOptions,
 ): boolean {
-  const topLimit = options.insets.top + VIEWPORT_PAD;
-  const bottomLimit =
-    options.windowHeight - Math.max(options.insets.bottom, options.reserveBottom ?? 0) - VIEWPORT_PAD;
+  const { topLimit, bottomLimit } = getOverlayViewportLimits(options);
 
   const holeTop = target.y - HIGHLIGHT_PAD;
   const holeBottom = target.y + target.height + HIGHLIGHT_PAD;
@@ -121,10 +139,12 @@ export function isCoachMarkTargetFullyVisible(
     return false;
   }
 
+  if (options.tooltipLayoutMode === 'screenCenter') {
+    return isCoachMarkHighlightVisible(target, options);
+  }
+
   const tooltipHeight = options.tooltipEstimateHeight ?? DEFAULT_TOOLTIP_HEIGHT;
-  const topLimit = options.insets.top + VIEWPORT_PAD;
-  const bottomLimit =
-    options.windowHeight - Math.max(options.insets.bottom, options.reserveBottom ?? 0) - VIEWPORT_PAD;
+  const { topLimit, bottomLimit } = getOverlayViewportLimits(options);
   const gap = options.tooltipGap ?? TOOLTIP_GAP;
 
   const holeTop = target.y - HIGHLIGHT_PAD;
@@ -178,40 +198,55 @@ function scrollNativeTargetIntoView(
       return;
     }
 
-    target.measureLayout(
-      content,
-      (_left, relativeTop, _width, height) => {
-        const tooltipHeight = options.tooltipEstimateHeight ?? DEFAULT_TOOLTIP_HEIGHT;
-        const gap = options.tooltipGap ?? TOOLTIP_GAP;
-        const reserveBottom = options.reserveBottom ?? 0;
-        const topMargin = options.insets.top + VIEWPORT_PAD + HIGHLIGHT_PAD;
-        const bottomReserve =
-          Math.max(options.insets.bottom, reserveBottom) +
-          VIEWPORT_PAD +
-          tooltipHeight +
-          gap +
-          HIGHLIGHT_PAD;
+    const runScroll = (scrollViewportHeight: number) => {
+      target.measureLayout(
+        content,
+        (_left, relativeTop, _width, height) => {
+          const tooltipHeight = options.tooltipEstimateHeight ?? DEFAULT_TOOLTIP_HEIGHT;
+          const gap = options.tooltipGap ?? TOOLTIP_GAP;
+          const reserveBottom = options.reserveBottom ?? 0;
+          const viewportHeight =
+            scrollViewportHeight > 0 ? scrollViewportHeight : options.windowHeight;
+          const topMargin = VIEWPORT_PAD + HIGHLIGHT_PAD;
+          const tooltipBlock =
+            options.tooltipLayoutMode === 'screenCenter'
+              ? 0
+              : tooltipHeight + gap + HIGHLIGHT_PAD;
+          const bottomReserve =
+            Math.max(options.insets.bottom, reserveBottom) +
+            VIEWPORT_PAD +
+            tooltipBlock;
 
-        const desiredTop =
-          options.placement === 'top'
-            ? topMargin + tooltipHeight + gap
-            : topMargin;
+          const desiredTop =
+            options.placement === 'top'
+              ? topMargin + tooltipBlock
+              : topMargin;
 
-        let scrollY = Math.max(0, relativeTop - desiredTop);
+          let scrollY = Math.max(0, relativeTop - desiredTop);
 
-        if (options.placement === 'bottom' || options.placement === 'auto') {
-          const visibleBottom = options.windowHeight - bottomReserve;
+          const visibleBottom = viewportHeight - bottomReserve;
           const projectedBottom = relativeTop + height - scrollY;
           if (projectedBottom > visibleBottom) {
             scrollY = Math.max(0, relativeTop + height - visibleBottom);
           }
-        }
 
-        scrollView.scrollTo({ y: scrollY, animated: false });
-        setTimeout(resolve, Platform.OS === 'web' ? 50 : 120);
-      },
-      () => resolve(),
-    );
+          if (options.placement === 'top' && options.tooltipLayoutMode !== 'screenCenter') {
+            const projectedTop = relativeTop - scrollY;
+            if (projectedTop < desiredTop) {
+              scrollY = Math.max(0, relativeTop - desiredTop);
+            }
+          }
+
+          scrollView.scrollTo({ y: scrollY, animated: false });
+          setTimeout(resolve, Platform.OS === 'web' ? 50 : Platform.OS === 'android' ? 180 : 120);
+        },
+        () => resolve(),
+      );
+    };
+
+    scrollView.measureInWindow((_x, _y, _w, scrollViewportHeight) => {
+      runScroll(scrollViewportHeight);
+    });
   });
 }
 
@@ -242,21 +277,31 @@ export async function ensureCoachMarkTargetVisible(
   targetRef: RefObject<View | null>,
   options: EnsureVisibleOptions,
 ): Promise<MeasuredTarget | null> {
+  const safeTop = options.safeAreaTop ?? options.insets.top;
+  const postScrollDelay = Platform.OS === 'android' ? 160 : Platform.OS === 'web' ? 60 : 100;
+
+  await new Promise<void>((resolve) => {
+    InteractionManager.runAfterInteractions(() => resolve());
+  });
+
   let target = await measureTargetInWindow(targetRef);
+  if (target) {
+    target = adjustCoachMarkTargetForOverlay(target, safeTop);
+  }
   if (!target) return null;
 
   if (!isCoachMarkTargetFullyVisible(target, options)) {
     await scrollTargetIntoView(targetRef, options);
-    await delay(Platform.OS === 'web' ? 60 : 100);
+    await delay(postScrollDelay);
   }
 
-  target = await measureTargetStable(targetRef);
+  target = await measureTargetStable(targetRef, 8, undefined, safeTop);
   if (!target) return null;
 
   if (!isCoachMarkTargetFullyVisible(target, options)) {
     await scrollTargetIntoView(targetRef, options);
-    await delay(Platform.OS === 'web' ? 80 : 150);
-    target = await measureTargetStable(targetRef, 8);
+    await delay(postScrollDelay + 40);
+    target = await measureTargetStable(targetRef, 10, undefined, safeTop);
   }
 
   return target;

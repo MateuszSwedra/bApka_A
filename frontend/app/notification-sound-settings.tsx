@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../utils/safeAreaInsets';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -192,7 +193,7 @@ export default function NotificationSoundSettingsScreen() {
       <CaretakerTourScrollView
         contentContainerStyle={[
           styles.scroll,
-          { paddingBottom: insets.bottom + Theme.spacing.xl },
+          { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.xl) },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -252,7 +253,7 @@ export default function NotificationSoundSettingsScreen() {
         )}
       </CaretakerTourScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + Theme.spacing.m }]}>
+      <View style={[styles.footer, { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.m) }]}>
         <HugeButton title={t('common.done')} onPress={() => exitSettings(userRole)} style={styles.doneBtn} />
       </View>
     </View>

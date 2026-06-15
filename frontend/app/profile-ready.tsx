@@ -22,6 +22,7 @@ import {
 } from '../constants/onboardingTheme';
 import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 export default function ProfileReadyScreen() {
   const { t } = useTranslation();
@@ -32,6 +33,7 @@ export default function ProfileReadyScreen() {
   const heroH = Math.min(winH * 0.32, 280);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   useEffect(() => {
     let cancelled = false;
@@ -70,7 +72,7 @@ export default function ProfileReadyScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollCentered,
-          { minHeight: scrollMinHeight },
+          { minHeight: scrollMinHeight, paddingBottom: bottomPadding },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

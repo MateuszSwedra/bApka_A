@@ -26,6 +26,7 @@ import { useAuth } from '../context/AuthContext';
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 import {
   activateManualSeniorPreview,
   isDevSeniorPreview,
@@ -55,6 +56,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState<'idle' | 'login' | 'register'>('idle');
   const { setUserSession, userRole, isReady, loginFake } = useAuth();
   const isBusy = loading !== 'idle';
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   useEffect(() => {
     if (!isReady || !userRole) return;
@@ -328,6 +330,7 @@ export default function LoginScreen() {
           mode === 'pick' && styles.scrollPick,
           mode === 'register' && styles.scrollRegister,
           mode === 'signIn' && styles.scrollFormCentered,
+          { paddingBottom: bottomPadding },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

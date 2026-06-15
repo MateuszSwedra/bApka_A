@@ -7,6 +7,7 @@ import {
   Platform,
   Alert,
   Pressable,
+  useWindowDimensions,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -18,6 +19,7 @@ import { Theme } from '../../constants/theme';
 import { isAuthApiError, usersAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../utils/safeAreaInsets';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -34,6 +36,10 @@ function formatPinDisplay(pin: string): string {
 export default function CaretakerPairingScreen() {
   const { t } = useTranslation();
   const { logout } = useAuth();
+  const { width: screenWidth } = useWindowDimensions();
+  const pinFontSize = screenWidth < 380 ? 40 : screenWidth < 420 ? 48 : 56;
+  const pinLetterSpacing = screenWidth < 380 ? 2 : 4;
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
   const [pinCode, setPinCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -76,7 +82,7 @@ export default function CaretakerPairingScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <MaterialIcons name="link" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>{t('caretaker.pairing.title')}</Text>
 
@@ -97,7 +103,13 @@ export default function CaretakerPairingScreen() {
               <View style={styles.pinRow}>
                 <Text
                   selectable
-                  style={styles.pin}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit={Platform.OS === 'ios'}
+                  minimumFontScale={0.7}
+                  style={[
+                    styles.pin,
+                    { fontSize: pinFontSize, letterSpacing: pinLetterSpacing },
+                  ]}
                   accessibilityLabel={t('caretaker.pairing.a11yCode', { code: pinCode ?? '' })}
                 >
                   {pinCode ? formatPinDisplay(pinCode) : t('pairing.pinPlaceholder')}
@@ -166,17 +178,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: Theme.spacing.m,
+    gap: Theme.spacing.s,
     width: '100%',
+    flexWrap: 'nowrap',
   },
   pin: {
-    fontSize: 56,
+    flexShrink: 1,
     fontWeight: 'bold',
-    letterSpacing: 4,
     color: Theme.colors.primaryLimeDark,
     textAlign: 'center',
   },
   copyBtn: {
+    flexShrink: 0,
     padding: Theme.spacing.s,
     borderRadius: Theme.borderRadius.medium,
     backgroundColor: Theme.colors.surfaceGrey,

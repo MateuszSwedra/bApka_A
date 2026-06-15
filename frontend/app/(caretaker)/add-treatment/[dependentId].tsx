@@ -18,6 +18,7 @@ import { Theme } from '../../../constants/theme';
 import { useMeds } from '../../../context/MedsContext';
 import { TreatmentType } from '../../../constants/treatmentVisuals';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../../../utils/safeAreaInsets';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -68,6 +69,7 @@ const TYPE_OPTION_META: Omit<TypeOption, 'label' | 'defaultName' | 'hint'>[] = [
 
 export default function AddTreatmentScreen() {
   const { t } = useTranslation();
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.xl);
   const typeOptions: TypeOption[] = useMemo(
     () =>
       TYPE_OPTION_META.map(meta => {
@@ -215,7 +217,7 @@ export default function AddTreatmentScreen() {
       </View>
 
       <ScrollView
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
         keyboardShouldPersistTaps="handled"
       >
         {!currentOption ? (
@@ -349,7 +351,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Theme.spacing.l,
-    paddingBottom: Theme.spacing.xxl,
   },
   lead: {
     fontSize: Theme.typography.body,

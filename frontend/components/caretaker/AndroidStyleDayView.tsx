@@ -18,6 +18,7 @@ import { getScheduleTreatmentId } from '../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../utils/scheduleHelpers';
 import type { CalendarDepletionAlert } from './AndroidStyleMonthCalendar';
 import { useCaretakerTourLock } from '../../context/CaretakerTourLockContext';
+import { useTabScreenScrollBottomPadding } from '../../utils/safeAreaInsets';
 
 const HOUR_HEIGHT = 56;
 const HOURS = 24;
@@ -61,6 +62,7 @@ export function AndroidStyleDayView({
 }: Props) {
   const { t } = useTranslation();
   const tourLock = useCaretakerTourLock();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const [activeSlotHour, setActiveSlotHour] = useState<number | null>(null);
   const day = parseISO(dateStr);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
@@ -174,7 +176,7 @@ export function AndroidStyleDayView({
       <ScrollView
         ref={scrollRef}
         style={styles.scroll}
-        contentContainerStyle={{ paddingBottom: 100 }}
+        contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         showsVerticalScrollIndicator
         scrollEnabled={!tourLock?.locked}
         bounces={!tourLock?.locked}

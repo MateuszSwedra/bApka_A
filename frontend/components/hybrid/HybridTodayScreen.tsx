@@ -16,6 +16,7 @@ import { HybridProfileHeader } from './HybridProfileHeader';
 import { HybridTakeMedCard } from './HybridTakeMedCard';
 import { DependentTodayHeroCard } from '../caretaker/DependentTodayHeroCard';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
+import { useTabScreenScrollBottomPadding } from '../../utils/safeAreaInsets';
 import { computeDependentMainScheduleState } from '../../utils/dependentScheduleUi';
 import {
   getCompletedScheduleIdsForDate,
@@ -44,6 +45,7 @@ const AVATAR_PALETTE = [
 
 export default function HybridTodayScreen() {
   const { t } = useTranslation();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const { colors, reload } = useDependentDisplay();
   const selfUserId = useSelfUserId();
   const { schedules, treatments, depletionAlerts, refetchFromServer } = useMeds();
@@ -180,7 +182,7 @@ export default function HybridTodayScreen() {
     <View style={styles.screen}>
       <LinearGradient colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} showSettings />
-      <CaretakerTourScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <CaretakerTourScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]} showsVerticalScrollIndicator={false}>
         <SeniorTourAnchor
           stepId="today-take-med"
           titleKey="senior.tour.todayTakeMed.title"
@@ -261,7 +263,7 @@ export default function HybridTodayScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Theme.colors.background },
   scroll: { flex: 1 },
-  content: { paddingHorizontal: Theme.spacing.l, paddingTop: Theme.spacing.s, paddingBottom: Theme.spacing.xl },
+  content: { paddingHorizontal: Theme.spacing.l, paddingTop: Theme.spacing.s },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, marginTop: Theme.spacing.l, marginBottom: Theme.spacing.m },
   sectionTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.textDark },
   planCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, padding: Theme.spacing.m, marginBottom: Theme.spacing.s, borderWidth: 1, borderColor: Theme.colors.border },

@@ -27,6 +27,7 @@ import {
   OnboardingGradient,
 } from '../constants/onboardingTheme';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 /** Lekko mniejszy sześciokąt, żeby obrys i animacja nie obcinały górnego wierzchołka. */
@@ -265,6 +266,7 @@ export default function WelcomeScreen() {
   const fade = useRef(new Animated.Value(1)).current;
   const scale = useRef(new Animated.Value(1)).current;
   const textFade = useRef(new Animated.Value(1)).current;
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -331,7 +333,7 @@ export default function WelcomeScreen() {
   const slideSubtitle = t(`onboarding.welcome.${slide.key}.subtitle`, { defaultValue: '' });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.iconsRow}>
         <IconPattern
           width={SCREEN_WIDTH}
@@ -455,7 +457,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BG_COLOR, // ciepły kremowy/beżowy
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingBottom: 32,
     alignItems: 'center',
     justifyContent: 'space-between',
   },

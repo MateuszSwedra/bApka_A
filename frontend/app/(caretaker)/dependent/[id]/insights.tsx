@@ -8,6 +8,7 @@ import { usersAPI, scheduleAPI } from '../../../../services/api';
 import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { useMeds } from '../../../../context/MedsContext';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
+import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsInsightsCharts';
 import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
 import { MoodWeekChart } from '../../../../components/insights/MoodWeekChart';
@@ -43,6 +44,7 @@ export default function DependentInsightsScreen() {
   const segments = useSegments();
   const { targetUserId } = useMeds();
   const topInset = useDependentTabTopInset();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
 
   const dependentId = useMemo(
     () =>
@@ -192,7 +194,10 @@ export default function DependentInsightsScreen() {
       <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
         <CaretakerTourScrollView
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}
+          contentContainerStyle={[
+            styles.content,
+            { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding },
+          ]}
         >
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
 
@@ -283,7 +288,6 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: Theme.spacing.l,
-    paddingBottom: Theme.spacing.xl,
   },
   title: {
     fontSize: Theme.typography.title,

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../../utils/safeAreaInsets';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
@@ -226,7 +227,7 @@ export default function CaretakerDashboard() {
       <CaretakerTourScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + Theme.spacing.xl, paddingTop: Theme.spacing.s },
+          { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.xl), paddingTop: Theme.spacing.s },
         ]}
         showsVerticalScrollIndicator={false}
       >

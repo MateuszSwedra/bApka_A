@@ -20,6 +20,8 @@ import {
   OnboardingGradient,
 } from '../constants/onboardingTheme';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../utils/safeAreaInsets';
 
 /** Placeholdery - podmień na docelowe URL-e produkcyjne. */
 const TERMS_URL = 'https://bapka.app/warunki-korzystania';
@@ -53,6 +55,9 @@ async function markConsentsSeen() {
 
 export default function ConsentsScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const footerBottomPadding = getScreenBottomPadding(insets.bottom, Theme.spacing.m);
+  const scrollBottomPadding = footerBottomPadding + 120;
   const [granular, setGranular] = useState(false);
   const [analytics, setAnalytics] = useState(true);
   const [tailored, setTailored] = useState(true);
@@ -99,7 +104,7 @@ export default function ConsentsScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         <Image
@@ -171,7 +176,7 @@ export default function ConsentsScreen() {
         <Text style={styles.withdrawNote}>{t('consents.withdrawNote')}</Text>
       </ScrollView>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: footerBottomPadding }]}>
         <Pressable
           onPress={() => void handleAccept()}
           style={({ pressed }) => [
@@ -231,7 +236,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 52,
-    paddingBottom: 160,
   },
   hero: {
     width: '100%',
@@ -315,7 +319,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 24,
     paddingTop: 12,
-    paddingBottom: Platform.OS === 'ios' ? 34 : 24,
     backgroundColor: OnboardingPalette.background,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: OnboardingPalette.border,

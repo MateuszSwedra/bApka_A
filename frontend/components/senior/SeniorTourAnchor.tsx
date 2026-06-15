@@ -22,6 +22,7 @@ import {
   delay,
   ensureCoachMarkTargetVisible,
   isCoachMarkHighlightVisible,
+  measureTargetStable,
 } from '../../utils/ensureCoachMarkTargetVisible';
 import { CaretakerCoachMarkOverlay, type CoachMarkTarget } from '../caretaker/CaretakerCoachMarkOverlay';
 import { useCaretakerTourScrollLock } from '../../context/CaretakerTourLockContext';
@@ -92,6 +93,7 @@ export function SeniorTourAnchor({
       reserveBottom,
       scrollRef: scrollRefOverride ?? tourScroll?.scrollRef,
       contentRef: contentRefOverride ?? tourScroll?.contentRef,
+      safeAreaTop: insets.top,
     }),
     [
       height,
@@ -194,6 +196,13 @@ export function SeniorTourAnchor({
     }
   }, [isReady, isHybrid, userRole, storedRole, enabled, visible, preparing, tryShow]);
 
+  const remeasureTarget = useCallback(async () => {
+    const measured = await measureTargetStable(containerRef, 6, undefined, insets.top);
+    if (measured) {
+      setTarget(measured);
+    }
+  }, [insets.top]);
+
   const dismiss = useCallback(async () => {
     await setSeniorTourStepSeen(stepId);
     setVisible(false);
@@ -214,6 +223,7 @@ export function SeniorTourAnchor({
         body={t(bodyKey)}
         placement={placement}
         onDismiss={() => void dismiss()}
+        onShow={() => void remeasureTarget()}
         maskId={`senior-coach-${stepId}`}
         tooltipGap={tooltipGap}
         reserveBottom={reserveBottom}

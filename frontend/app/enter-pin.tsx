@@ -20,6 +20,7 @@ import { normalizePinInput } from '../utils/pin';
 import { setRequiresCaretakerPairing } from '../services/caretakerPairingState';
 import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -34,6 +35,7 @@ export default function EnterPinScreen() {
   const { loginFake, setUserSession } = useAuth();
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -80,7 +82,7 @@ export default function EnterPinScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>{t('pairing.enterPin.title')}</Text>
       <Text style={styles.subtitle}>{t('pairing.enterPin.subtitle')}</Text>

@@ -300,10 +300,39 @@ export class UsersService {
     return updated;
   }
 
+  async clearFcmToken(userId: string) {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: { fcmToken: null, nativePushToken: null },
+      select: { id: true },
+    });
+  }
+
   async updateFcmToken(userId: string, fcmToken: string, nativePushToken?: string) {
-    const data: { fcmToken: string; nativePushToken?: string | null } = { fcmToken };
+    const trimmedFcm = fcmToken?.trim();
+    if (!trimmedFcm) {
+      throw new BadRequestException('Brak tokenu push');
+    }
+
+    const native = nativePushToken?.trim() || null;
+
+    // Ten sam telefon nie może mieć tokenu na dwóch kontach (np. opiekun + senior).
+    await this.prisma.user.updateMany({
+      where: {
+        id: { not: userId },
+        OR: [
+          { fcmToken: trimmedFcm },
+          ...(native ? [{ nativePushToken: native }] : []),
+        ],
+      },
+      data: { fcmToken: null, nativePushToken: null },
+    });
+
+    const data: { fcmToken: string; nativePushToken?: string | null } = {
+      fcmToken: trimmedFcm,
+    };
     if (nativePushToken !== undefined) {
-      data.nativePushToken = nativePushToken?.trim() || null;
+      data.nativePushToken = native;
     }
     return this.prisma.user.update({
       where: { id: userId },

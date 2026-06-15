@@ -74,7 +74,7 @@ export function CaretakerTourScrollView({
       {...scrollProps}
       scrollEnabled={scrollEnabled}
       bounces={scrollEnabled}
-      nestedScrollEnabled={scrollEnabled}
+      nestedScrollEnabled
       contentContainerStyle={undefined}
       style={[
         scrollProps.style,

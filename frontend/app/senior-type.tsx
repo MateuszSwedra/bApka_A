@@ -9,11 +9,13 @@ import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import { setRequiresCaretakerPairing } from '../services/caretakerPairingState';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 export default function SeniorTypeScreen() {
   const { t } = useTranslation();
   const { loginFake, setUserSession } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   const handleWithCaretaker = async () => {
     await setRequiresCaretakerPairing(true);
@@ -54,7 +56,7 @@ export default function SeniorTypeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
       <View style={styles.header}>
         <MaterialIcons name="settings-accessibility" size={64} color={OnboardingPalette.orange} />
         <Text style={styles.title}>{t('seniorType.title')}</Text>

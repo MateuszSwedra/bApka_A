@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const PREFIX = 'caretakerTour_v1:';
+const PREFIX = 'caretakerTour_v1_';
 
 export type CaretakerTourStepId =
   | 'dashboard-add-dependent'
@@ -42,11 +42,15 @@ export async function getCaretakerTourStepSeen(stepId: CaretakerTourStepId): Pro
 
 export async function setCaretakerTourStepSeen(stepId: CaretakerTourStepId): Promise<void> {
   const key = storageKey(stepId);
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, 'true');
-    return;
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, 'true');
+      return;
+    }
+    await SecureStore.setItemAsync(key, 'true');
+  } catch {
+    /* SecureStore odrzuca nieprawidłowy klucz — nie blokuj UI */
   }
-  await SecureStore.setItemAsync(key, 'true');
 }
 
 const ALL_STEP_IDS: CaretakerTourStepId[] = [

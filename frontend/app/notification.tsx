@@ -30,6 +30,7 @@ import * as Notifications from 'expo-notifications';
 import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
 import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
+import { useScreenBottomPadding } from '../utils/safeAreaInsets';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -71,6 +72,7 @@ export default function NotificationScreen() {
   const insets = useSafeAreaInsets();
   const heroSize = Math.min(winW - 48, 320);
   const scrollMinHeight = Math.max(winH - insets.top - insets.bottom, 320);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   const roleForCopy =
     userRole ??
@@ -163,7 +165,7 @@ export default function NotificationScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollCentered,
-          { minHeight: scrollMinHeight },
+          { minHeight: scrollMinHeight, paddingBottom: bottomPadding },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}

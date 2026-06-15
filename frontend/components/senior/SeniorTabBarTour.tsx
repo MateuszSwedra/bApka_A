@@ -9,7 +9,7 @@ import { getStoredRole } from '../../services/sessionStorage';
 import { getSeniorTourStepSeen, setSeniorTourStepSeen } from '../../services/seniorTourState';
 import { CaretakerCoachMarkOverlay, type CoachMarkTarget } from '../caretaker/CaretakerCoachMarkOverlay';
 
-const TAB_BAR_CONTENT_HEIGHT = 56;
+import { getTabBarTotalHeight } from '../../utils/safeAreaInsets';
 const POLL_MS = 120;
 
 export function SeniorTabBarTour() {
@@ -25,9 +25,7 @@ export function SeniorTabBarTour() {
     void getStoredRole().then(setStoredRole);
   }, []);
 
-  const tabBarBottom =
-    Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
-  const totalTabBarHeight = TAB_BAR_CONTENT_HEIGHT + tabBarBottom;
+  const totalTabBarHeight = getTabBarTotalHeight(insets.bottom);
 
   const updateTarget = useCallback(() => {
     setTarget({

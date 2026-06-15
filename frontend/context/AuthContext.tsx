@@ -7,7 +7,7 @@ import {
   clearSessionStorage,
 } from '../services/sessionStorage';
 import { clearSeniorPreview } from '../constants/devSeniorPreview';
-import { syncPushTokenWithBackend } from '../services/registerPushToken';
+import { syncPushTokenWithBackend, clearPushTokenFromBackend } from '../services/registerPushToken';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -61,8 +61,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserSession = async (token: string, role: Role) => {
     try {
+      await clearPushTokenFromBackend();
       const effectiveRole = role ?? ((await getStoredRole()) as Role);
-      await persistSession(token, effectiveRole);
+      await persistSession(token, role ?? effectiveRole);
       setUserRole(role ?? effectiveRole ?? null);
       void syncPushTokenWithBackend();
     } catch (e) {
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      await clearPushTokenFromBackend();
       await clearSessionStorage();
     } catch (e) {
       console.warn('Logout error', e);

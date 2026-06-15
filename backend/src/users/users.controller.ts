@@ -1,4 +1,4 @@
-import { Controller, Patch, Post, Get, Body, UseGuards, Request, HttpCode, Param, Query } from '@nestjs/common';
+import { Controller, Patch, Post, Get, Delete, Body, UseGuards, Request, HttpCode, Param, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { Role } from '@prisma/client';
@@ -49,6 +49,13 @@ export class UsersController {
     @Body('nativePushToken') nativePushToken?: string,
   ) {
     return this.usersService.updateFcmToken(req.user.userId, fcmToken, nativePushToken);
+  }
+
+  @Delete('me/fcm-token')
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Clear push tokens (e.g. on logout)' })
+  clearFcmToken(@Request() req: any) {
+    return this.usersService.clearFcmToken(req.user.userId);
   }
 
   @Patch('me/mood')

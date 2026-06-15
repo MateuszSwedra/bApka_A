@@ -12,6 +12,17 @@ function getEasProjectId(): string | null {
   return typeof id === 'string' && id.length > 0 ? id : null;
 }
 
+/** Usuwa token push z bieżącego konta (przed wylogowaniem lub zmianą konta). */
+export async function clearPushTokenFromBackend(): Promise<void> {
+  if (Platform.OS === 'web') return;
+
+  try {
+    await usersAPI.clearFcmToken();
+  } catch (e) {
+    console.warn('Push token clear failed', e);
+  }
+}
+
 /**
  * Pobiera Expo Push Token i zapisuje go w backendzie (pole fcmToken użytkownika).
  * Wymaga wcześniejszej zgody użytkownika na powiadomienia.

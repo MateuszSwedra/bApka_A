@@ -1,39 +1,19 @@
 import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
-import { View, Platform } from 'react-native';
+import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { CaretakerTabBarTour } from '../../../../components/caretaker/CaretakerTabBarTour';
+import { buildBottomTabScreenOptions } from '../../../../utils/bottomTabScreenOptions';
 
 export default function DependentTabsLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const tabBarBottom =
-    Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      <Tabs
-        screenOptions={{
-          headerShown: false,
-          tabBarActiveTintColor: Theme.colors.accentOrange,
-          tabBarInactiveTintColor: Theme.colors.textLight,
-          tabBarStyle: {
-            borderTopWidth: 1,
-            borderTopColor: Theme.colors.border,
-            height: 56 + tabBarBottom,
-            paddingBottom: tabBarBottom,
-            paddingTop: 8,
-            backgroundColor: Theme.colors.background,
-            elevation: 0,
-          },
-          tabBarLabelStyle: {
-            fontSize: Theme.typography.small,
-            fontWeight: '600',
-          },
-        }}
-      >
+      <Tabs screenOptions={buildBottomTabScreenOptions(insets.bottom)}>
         <Tabs.Screen
           name="index"
           options={{

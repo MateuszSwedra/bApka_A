@@ -1,12 +1,10 @@
 import { Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../constants/theme';
-
-const TAB_BAR_HEIGHT = 56;
-
-function tabBarSafeBottom(insetsBottom: number): number {
-  return Platform.OS === 'android' ? Math.max(insetsBottom, 28) : Math.max(insetsBottom, 8);
-}
+import {
+  getNavigationBarBottomInset,
+  getTabBarTotalHeight,
+} from './safeAreaInsets';
 
 type FabBottomOptions = {
   /** FAB nad dolną nawigacją zakładek (profil podopiecznego). */
@@ -19,8 +17,8 @@ export function useFabBottomOffset(options?: FabBottomOptions): number {
   const minInset = Platform.OS === 'android' ? 28 : 12;
 
   if (options?.aboveTabBar) {
-    return TAB_BAR_HEIGHT + tabBarSafeBottom(insets.bottom) + Theme.spacing.xs;
+    return getTabBarTotalHeight(insets.bottom) + Theme.spacing.xs;
   }
 
-  return Math.max(insets.bottom, minInset) + Theme.spacing.xl;
+  return Math.max(getNavigationBarBottomInset(insets.bottom), minInset) + Theme.spacing.xl;
 }

@@ -14,6 +14,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { OnboardingGradient, OnboardingPalette } from '../../constants/onboardingTheme';
+import { getCoachMarkOverlayHeight } from '../../utils/coachMarkCoordinates';
 
 export type CoachMarkTarget = {
   x: number;
@@ -32,6 +33,7 @@ type Props = {
   maskId?: string;
   tooltipGap?: number;
   reserveBottom?: number;
+  onShow?: () => void;
   /** Minimalny odstęp dolnej krawędzi tooltipa od górnej krawędzi podświetlenia (px). */
   clearanceAboveHighlight?: number;
   /** Szacowana wysokość tooltipa, zanim zmierzymy layout (px). */
@@ -58,10 +60,12 @@ export function CaretakerCoachMarkOverlay({
   clearanceAboveHighlight,
   tooltipHeightEstimate,
   tooltipLayoutMode = 'anchor',
+  onShow,
 }: Props) {
   const { t } = useTranslation();
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+  const overlayHeight = getCoachMarkOverlayHeight(windowHeight, insets.top);
   const [measuredTooltipHeight, setMeasuredTooltipHeight] = useState<number | null>(null);
 
   useEffect(() => {
@@ -76,13 +80,13 @@ export function CaretakerCoachMarkOverlay({
       x: Math.max(0, target.x - HIGHLIGHT_PAD),
       y: Math.max(0, target.y - HIGHLIGHT_PAD),
       width: Math.min(windowWidth, target.width + HIGHLIGHT_PAD * 2),
-      height: Math.min(windowHeight, target.height + HIGHLIGHT_PAD * 2),
+      height: Math.min(overlayHeight, target.height + HIGHLIGHT_PAD * 2),
     };
 
     const tooltipHeight =
       measuredTooltipHeight ?? tooltipHeightEstimate ?? TOOLTIP_EST_HEIGHT;
     const topLimit = insets.top + 12;
-    const bottomLimit = windowHeight - Math.max(insets.bottom, reserveBottom) - 12;
+    const bottomLimit = overlayHeight - Math.max(insets.bottom, reserveBottom) - 12;
     const holeTop = hole.y;
     const holeBottom = hole.y + hole.height;
 
@@ -169,6 +173,7 @@ export function CaretakerCoachMarkOverlay({
     tooltipHeightEstimate,
     measuredTooltipHeight,
     tooltipLayoutMode,
+    overlayHeight,
   ]);
 
   if (!visible || !target || !tooltipLayout) {
@@ -178,17 +183,24 @@ export function CaretakerCoachMarkOverlay({
   const { hole, tooltipMaxWidth, top, left } = tooltipLayout;
 
   return (
-    <Modal visible transparent animationType="fade" statusBarTranslucent onRequestClose={onDismiss}>
+    <Modal
+      visible
+      transparent
+      animationType="fade"
+      statusBarTranslucent
+      onShow={onShow}
+      onRequestClose={onDismiss}
+    >
       <View style={styles.root} pointerEvents="box-none">
         <Svg
           width={windowWidth}
-          height={windowHeight}
+          height={overlayHeight}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         >
           <Defs>
             <Mask id={maskId}>
-              <Rect x={0} y={0} width={windowWidth} height={windowHeight} fill="white" />
+              <Rect x={0} y={0} width={windowWidth} height={overlayHeight} fill="white" />
               <Rect
                 x={hole.x}
                 y={hole.y}
@@ -204,7 +216,7 @@ export function CaretakerCoachMarkOverlay({
             x={0}
             y={0}
             width={windowWidth}
-            height={windowHeight}
+            height={overlayHeight}
             fill="rgba(27, 60, 83, 0.72)"
             mask={`url(#${maskId})`}
           />

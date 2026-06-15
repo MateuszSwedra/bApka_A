@@ -30,6 +30,7 @@ import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
 } from '../../../context/CaretakerTourScrollContext';
+import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
 
 type SelfSettings = {
   vitalsEntryEnabled: boolean;
@@ -49,6 +50,7 @@ const DEFAULT: SelfSettings = {
 
 export default function HybridSettingsScreen() {
   const { t } = useTranslation();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const { logout } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [settings, setSettings] = useState<SelfSettings>(DEFAULT);
@@ -109,7 +111,7 @@ export default function HybridSettingsScreen() {
         showBack
         onBack={() => router.push('/(hybrid)/(tabs)/' as any)}
       />
-      <CaretakerTourScrollView contentContainerStyle={styles.scroll}>
+      <CaretakerTourScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]}>
         {loading ? (
           <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 32 }} />
         ) : (
@@ -243,7 +245,7 @@ function RowSwitch({ label, sub, value, busy, onChange }: { label: string; sub: 
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: Theme.colors.background },
-  scroll: { padding: Theme.spacing.l, paddingBottom: 120 },
+  scroll: { padding: Theme.spacing.l },
   rowCardWrap: { width: '100%' },
   soundSectionWrap: { width: '100%' },
   sectionTitle: { fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.textDark, marginBottom: Theme.spacing.s },

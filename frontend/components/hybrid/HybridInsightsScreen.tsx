@@ -8,6 +8,7 @@ import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { DoseInsightsCard } from '../caretaker/DoseInsightsCard';
 import { VitalsInsightsCharts } from '../caretaker/VitalsInsightsCharts';
 import { useDependentTabTopInset } from '../../utils/useDependentTabTopInset';
+import { useTabScreenScrollBottomPadding } from '../../utils/safeAreaInsets';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
 import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
 import {
@@ -21,6 +22,7 @@ export default function HybridInsightsScreen() {
   const { t } = useTranslation();
   const selfUserId = useSelfUserId();
   const topInset = useDependentTabTopInset();
+  const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const [range, setRange] = useState<RangeKey>('today');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +84,7 @@ export default function HybridInsightsScreen() {
   return (
     <CaretakerTourScrollProvider>
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      <CaretakerTourScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
+      <CaretakerTourScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
         <SeniorTourAnchor
           stepId="insights-range"
@@ -131,7 +133,7 @@ export default function HybridInsightsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Theme.colors.background },
-  content: { padding: Theme.spacing.l, paddingBottom: Theme.spacing.xl },
+  content: { padding: Theme.spacing.l },
   title: { fontSize: Theme.typography.title, fontWeight: 'bold', color: Theme.colors.textDark, marginBottom: Theme.spacing.m },
   rangeSwitcherWrap: { width: '100%' },
   rangeSwitcher: { flexDirection: 'row', backgroundColor: Theme.colors.surfaceGrey, borderRadius: 999, padding: 4, marginBottom: Theme.spacing.s },
