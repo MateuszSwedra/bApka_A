@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { useSelfUserId } from '../../../hooks/useSelfUserId';
 import { openAddTreatment, openEditTreatment } from '../../../utils/medsFlowNavigation';
-import { SeniorTourAnchor } from '../../../components/senior/SeniorTourAnchor';
+import { SeniorTourTarget } from '../../../components/senior/SeniorTourTarget';
 import { getSeniorTourStepSeen, setSeniorTourStepSeen } from '../../../services/seniorTourState';
 import {
   CaretakerTourScrollProvider,
@@ -54,13 +54,7 @@ export default function HybridTreatmentsScreen() {
           <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
           <Text style={styles.sectionSubtitle}>{t('hybrid.treatmentsSubtitle')}</Text>
 
-          <SeniorTourAnchor
-            stepId="treatments-add"
-            titleKey="senior.tour.treatmentsAdd.title"
-            bodyKey="senior.tour.treatmentsAdd.body"
-            placement="bottom"
-            wrapStyle={styles.addRowWrap}
-          >
+          <SeniorTourTarget stepId="treatments-add" wrapStyle={styles.addRowWrap}>
             <Pressable
               onPress={handleOpenAddTreatment}
               style={styles.addRow}
@@ -71,7 +65,7 @@ export default function HybridTreatmentsScreen() {
               </View>
               <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
             </Pressable>
-          </SeniorTourAnchor>
+          </SeniorTourTarget>
 
           {grouped.length === 0 ? (
             <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
@@ -101,18 +95,9 @@ export default function HybridTreatmentsScreen() {
                   }
 
                   return (
-                    <SeniorTourAnchor
-                      key={item.id}
-                      stepId="treatments-edit"
-                      titleKey="senior.tour.treatmentsEdit.title"
-                      bodyKey="senior.tour.treatmentsEdit.body"
-                      placement="bottom"
-                      afterStepId="treatments-add"
-                      tooltipGap={24}
-                      wrapStyle={styles.tourCardWrap}
-                    >
+                    <View key={item.id} style={styles.tourCardWrap}>
                       {card}
-                    </SeniorTourAnchor>
+                    </View>
                   );
                 })}
               </View>

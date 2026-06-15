@@ -25,7 +25,6 @@ import { previewNotificationAsset } from '../../../services/notificationSoundPre
 import { applyAppLanguage, normalizeAppLanguage } from '../../../services/appLanguage';
 import type { AppLanguage } from '../../../i18n/resolveLanguage';
 import { applySeniorProfileSettings } from '../../../services/seniorProfileSync';
-import { SeniorTourAnchor } from '../../../components/senior/SeniorTourAnchor';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
@@ -117,50 +116,23 @@ export default function HybridSettingsScreen() {
             <Text style={styles.sectionTitle}>{t('hybrid.settings.section')}</Text>
             <Text style={styles.sectionHint}>{t('hybrid.settings.sectionHint')}</Text>
 
-            <SeniorTourAnchor
-              stepId="settings-vitals"
-              titleKey="senior.tour.settingsVitals.title"
-              bodyKey="senior.tour.settingsVitals.body"
-              placement="bottom"
-              wrapStyle={styles.rowCardWrap}
-            >
+            <View style={styles.rowCardWrap}>
               <RowSwitch label={t('caretaker.settings.vitals')} sub={t('caretaker.settings.vitalsSub')} value={settings.vitalsEntryEnabled} busy={savingKey === 'vitalsEntryEnabled'} onChange={v => void patch({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')} />
-            </SeniorTourAnchor>
+            </View>
 
             <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.accessibility')}</Text>
 
-            <SeniorTourAnchor
-              stepId="settings-color-blind"
-              titleKey="senior.tour.settingsColorBlind.title"
-              bodyKey="senior.tour.settingsColorBlind.body"
-              placement="bottom"
-              afterStepId="settings-vitals"
-              wrapStyle={styles.rowCardWrap}
-            >
+            <View style={styles.rowCardWrap}>
               <RowSwitch label={t('dependent.settings.colorBlind')} sub={t('dependent.settings.colorBlindSub')} value={settings.colorBlindFriendly} busy={savingKey === 'colorBlindFriendly'} onChange={v => void patch({ colorBlindFriendly: v }, 'colorBlindFriendly')} />
-            </SeniorTourAnchor>
+            </View>
 
-            <SeniorTourAnchor
-              stepId="settings-high-contrast"
-              titleKey="senior.tour.settingsHighContrast.title"
-              bodyKey="senior.tour.settingsHighContrast.body"
-              placement="bottom"
-              afterStepId="settings-color-blind"
-              wrapStyle={styles.rowCardWrap}
-            >
+            <View style={styles.rowCardWrap}>
               <RowSwitch label={t('dependent.settings.highContrast')} sub={t('dependent.settings.highContrastSub')} value={settings.highContrast} busy={savingKey === 'highContrast'} onChange={v => void patch({ highContrast: v }, 'highContrast')} />
-            </SeniorTourAnchor>
+            </View>
 
             <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.languageSection')}</Text>
 
-            <SeniorTourAnchor
-              stepId="settings-language"
-              titleKey="senior.tour.settingsLanguage.title"
-              bodyKey="senior.tour.settingsLanguage.body"
-              placement="bottom"
-              afterStepId="settings-high-contrast"
-              wrapStyle={styles.rowCardWrap}
-            >
+            <View style={styles.rowCardWrap}>
               <View style={styles.langBlock}>
                 <Text style={styles.rowTitle}>{t('hybrid.settings.language')}</Text>
                 <View style={styles.langRow}>
@@ -171,16 +143,9 @@ export default function HybridSettingsScreen() {
                   ))}
                 </View>
               </View>
-            </SeniorTourAnchor>
+            </View>
 
-            <SeniorTourAnchor
-              stepId="settings-reminder-sound"
-              titleKey="senior.tour.settingsReminderSound.title"
-              bodyKey="senior.tour.settingsReminderSound.body"
-              placement="top"
-              afterStepId="settings-language"
-              wrapStyle={styles.soundSectionWrap}
-            >
+            <View style={styles.soundSectionWrap}>
               <Text style={[styles.sectionTitle, styles.gap]}>{t('dependent.settings.reminderSound')}</Text>
               {NOTIFICATION_SOUND_CHOICE_IDS.slice(0, 1).map(soundId => {
                 const label = t(`sounds.${soundId}.label`);
@@ -197,7 +162,7 @@ export default function HybridSettingsScreen() {
                   </View>
                 );
               })}
-            </SeniorTourAnchor>
+            </View>
 
             {NOTIFICATION_SOUND_CHOICE_IDS.slice(1).map(soundId => {
               const label = t(`sounds.${soundId}.label`);

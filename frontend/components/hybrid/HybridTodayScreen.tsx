@@ -31,7 +31,7 @@ import {
   todayStatsBucketFromKind,
 } from '../../utils/todayScheduleStatus';
 import { findDoseLogForScheduleOnDate, mergeDoseLogsIntoCompletionSets } from '../../utils/doseLogDay';
-import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
+import { SeniorTourTarget } from '../senior/SeniorTourTarget';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
@@ -181,11 +181,8 @@ export default function HybridTodayScreen() {
       <LinearGradient colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} showSettings />
       <CaretakerTourScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <SeniorTourAnchor
+        <SeniorTourTarget
           stepId="today-take-med"
-          titleKey="senior.tour.todayTakeMed.title"
-          bodyKey="senior.tour.todayTakeMed.body"
-          placement="bottom"
           wrapStyle={styles.tourFullWidth}
         >
           <HybridTakeMedCard
@@ -194,7 +191,7 @@ export default function HybridTodayScreen() {
             treatments={treatments}
             onPress={() => setMedConfirmVisible(true)}
           />
-        </SeniorTourAnchor>
+        </SeniorTourTarget>
         <DependentTodayHeroCard
           initials={displayName.substring(0, 2).toUpperCase()}
           greeting={greetingLine}
@@ -209,12 +206,8 @@ export default function HybridTodayScreen() {
           overviewLabel={t('caretaker.today.dayOverview')}
           emptyDayLabel={t('caretaker.today.empty')}
         />
-        <SeniorTourAnchor
+        <SeniorTourTarget
           stepId="today-plan"
-          titleKey="senior.tour.todayPlan.title"
-          bodyKey="senior.tour.todayPlan.body"
-          placement="bottom"
-          afterStepId="today-take-med"
           wrapStyle={styles.tourFullWidth}
         >
         <View>
@@ -242,7 +235,7 @@ export default function HybridTodayScreen() {
           })
         )}
         </View>
-        </SeniorTourAnchor>
+        </SeniorTourTarget>
         {depletionAlerts.filter(a => a.date === todayStr).map((alert, idx) => (
           <View key={idx} style={styles.alertCard}>
             <MaterialIcons name="warning-amber" size={22} color={Theme.colors.accentOrange} />

@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { AndroidStyleMonthCalendar } from '../../../../components/caretaker/AndroidStyleMonthCalendar';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
-import { SeniorTourAnchor } from '../../../../components/senior/SeniorTourAnchor';
+import { SeniorTourTarget } from '../../../../components/senior/SeniorTourTarget';
 
 export default function HybridCalendarMonthScreen() {
   const { t } = useTranslation();
@@ -60,11 +60,8 @@ export default function HybridCalendarMonthScreen() {
         />
       </View>
 
-      <SeniorTourAnchor
+      <SeniorTourTarget
         stepId="calendar-fab"
-        titleKey="senior.tour.calendarFab.title"
-        bodyKey="senior.tour.calendarFab.body"
-        placement="top"
         wrapStyle={StyleSheet.flatten([styles.fab, { bottom: fabBottomOffset }])}
       >
         <Pressable
@@ -81,7 +78,7 @@ export default function HybridCalendarMonthScreen() {
         >
           <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
         </Pressable>
-      </SeniorTourAnchor>
+      </SeniorTourTarget>
     </View>
   );
 }

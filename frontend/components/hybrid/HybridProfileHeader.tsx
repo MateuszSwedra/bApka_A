@@ -5,7 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
-import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
+import { SeniorTourTarget } from '../senior/SeniorTourTarget';
 
 type HybridProfileHeaderProps = {
   title?: string;
@@ -59,14 +59,7 @@ export function HybridProfileHeader({
         ) : null}
       </View>
       {showSettings ? (
-        <SeniorTourAnchor
-          stepId="hybrid-settings"
-          titleKey="senior.tour.hybridSettings.title"
-          bodyKey="senior.tour.hybridSettings.body"
-          placement="bottom"
-          afterStepId="hybrid-tabs"
-          reserveBottom={0}
-        >
+        <SeniorTourTarget stepId="hybrid-settings">
           <Pressable
             onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
             style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
@@ -75,7 +68,7 @@ export function HybridProfileHeader({
           >
             <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
           </Pressable>
-        </SeniorTourAnchor>
+        </SeniorTourTarget>
       ) : (
         <View style={styles.iconSpacer} />
       )}

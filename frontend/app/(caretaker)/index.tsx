@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import {
   View,
   Text,
@@ -20,11 +20,14 @@ import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
 import { useTranslation } from 'react-i18next';
 import { HugeButton } from '../../components/HugeButton';
 import { MoodBadge } from '../../components/mood/MoodBadge';
-import { CaretakerTourAnchor } from '../../components/caretaker/CaretakerTourAnchor';
+import { CaretakerTourTarget } from '../../components/caretaker/CaretakerTourTarget';
+import { CaretakerTourMockTabBar } from '../../components/caretaker/CaretakerTourMockTabBar';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
 } from '../../context/CaretakerTourScrollContext';
+import { useCaretakerGuidedTourOptional } from '../../context/CaretakerGuidedTourContext';
+import { setCaretakerPreTourComplete } from '../../services/caretakerTourState';
 
 interface Dependent {
   id: string;
@@ -111,6 +114,7 @@ export default function CaretakerDashboard() {
   const { t } = useTranslation();
   const { logout } = useAuth();
   const insets = useSafeAreaInsets();
+  const guidedTour = useCaretakerGuidedTourOptional();
   const [dependents, setDependents] = useState<Dependent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -148,6 +152,22 @@ export default function CaretakerDashboard() {
       void fetchDependents();
     }, [fetchDependents]),
   );
+
+  useFocusEffect(
+    useCallback(() => {
+      if (isLoading || dependents.length > 0) return;
+      const timer = setTimeout(() => {
+        guidedTour?.tryStartPreTour();
+      }, Platform.OS === 'web' ? 400 : 500);
+      return () => clearTimeout(timer);
+    }, [dependents.length, guidedTour, isLoading]),
+  );
+
+  useEffect(() => {
+    if (dependents.length > 0) {
+      void setCaretakerPreTourComplete();
+    }
+  }, [dependents.length]);
 
   const countLabel = useMemo(() => {
     if (dependents.length === 0) return null;
@@ -199,13 +219,8 @@ export default function CaretakerDashboard() {
       <View style={[styles.decorOrb, styles.decorOrbAccent]} />
 
       <View style={[styles.topBar, { paddingTop: headerTop }]}>
-        <CaretakerTourAnchor
+        <CaretakerTourTarget
           stepId="dashboard-sounds"
-          titleKey="caretaker.tour.dashboardSounds.title"
-          bodyKey="caretaker.tour.dashboardSounds.body"
-          placement="bottom"
-          afterStepId={dependents.length === 0 ? 'dashboard-add-dependent' : undefined}
-          reserveBottom={0}
         >
           <Pressable
             onPress={() => router.push('/notification-sound-settings' as never)}
@@ -214,7 +229,7 @@ export default function CaretakerDashboard() {
           >
             <MaterialIcons name="tune" size={22} color={Theme.colors.primaryLimeDark} />
           </Pressable>
-        </CaretakerTourAnchor>
+        </CaretakerTourTarget>
         <Pressable
           onPress={handleLogout}
           style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
@@ -226,7 +241,10 @@ export default function CaretakerDashboard() {
       <CaretakerTourScrollView
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: insets.bottom + Theme.spacing.xl, paddingTop: Theme.spacing.s },
+          {
+            paddingBottom: insets.bottom + Theme.spacing.xl + (guidedTour?.currentStepUsesMockTabs ? 88 : 0),
+            paddingTop: Theme.spacing.s,
+          },
         ]}
         showsVerticalScrollIndicator={false}
       >
@@ -256,22 +274,13 @@ export default function CaretakerDashboard() {
             </LinearGradient>
             <Text style={styles.emptyTitle}>{t('caretaker.dashboard.emptyTitle')}</Text>
             <Text style={styles.emptySubtitle}>{t('caretaker.dashboard.emptySubtitle')}</Text>
-            <CaretakerTourAnchor
-              stepId="dashboard-add-dependent"
-              titleKey="caretaker.tour.dashboardAddDependent.title"
-              bodyKey="caretaker.tour.dashboardAddDependent.body"
-              placement="top"
-              wrapStyle={styles.emptyCtaWrap}
-              enabled={!isLoading}
-              tooltipGap={44}
-              reserveBottom={0}
-            >
+            <CaretakerTourTarget stepId="dashboard-add-dependent" wrapStyle={styles.emptyCtaWrap}>
               <HugeButton
                 title={t('caretaker.dashboard.emptyCta')}
                 onPress={handleAddDependent}
                 style={styles.emptyCta}
               />
-            </CaretakerTourAnchor>
+            </CaretakerTourTarget>
           </View>
         ) : (
           <View style={styles.cardStack}>
@@ -286,16 +295,7 @@ export default function CaretakerDashboard() {
               />
             ))}
 
-            <CaretakerTourAnchor
-              stepId="dashboard-add-dependent"
-              titleKey="caretaker.tour.dashboardAddDependent.title"
-              bodyKey="caretaker.tour.dashboardAddDependent.body"
-              placement="top"
-              wrapStyle={styles.addCardWrap}
-              enabled={!isLoading}
-              tooltipGap={44}
-              reserveBottom={0}
-            >
+            <CaretakerTourTarget stepId="dashboard-add-dependent" wrapStyle={styles.addCardWrap}>
               <Pressable
                 onPress={handleAddDependent}
                 accessibilityRole="button"
@@ -310,10 +310,11 @@ export default function CaretakerDashboard() {
                 </View>
                 <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} />
               </Pressable>
-            </CaretakerTourAnchor>
+            </CaretakerTourTarget>
           </View>
         )}
       </CaretakerTourScrollView>
+      {dependents.length === 0 ? <CaretakerTourMockTabBar /> : null}
     </View>
     </CaretakerTourScrollProvider>
   );

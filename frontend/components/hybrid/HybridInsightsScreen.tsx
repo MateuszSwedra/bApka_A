@@ -9,7 +9,7 @@ import { DoseInsightsCard } from '../caretaker/DoseInsightsCard';
 import { VitalsInsightsCharts } from '../caretaker/VitalsInsightsCharts';
 import { useDependentTabTopInset } from '../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
-import { SeniorTourAnchor } from '../senior/SeniorTourAnchor';
+import { SeniorTourTarget } from '../senior/SeniorTourTarget';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
@@ -84,13 +84,7 @@ export default function HybridInsightsScreen() {
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
       <CaretakerTourScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
-        <SeniorTourAnchor
-          stepId="insights-range"
-          titleKey="senior.tour.insightsRange.title"
-          bodyKey="senior.tour.insightsRange.body"
-          placement="bottom"
-          wrapStyle={styles.rangeSwitcherWrap}
-        >
+        <SeniorTourTarget stepId="insights-range" wrapStyle={styles.rangeSwitcherWrap}>
         <View style={styles.rangeSwitcher}>
           {(['today', 'week', 'month'] as RangeKey[]).map(key => (
             <Pressable key={key} onPress={() => setRange(key)} style={[styles.rangeChip, key === range && styles.rangeChipActive]}>
@@ -98,7 +92,7 @@ export default function HybridInsightsScreen() {
             </Pressable>
           ))}
         </View>
-        </SeniorTourAnchor>
+        </SeniorTourTarget>
         {currentRangeLabel ? <Text style={styles.rangeHint}>{t('caretaker.insights.rangeLabel', { range: currentRangeLabel })}</Text> : null}
         {loading ? (
           <View style={styles.loadingBox}>

@@ -1,16 +1,46 @@
-import { Tabs } from 'expo-router';
+import { Tabs, useLocalSearchParams, useFocusEffect, useGlobalSearchParams, useSegments } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { View, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
-import { CaretakerTabBarTour } from '../../../../components/caretaker/CaretakerTabBarTour';
+import { useCaretakerGuidedTourOptional } from '../../../../context/CaretakerGuidedTourContext';
+import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
+import { useMeds } from '../../../../context/MedsContext';
 
 export default function DependentTabsLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const guidedTour = useCaretakerGuidedTourOptional();
+  const localParams = useLocalSearchParams<{ id?: string }>();
+  const globalParams = useGlobalSearchParams<{ id?: string }>();
+  const segments = useSegments();
+  const { targetUserId } = useMeds();
+
+  const dependentId = useMemo(
+    () =>
+      pickDependentUserId({
+        localId: localParams.id,
+        globalId: globalParams.id,
+        segments: segments as string[],
+        contextUserId: targetUserId,
+      }),
+    [localParams.id, globalParams.id, segments, targetUserId],
+  );
+
   const tabBarBottom =
     Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!dependentId) return;
+      const timer = setTimeout(() => {
+        guidedTour?.tryStartPostTour(dependentId);
+      }, Platform.OS === 'web' ? 500 : 700);
+      return () => clearTimeout(timer);
+    }, [dependentId, guidedTour]),
+  );
 
   return (
     <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
@@ -70,7 +100,6 @@ export default function DependentTabsLayout() {
           }}
         />
       </Tabs>
-      <CaretakerTabBarTour />
     </View>
   );
 }

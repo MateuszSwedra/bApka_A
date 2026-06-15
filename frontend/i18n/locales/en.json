@@ -222,6 +222,24 @@
     },
     "tour": {
       "gotIt": "Got it",
+      "guided": {
+        "skip": "Skip tour",
+        "next": "Next",
+        "prev": "Back",
+        "done": "Finish",
+        "progress": "{{current}} of {{total}}",
+        "preWelcome": {
+          "title": "Welcome to the caretaker hub",
+          "body": "We'll briefly show you how to add a dependent and what's in their profile. This tour appears only once, before you add your first dependent."
+        },
+        "postWelcome": {
+          "title": "Dependent profile",
+          "body": "You've added a dependent — we'll now walk through every profile tab step by step."
+        },
+        "tabsPreview": {
+          "body": "After pairing you'll see these tabs at the bottom of the profile: Today, Calendar, Med cabinet, and Insights."
+        }
+      },
       "dashboardAddDependent": {
         "title": "Add a dependent",
         "body": "Start here — you'll generate a PIN code to pair your dependent's account with your profile."
@@ -615,6 +633,17 @@
   "senior": {
     "tour": {
       "gotIt": "Got it",
+      "guided": {
+        "skip": "Skip tutorial",
+        "next": "Next",
+        "prev": "Back",
+        "done": "Finish",
+        "progress": "{{current}} of {{total}}",
+        "welcome": {
+          "title": "Welcome to the app",
+          "body": "We'll briefly show you how to use today's plan, calendar, medicine cabinet, and insights. This tutorial appears only once."
+        }
+      },
       "todayTakeMed": {
         "title": "Confirm medication",
         "body": "When it's time, tap this tile to confirm you took your medication or completed the activity."

@@ -28,7 +28,6 @@ import {
 } from '../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../services/notificationSoundPreview';
 import { HugeButton } from '../components/HugeButton';
-import { CaretakerTourAnchor } from '../components/caretaker/CaretakerTourAnchor';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
@@ -214,16 +213,7 @@ export default function NotificationSoundSettingsScreen() {
           <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
         ) : (
           <>
-            <CaretakerTourAnchor
-              stepId="sounds-medication"
-              titleKey="caretaker.tour.soundsMedication.title"
-              bodyKey="caretaker.tour.soundsMedication.body"
-              placement="bottom"
-              wrapStyle={styles.sectionTourWrap}
-              enabled={userRole === 'CARETAKER'}
-              measureDelayMs={500}
-            >
-              {renderSoundGroup(
+            {renderSoundGroup(
                 t('sounds.sectionMedication'),
                 userRole === 'DEPENDENT'
                   ? t('sounds.sectionMedicationSubtitleDependent')
@@ -234,7 +224,6 @@ export default function NotificationSoundSettingsScreen() {
                 'med',
                 'medication',
               )}
-            </CaretakerTourAnchor>
             {showSos &&
               renderSoundGroup(
                 t('sounds.sectionSos'),

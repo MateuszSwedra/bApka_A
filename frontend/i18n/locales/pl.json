@@ -224,6 +224,24 @@
     },
     "tour": {
       "gotIt": "Rozumiem",
+      "guided": {
+        "skip": "Pomiń tutorial",
+        "next": "Dalej",
+        "prev": "Wstecz",
+        "done": "Zakończ",
+        "progress": "{{current}} z {{total}}",
+        "preWelcome": {
+          "title": "Witaj w panelu opiekuna",
+          "body": "Krótko pokażemy, jak dodać podopiecznego i co znajdziesz w jego profilu. Ten tutorial pojawi się tylko raz, zanim dodasz pierwszego podopiecznego."
+        },
+        "postWelcome": {
+          "title": "Profil podopiecznego",
+          "body": "Masz już podopiecznego — przejdziemy teraz przez wszystkie zakładki profilu krok po kroku."
+        },
+        "tabsPreview": {
+          "body": "Po sparowaniu na dole profilu zobaczysz te zakładki: Dziś, Kalendarz, Apteczka i Statystyki."
+        }
+      },
       "dashboardAddDependent": {
         "title": "Dodaj podopiecznego",
         "body": "Tu rozpoczynasz opiekę — wygenerujesz kod PIN do sparowania konta podopiecznego z Twoim profilem."
@@ -619,6 +637,17 @@
   "senior": {
     "tour": {
       "gotIt": "Rozumiem",
+      "guided": {
+        "skip": "Pomiń tutorial",
+        "next": "Dalej",
+        "prev": "Wstecz",
+        "done": "Zakończ",
+        "progress": "{{current}} z {{total}}",
+        "welcome": {
+          "title": "Witaj w aplikacji",
+          "body": "Krótko pokażemy, jak korzystać z planu dnia, kalendarza, apteczki i statystyk. Ten tutorial pojawi się tylko raz."
+        }
+      },
       "todayTakeMed": {
         "title": "Potwierdź lek",
         "body": "Gdy nadejdzie pora, dotknij ten kafelek, aby potwierdzić przyjęcie leku lub wykonanie aktywności."

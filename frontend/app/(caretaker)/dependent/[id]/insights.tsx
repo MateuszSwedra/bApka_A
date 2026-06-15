@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { Theme } from '../../../../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { useLocalSearchParams, useGlobalSearchParams, useSegments, useFocusEffect } from 'expo-router';
@@ -12,11 +12,7 @@ import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsIns
 import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
 import { MoodWeekChart } from '../../../../components/insights/MoodWeekChart';
 import { MoodDistributionSummary } from '../../../../components/insights/MoodDistributionSummary';
-import { CaretakerTourAnchor } from '../../../../components/caretaker/CaretakerTourAnchor';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../../../context/CaretakerTourScrollContext';
+import { CaretakerTourTarget } from '../../../../components/caretaker/CaretakerTourTarget';
 import { buildMoodDayCells } from '../../../../utils/moodWeekChart';
 import { buildMoodDistribution } from '../../../../utils/moodDistribution';
 import { DoseStatsPayload } from '../../../../utils/doseStats';
@@ -188,21 +184,14 @@ export default function DependentInsightsScreen() {
   }, [doseStats]);
 
   return (
-    <CaretakerTourScrollProvider>
-      <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-        <CaretakerTourScrollView
-          style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}
-        >
+    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}
+      >
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
 
-        <CaretakerTourAnchor
-          stepId="insights-range"
-          titleKey="caretaker.tour.insightsRange.title"
-          bodyKey="caretaker.tour.insightsRange.body"
-          placement="bottom"
-          wrapStyle={styles.rangeSwitcherWrap}
-        >
+        <CaretakerTourTarget stepId="insights-range" wrapStyle={styles.rangeSwitcherWrap}>
           <View style={styles.rangeSwitcher}>
             {(['today', 'week', 'month'] as RangeKey[]).map((key) => {
               const active = key === range;
@@ -227,7 +216,7 @@ export default function DependentInsightsScreen() {
               );
             })}
           </View>
-        </CaretakerTourAnchor>
+        </CaretakerTourTarget>
 
         {currentRangeLabel ? (
           <Text style={styles.rangeHint}>
@@ -270,9 +259,8 @@ export default function DependentInsightsScreen() {
             />
           </>
         )}
-        </CaretakerTourScrollView>
-      </View>
-    </CaretakerTourScrollProvider>
+      </ScrollView>
+    </View>
   );
 }
 
