@@ -282,7 +282,7 @@ export class CronService {
 
             user: { select: { id: true, name: true, email: true, fcmToken: true } },
 
-            inventory: { select: { name: true } },
+            inventory: { select: { name: true, type: true } },
 
           },
 
@@ -331,27 +331,18 @@ export class CronService {
 
 
       await this.notifications.notifyDoseMissed(
-
         schedule.user.id,
-
         dependentName,
-
         medName,
-
         schedule.id,
-
+        schedule.inventory?.type,
       );
 
-
-
       await this.notifications.sendDoseMissedReminder(schedule.user.fcmToken, {
-
         medication: medName,
-
         scheduleId: schedule.id,
-
         email: schedule.user.email,
-
+        inventoryType: schedule.inventory?.type,
       });
 
     }

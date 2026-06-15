@@ -62,6 +62,7 @@ export class SchedulesService {
   }
 
   async remove(id: string) {
+    await this.prisma.doseLog.deleteMany({ where: { scheduleId: id } });
     return this.prisma.schedule.delete({
       where: { id },
     });
@@ -127,7 +128,7 @@ export class SchedulesService {
       where: { id: scheduleId },
       include: {
         user: { select: { id: true, name: true, email: true } },
-        inventory: { select: { name: true } },
+        inventory: { select: { name: true, type: true } },
       },
     });
     const planned = this.scheduledAtToday(schedule?.time ?? undefined);
@@ -174,6 +175,7 @@ export class SchedulesService {
           medName,
           newStatus === 'LATE',
           scheduleId,
+          schedule.inventory?.type,
         );
       } else if (newStatus === 'MISSED' && prev !== 'MISSED') {
         await this.notifications.notifyDoseMissed(
@@ -181,6 +183,7 @@ export class SchedulesService {
           dependentName,
           medName,
           scheduleId,
+          schedule.inventory?.type,
         );
       }
     };

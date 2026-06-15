@@ -27,11 +27,6 @@ import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useScreenBottomPadding } from '../utils/safeAreaInsets';
-import {
-  activateManualSeniorPreview,
-  isDevSeniorPreview,
-  isSeniorPreviewActive,
-} from '../constants/devSeniorPreview';
 
 type AuthMode = 'pick' | 'register' | 'signIn';
 
@@ -54,16 +49,12 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showPasswordRepeat, setShowPasswordRepeat] = useState(false);
   const [loading, setLoading] = useState<'idle' | 'login' | 'register'>('idle');
-  const { setUserSession, userRole, isReady, loginFake } = useAuth();
+  const { setUserSession, userRole, isReady } = useAuth();
   const isBusy = loading !== 'idle';
   const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   useEffect(() => {
     if (!isReady || !userRole) return;
-    if (userRole === 'DEPENDENT' && isSeniorPreviewActive()) {
-      router.replace('/(dependent)');
-      return;
-    }
     let cancelled = false;
     const go = async () => {
       let token: string | null = null;
@@ -403,32 +394,6 @@ export default function LoginScreen() {
                 disabled={isBusy}
                 loading={loading === 'login'}
               />
-
-              {__DEV__ ? (
-                <Pressable
-                  onPress={() => {
-                    activateManualSeniorPreview();
-                    loginFake('DEPENDENT');
-                    router.replace('/(dependent)');
-                  }}
-                  style={({ pressed }) => [
-                    styles.devPreviewBtn,
-                    isDevSeniorPreview() && styles.devPreviewBtnHighlight,
-                    pressed && { opacity: 0.85 },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.devPreviewBtnText,
-                      isDevSeniorPreview() && styles.devPreviewBtnTextHighlight,
-                    ]}
-                  >
-                    {isDevSeniorPreview()
-                      ? 'Zaloguj jako senior (podgląd)'
-                      : 'Podgląd panelu seniora (dev)'}
-                  </Text>
-                </Pressable>
-              ) : null}
             </View>
           </View>
         )}
@@ -832,27 +797,5 @@ const styles = StyleSheet.create({
     color: OnboardingPalette.primaryDark,
     textDecorationLine: 'underline',
     textDecorationColor: OnboardingPalette.accent,
-  },
-  devPreviewBtn: {
-    marginTop: 16,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: Theme.borderRadius.round,
-    borderWidth: 2,
-    borderColor: OnboardingPalette.accent,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-  },
-  devPreviewBtnHighlight: {
-    borderStyle: 'solid',
-    backgroundColor: 'rgba(233, 164, 61, 0.12)',
-  },
-  devPreviewBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: OnboardingPalette.textSecondary,
-  },
-  devPreviewBtnTextHighlight: {
-    color: OnboardingPalette.primaryDark,
   },
 });

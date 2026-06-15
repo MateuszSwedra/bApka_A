@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  Alert,
   View,
   Text,
   StyleSheet,
@@ -34,6 +35,7 @@ import {
   returnAfterScheduleSaved,
 } from '../../../../utils/medsFlowNavigation';
 import { parsePrefillTime } from '../../../../utils/addMedPrefill';
+import { isScheduleDateTimeInPast, getMinScheduleTimeForDate } from '../../../../utils/scheduleDateHelpers';
 
 function paramString(v?: string | string[]): string | undefined {
   if (v == null) return undefined;
@@ -133,10 +135,15 @@ export default function AddScheduleDetailsScreen() {
     [treatments, treatmentId],
   );
   const isMedication = selectedTreatment?.type === 'MEDICATION';
+  const minTime = useMemo(() => getMinScheduleTimeForDate(startDate), [startDate]);
 
   const handleSave = async () => {
     if (!treatmentId || !dependentId || saving) return;
     const picked = timePickerRef.current?.getTime() ?? { hour, minute };
+    if (isScheduleDateTimeInPast(startDate, picked.hour, picked.minute)) {
+      Alert.alert(t('common.error'), t('schedule.add.pastNotAllowed'));
+      return;
+    }
     const timeStr = formatTimeParts(picked.hour, picked.minute);
 
     let scheduleStart = startDate;
@@ -195,6 +202,7 @@ export default function AddScheduleDetailsScreen() {
       </View>
 
       <ScrollView
+        style={styles.scroll}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -211,6 +219,7 @@ export default function AddScheduleDetailsScreen() {
           minute={minute}
           onHourChange={setHour}
           onMinuteChange={setMinute}
+          minTime={minTime}
         />
 
         {isMedication && (
@@ -263,8 +272,11 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Theme.spacing.l,
-    paddingBottom: Theme.spacing.l,
+    paddingBottom: Theme.spacing.m,
     alignItems: 'center',
+  },
+  scroll: {
+    flex: 1,
   },
   lead: {
     marginTop: Theme.spacing.m,

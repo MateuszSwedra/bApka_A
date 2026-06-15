@@ -7,6 +7,7 @@ import { useMeds } from '../../../../../context/MedsContext';
 import { pickDependentUserId } from '../../../../../utils/resolveMedsTargetUserId';
 import { openAddMedForDependent } from '../../../../../utils/caretakerNavigation';
 import { openAddMedFromCalendarSlot, resolveMedsFlowScope } from '../../../../../utils/medsFlowNavigation';
+import { isCalendarHourSlotInPast, isScheduleItemInPast, isCalendarDayInPast } from '../../../../../utils/scheduleDateHelpers';
 import { useFabBottomOffset } from '../../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
@@ -101,9 +102,20 @@ export default function DependentCalendarDayScreen() {
         Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
         return;
       }
+      if (isCalendarDayInPast(dateStr) || isCalendarHourSlotInPast(dateStr, hour)) {
+        return;
+      }
       openAddMedFromCalendarSlot(dependentId, flowScope, dateStr, hour);
     },
     [dependentId, flowScope, dateStr, t],
+  );
+
+  const handleEventPress = useCallback(
+    (sch: ScheduleItem) => {
+      if (isScheduleItemInPast(dateStr, sch.time)) return;
+      setSelectedSchedule(sch);
+    },
+    [dateStr],
   );
 
   if (!dateStr) {
@@ -123,7 +135,7 @@ export default function DependentCalendarDayScreen() {
             treatments={treatments}
             depletionAlerts={depletionAlerts}
             labelForSchedule={labelForSchedule}
-            onEventPress={sch => setSelectedSchedule(sch)}
+            onEventPress={handleEventPress}
             onSlotPress={handleSlotPress}
             scrollRef={dayScrollRef}
             timelineContentRef={dayContentRef}
@@ -151,7 +163,7 @@ export default function DependentCalendarDayScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('tabs.calendar')}
         >
-          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
+          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
         </Pressable>
       </View>
     </View>
@@ -191,5 +203,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Theme.colors.primaryLimeDark,
+  },
+  fabAddIcon: {
+    marginTop: 3,
   },
 });

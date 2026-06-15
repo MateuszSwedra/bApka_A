@@ -11,7 +11,7 @@ type MetricType = 'BP' | 'GLUCOSE';
 
 const DEFAULT_SYS = 120;
 const DEFAULT_DIA = 80;
-const DEFAULT_GLUCOSE = 100;
+const DEFAULT_GLUCOSE = 90;
 
 export default function DependentMetricsScreen() {
   const { t } = useTranslation();

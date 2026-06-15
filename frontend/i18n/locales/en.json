@@ -30,6 +30,7 @@
     "prevMonth": "Previous month",
     "nextMonth": "Next month",
     "pickMonth": "Choose month",
+    "pickYear": "Choose year",
     "moreEvents": "+{{count}}",
     "allDay": "All day",
     "weekdayShort": { "1": "Mon", "2": "Tue", "3": "Wed", "4": "Thu", "5": "Fri", "6": "Sat", "7": "Sun" }
@@ -453,7 +454,7 @@
     "mainDueCta": "Confirm",
     "mainUpcoming": "Next medicine or activity at: {{time}}",
     "mainEmpty": "No activity is required by your caretaker's calendar right now.",
-    "mainAllDone": "That's all for today - no more planned activities.",
+    "mainAllDone": "All done for today.\nNothing scheduled.",
     "mainMissed": "Not taken on time",
     "mainMissedHint": "15 minutes have passed since the scheduled time. This activity was marked as missed.",
     "activityMissed": "Missed",
@@ -508,7 +509,8 @@
       "moodNext": "Next at {{time}}",
       "moodDone": "Done for today",
       "moodDisabled": "Disabled",
-      "schedule": "Schedule",
+      "lateLabel": "Late",
+      "schedule": "Plan",
       "scheduleSub": "Medicine plan",
       "sosSub": "Call for help",
       "sosConfirm": "Are you sure you want to alert your caretaker?",
@@ -695,6 +697,7 @@
       "pickActivityTitle": "Choose activity",
       "pickActivityLead": "Select an activity from your dependent's kit to add to the calendar.",
       "slotA11y": "Add activity at {{time}}",
+      "pastNotAllowed": "You cannot schedule activities in the past.",
       "continue": "Continue",
       "pickFrequencyTitle": "How often?",
       "pickFrequencyLead": "Choose whether this is a one-time dose, ongoing, or only for a set period.",
@@ -767,6 +770,20 @@
       "placeholderPills": "e.g. 60",
       "placeholderHints": "e.g. tips for senior",
       "errorSave": "Could not save changes."
+    },
+    "restock": {
+      "title": "Medication restocked",
+      "lead": "How many pills are you adding to the cabinet?",
+      "currentStock": "Current stock: {{count}} pcs.",
+      "afterStock": "After adding: {{count}} pcs.",
+      "quantityLabel": "Adding",
+      "confirm": "Add to stock",
+      "error": "Could not update stock.",
+      "a11y": "Restock medication"
+    },
+    "delete": {
+      "title": "Remove activity?",
+      "message": "“{{name}}” will be removed along with its schedule. This cannot be undone."
     },
     "type": {
       "medication": { "label": "Medication", "hint": "Tablets, capsules, etc.", "defaultName": "Medication" },

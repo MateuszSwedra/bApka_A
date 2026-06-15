@@ -3,21 +3,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Theme } from '../constants/theme';
 import {
   getNavigationBarBottomInset,
-  getTabBarTotalHeight,
 } from './safeAreaInsets';
 
 type FabBottomOptions = {
-  /** FAB nad dolną nawigacją zakładek (profil podopiecznego). */
+  /** Ekran wewnątrz dolnych zakładek — FAB tuż nad tab barem (mała przerwa). */
   aboveTabBar?: boolean;
 };
 
-/** Odległość FAB od dołu ekranu (safe area lub nad tab barem). */
+/** Mały odstęp FAB od dolnej krawędzi ekranu zakładki (tab bar jest poza tym obszarem). */
+const FAB_TAB_SCREEN_GAP = 12;
+
+/** Odległość FAB od dołu ekranu. */
 export function useFabBottomOffset(options?: FabBottomOptions): number {
   const insets = useSafeAreaInsets();
   const minInset = Platform.OS === 'android' ? 28 : 12;
 
   if (options?.aboveTabBar) {
-    return getTabBarTotalHeight(insets.bottom) + Theme.spacing.xs;
+    return FAB_TAB_SCREEN_GAP;
   }
 
   return Math.max(getNavigationBarBottomInset(insets.bottom), minInset) + Theme.spacing.xl;

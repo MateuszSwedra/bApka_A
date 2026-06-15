@@ -92,11 +92,11 @@ export default function PickScheduleTimingScreen() {
 
   const canContinue = useMemo(() => {
     if (!medType) return false;
-    if (medType === 'ONCE') return Boolean(selectedDate);
+    if (medType === 'ONCE') return Boolean(selectedDate) && compareYmd(selectedDate, today) >= 0;
     if (medType === 'REGULAR') return selectedDays.length > 0;
     if (medType === 'TEMPORARY') return tempRangeComplete;
     return false;
-  }, [medType, selectedDate, selectedDays, tempRangeComplete]);
+  }, [medType, selectedDate, today, selectedDays, tempRangeComplete]);
 
   const tempRangeMarks = useMemo(
     () => buildTempRangeMarks(tempStart, tempEnd),
@@ -198,7 +198,11 @@ export default function PickScheduleTimingScreen() {
           <View style={styles.calendarWrapper}>
             <Calendar
               current={selectedDate}
-              onDayPress={day => setSelectedDate(day.dateString)}
+              minDate={today}
+              onDayPress={day => {
+                if (compareYmd(day.dateString, today) < 0) return;
+                setSelectedDate(day.dateString);
+              }}
               markedDates={{ [selectedDate]: { selected: true } }}
               theme={addMedCalendarTheme}
               hideExtraDays

@@ -7,9 +7,14 @@ import {
   Pressable,
   Alert,
   ActivityIndicator,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { format } from 'date-fns';
 import { Theme } from '../../constants/theme';
 import type { ScheduleItem } from '../../context/MedsContext';
 import { useMeds } from '../../context/MedsContext';
@@ -23,6 +28,11 @@ import {
 } from './FriendlyTimePicker';
 import { DosageStepper } from './DosageStepper';
 import { parseTimeParts } from '../TimeScrollPicker';
+import {
+  getMinScheduleTimeForDate,
+  isScheduleDateTimeInPast,
+} from '../../utils/scheduleDateHelpers';
+import { normalizeYmd } from '../../utils/ymdDate';
 
 type Props = {
   schedule: ScheduleItem | null;
@@ -33,6 +43,7 @@ type Props = {
 
 export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props) {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const { treatments, updateSchedule, removeSchedule } = useMeds();
   const timePickerRef = useRef<FriendlyTimePickerRef>(null);
   const [hour, setHour] = useState(8);
@@ -47,6 +58,13 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
 
   const showsDosage = scheduleEditShowsDosage(treatmentType);
 
+  const scheduleDateYmd =
+    normalizeYmd(schedule?.startDate) ?? format(new Date(), 'yyyy-MM-dd');
+  const minTime = useMemo(
+    () => getMinScheduleTimeForDate(scheduleDateYmd),
+    [scheduleDateYmd],
+  );
+
   useEffect(() => {
     if (!schedule) return;
     const { hour: h, minute: m } = parseTimeParts(schedule.time);
@@ -58,6 +76,10 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
   const handleSave = useCallback(async () => {
     if (!schedule) return;
     const parts = timePickerRef.current?.getTime() ?? { hour, minute };
+    if (isScheduleDateTimeInPast(scheduleDateYmd, parts.hour, parts.minute)) {
+      Alert.alert(t('common.error'), t('schedule.add.pastNotAllowed'));
+      return;
+    }
     const time = `${String(parts.hour).padStart(2, '0')}:${String(parts.minute).padStart(2, '0')}`;
     setSaving(true);
     try {
@@ -71,7 +93,7 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
     } finally {
       setSaving(false);
     }
-  }, [schedule, hour, minute, dosage, showsDosage, updateSchedule, onClose, t]);
+  }, [schedule, hour, minute, dosage, showsDosage, updateSchedule, onClose, t, scheduleDateYmd]);
 
   const handleDelete = useCallback(() => {
     if (!schedule) return;
@@ -95,23 +117,49 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
         },
       },
     ]);
-  }, [schedule, label, removeSchedule, onClose, t]);
+  }, [schedule, removeSchedule, onClose, t]);
 
   if (!schedule) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={e => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>{label}</Text>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <KeyboardAvoidingView
+        style={styles.root}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+          <View style={styles.headerSpacer} />
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {label}
+          </Text>
+          <Pressable
+            onPress={onClose}
+            style={styles.closeBtn}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.cancel')}
+          >
+            <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
+          </Pressable>
+        </View>
 
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <FriendlyTimePicker
             ref={timePickerRef}
             hour={hour}
             minute={minute}
             onHourChange={setHour}
             onMinuteChange={setMinute}
+            minTime={minTime}
           />
 
           {showsDosage ? (
@@ -121,65 +169,76 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
               label={t('schedule.add.dosagePills')}
             />
           ) : null}
+        </ScrollView>
 
-          <View style={styles.actions}>
-            <Pressable
-              style={[styles.btn, styles.btnPrimary]}
-              onPress={() => void handleSave()}
-              disabled={saving}
-            >
-              {saving ? (
-                <ActivityIndicator color={Theme.colors.surfaceWhite} />
-              ) : (
-                <Text style={styles.btnPrimaryText}>{t('common.save')}</Text>
-              )}
-            </Pressable>
-            <Pressable style={[styles.btn, styles.btnDanger]} onPress={handleDelete} disabled={saving}>
-              <MaterialIcons name="delete-outline" size={22} color="#B91C1C" />
-              <Text style={styles.btnDangerText}>{t('common.delete')}</Text>
-            </Pressable>
-            <Pressable style={styles.btnGhost} onPress={onClose} disabled={saving}>
-              <Text style={styles.btnGhostText}>{t('common.cancel')}</Text>
-            </Pressable>
-          </View>
-        </Pressable>
-      </Pressable>
+        <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Theme.spacing.m) }]}>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={() => void handleSave()}
+            disabled={saving}
+          >
+            {saving ? (
+              <ActivityIndicator color={Theme.colors.surfaceWhite} />
+            ) : (
+              <Text style={styles.btnPrimaryText}>{t('common.save')}</Text>
+            )}
+          </Pressable>
+          <Pressable style={[styles.btn, styles.btnDanger]} onPress={handleDelete} disabled={saving}>
+            <MaterialIcons name="delete-outline" size={22} color="#B91C1C" />
+            <Text style={styles.btnDangerText}>{t('common.delete')}</Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
+  root: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'flex-end',
+    backgroundColor: Theme.colors.background,
   },
-  sheet: {
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: Theme.spacing.l,
-    paddingBottom: Theme.spacing.xxl,
-    paddingTop: Theme.spacing.m,
-    maxHeight: '88%',
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Theme.spacing.m,
+    paddingBottom: Theme.spacing.s,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: Theme.colors.border,
+    backgroundColor: Theme.colors.background,
   },
-  handle: {
-    alignSelf: 'center',
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: Theme.colors.border,
-    marginBottom: Theme.spacing.m,
+  headerSpacer: {
+    width: 48,
   },
-  title: {
+  headerTitle: {
+    flex: 1,
+    textAlign: 'center',
     fontSize: Theme.typography.title,
     fontWeight: '800',
     color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.m,
   },
-  actions: {
-    marginTop: Theme.spacing.l,
+  closeBtn: {
+    width: 48,
+    height: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: Theme.spacing.l,
+    paddingTop: Theme.spacing.l,
+    paddingBottom: Theme.spacing.l,
+    alignItems: 'center',
+  },
+  footer: {
+    paddingHorizontal: Theme.spacing.l,
+    paddingTop: Theme.spacing.m,
     gap: Theme.spacing.s,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.border,
+    backgroundColor: Theme.colors.background,
   },
   btn: {
     flexDirection: 'row',
@@ -205,13 +264,5 @@ const styles = StyleSheet.create({
   btnDangerText: {
     color: '#B91C1C',
     fontWeight: '700',
-  },
-  btnGhost: {
-    paddingVertical: Theme.spacing.s,
-  },
-  btnGhostText: {
-    textAlign: 'center',
-    color: Theme.colors.textLight,
-    fontWeight: '600',
   },
 });

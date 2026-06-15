@@ -3,7 +3,8 @@ import '../services/sosBootstrap';
 import { Stack, usePathname } from 'expo-router';
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
-import { AppState, Platform, View } from 'react-native';
+import { AppState, Platform } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { MedsProvider } from '../context/MedsContext';
@@ -118,7 +119,12 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-    <View style={{ flex: 1, backgroundColor: Platform.OS === 'android' ? ANDROID_NAV_BAR_COLOR : Theme.colors.background }}>
+    <GestureHandlerRootView
+      style={{
+        flex: 1,
+        backgroundColor: Platform.OS === 'android' ? ANDROID_NAV_BAR_COLOR : Theme.colors.background,
+      }}
+    >
       <AuthProvider>
       <MedsProvider>
       <PushPermissionGuard />
@@ -154,7 +160,7 @@ export default function RootLayout() {
       </Stack>
       </MedsProvider>
     </AuthProvider>
-    </View>
+    </GestureHandlerRootView>
     </SafeAreaProvider>
   );
 }

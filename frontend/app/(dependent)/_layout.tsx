@@ -3,19 +3,13 @@ import { ActivityIndicator, View, StyleSheet } from 'react-native';
 import { Stack, router } from 'expo-router';
 import { DependentDisplayProvider } from '../../context/DependentDisplayContext';
 import { usersAPI } from '../../services/api';
-import { isSeniorPreviewActive } from '../../constants/devSeniorPreview';
 import { dependentNeedsCaretakerPin, type MeProfile } from '../../services/postAuthRouting';
 import { Theme } from '../../constants/theme';
 
 export default function DependentLayout() {
-  const [allowed, setAllowed] = useState(isSeniorPreviewActive());
+  const [allowed, setAllowed] = useState(false);
 
   useEffect(() => {
-    if (isSeniorPreviewActive()) {
-      setAllowed(true);
-      return;
-    }
-
     let cancelled = false;
     void usersAPI
       .getMe()

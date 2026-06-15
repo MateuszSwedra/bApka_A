@@ -15,6 +15,7 @@ const TYPE_KEY: Record<TreatmentType, string> = {
 export type SeniorActionTileContent = {
   icon: TreatmentIconName;
   title: string;
+  lateLabel?: string;
   idleTitle: string;
   accent: string;
 };
@@ -34,14 +35,14 @@ export function seniorActionTileContent(
   const typeKey = TYPE_KEY[activityType];
   const isLate = mainState.kind === 'missed';
 
-  const title = isLate
-    ? t(`dependent.home.action.${typeKey}.titleLate`)
-    : t(`dependent.home.action.${typeKey}.title`);
+  const title = t(`dependent.home.action.${typeKey}.title`);
+  const lateLabel = isLate ? t('dependent.home.lateLabel') : undefined;
   const idleTitle = t(`dependent.home.action.${typeKey}.idle`);
 
   return {
     icon: visual.icon,
     title,
+    lateLabel,
     idleTitle,
     accent: visual.accent,
   };

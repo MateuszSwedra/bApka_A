@@ -1,4 +1,5 @@
 import React from 'react';
+import { Platform } from 'react-native';
 import type { BottomTabNavigationOptions } from '@react-navigation/bottom-tabs';
 import { Theme } from '../constants/theme';
 import { TabBarBackground } from '../components/TabBarBackground';
@@ -33,6 +34,7 @@ export function buildBottomTabScreenOptions(
       fontSize: Theme.typography.small,
       fontWeight: '600',
       marginBottom: 4,
+      ...(Platform.OS === 'android' ? { includeFontPadding: false } : null),
     },
     tabBarItemStyle: {
       paddingBottom: 2,

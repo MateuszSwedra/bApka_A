@@ -18,12 +18,6 @@ import { debugLog } from '../utils/debugLog';
 import { useAuth } from './AuthContext';
 import i18n from '../i18n';
 import type { TreatmentType } from '../constants/treatmentVisuals';
-import {
-  DEV_PREVIEW_USER_ID,
-  devPreviewSchedules,
-  devPreviewTreatments,
-  isSeniorPreviewActive,
-} from '../constants/devSeniorPreview';
 
 export type { TreatmentType } from '../constants/treatmentVisuals';
 
@@ -67,6 +61,14 @@ export interface ScheduleItem {
 /** Id aktywności przypisanej do wpisu harmonogramu (nowe: treatmentId, stare: inventoryId). */
 export function getScheduleTreatmentId(s: ScheduleItem): string | undefined {
   return s.treatmentId ?? s.inventoryId;
+}
+
+/** API może zwracać DAILY zamiast REGULAR — ujednolicamy typy harmonogramu. */
+export function normalizeScheduleType(raw?: string | null): MedScheduleType {
+  const v = (raw ?? '').trim().toUpperCase();
+  if (v === 'ONCE') return 'ONCE';
+  if (v === 'TEMPORARY') return 'TEMPORARY';
+  return 'REGULAR';
 }
 
 // Wynik obliczeń algorytmu
@@ -169,11 +171,6 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (userRole === 'DEPENDENT' && isSeniorPreviewActive()) {
-      setTargetUserId(DEV_PREVIEW_USER_ID);
-      return;
-    }
-
     let cancelled = false;
     (async () => {
       const token = await getStoredAuthToken();
@@ -194,12 +191,6 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   }, [id, dependentId, segList, isReady, userRole, scopedDependentUserId]);
 
   const refetchFromServer = useCallback(async (userId?: string) => {
-    if (isSeniorPreviewActive()) {
-      setTreatments(devPreviewTreatments());
-      setSchedules(devPreviewSchedules());
-      return;
-    }
-
     const uid = userId ?? targetUserId;
     if (!uid) return;
     const token = await getStoredAuthToken();
@@ -220,7 +211,6 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       setTreatments(mappedTreatments);
 
       const treatmentIds = new Set(mappedTreatments.map(t => t.id));
-      const treatmentNames = new Set(mappedTreatments.map(t => t.name));
 
       const fetchedSchedules = await scheduleAPI.getSchedules(uid);
       if (fetchedSchedules && fetchedSchedules.length > 0) {
@@ -229,17 +219,20 @@ export function MedsProvider({ children }: { children: ReactNode }) {
             id: String(sch.id),
             treatmentId: sch.inventoryId ? String(sch.inventoryId) : undefined,
             customName: sch.medication,
-            type: sch.type as MedScheduleType,
+            type: normalizeScheduleType(sch.type),
             time: sch.time,
             dosage: sch.dosage || '1',
             startDate: normalizeYmd(sch.startDate) ?? sch.startDate,
             endDate: normalizeYmd(sch.endDate) ?? sch.endDate,
-            daysOfWeek: sch.daysOfWeek || [1, 2, 3, 4, 5, 6, 7],
+            daysOfWeek:
+              Array.isArray(sch.daysOfWeek) && sch.daysOfWeek.length > 0
+                ? sch.daysOfWeek
+                : [1, 2, 3, 4, 5, 6, 7],
           }))
           .filter((sch: ScheduleItem) => {
             const tid = getScheduleTreatmentId(sch);
-            if (tid) return treatmentIds.has(tid);
-            if (sch.customName) return treatmentNames.has(sch.customName);
+            if (tid && treatmentIds.has(tid)) return true;
+            if (sch.customName?.trim()) return true;
             return false;
           });
         setSchedules(mappedSchedules);

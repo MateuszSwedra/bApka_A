@@ -58,13 +58,11 @@ function SeniorProfileCard({
   accentIndex,
   onPress,
   moodSubtitle,
-  profileHint,
 }: {
   dependent: Dependent;
   accentIndex: number;
   onPress: () => void;
   moodSubtitle: string | null;
-  profileHint: string;
 }) {
   const accent = AVATAR_PALETTE[accentIndex % AVATAR_PALETTE.length];
   const displayName = dependent.name?.trim() || dependent.email;
@@ -95,9 +93,7 @@ function SeniorProfileCard({
           ) : null}
           {dependent.lastMood && moodSubtitle ? (
             <MoodBadge mood={dependent.lastMood} subtitle={moodSubtitle} style={styles.moodBadge} />
-          ) : (
-            <Text style={styles.profileHint}>{profileHint}</Text>
-          )}
+          ) : null}
         </View>
 
         <View style={[styles.goCircle, { backgroundColor: accent.soft }]}>
@@ -283,7 +279,6 @@ export default function CaretakerDashboard() {
                 accentIndex={index}
                 onPress={() => handleDependentPress(dependent.id)}
                 moodSubtitle={moodSubtitleFor(dependent)}
-                profileHint={t('caretaker.dashboard.profileHint')}
               />
             ))}
 
@@ -309,7 +304,7 @@ export default function CaretakerDashboard() {
                   <Text style={styles.addTitle}>{t('caretaker.dashboard.addCardTitle')}</Text>
                   <Text style={styles.addSubtitle}>{t('caretaker.dashboard.addCardSubtitle')}</Text>
                 </View>
-                <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} />
+                <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} style={styles.addCircleIcon} />
               </Pressable>
             </CaretakerTourAnchor>
           </View>
@@ -485,12 +480,6 @@ const styles = StyleSheet.create({
     fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
   },
-  profileHint: {
-    marginTop: 6,
-    fontSize: Theme.typography.small,
-    color: Theme.colors.textLight,
-    fontWeight: '500',
-  },
   moodBadge: {
     marginTop: 8,
   },
@@ -532,6 +521,9 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
+  },
+  addCircleIcon: {
+    marginTop: 2,
   },
   emptyCard: {
     alignItems: 'center',

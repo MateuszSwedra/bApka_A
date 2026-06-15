@@ -23,8 +23,8 @@ import {
 } from '../constants/onboardingTheme';
 import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
-import { useScreenBottomPadding } from '../utils/safeAreaInsets';
-
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../utils/safeAreaInsets';
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 
 const showAlert = (title: string, message: string) => {
@@ -37,11 +37,12 @@ const showAlert = (title: string, message: string) => {
 
 export default function OnboardingNameScreen() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
+  const footerBottom = getScreenBottomPadding(insets.bottom, Theme.spacing.l);
 
-  const handleContinue = async () => {
+  const handleSave = async () => {
     const trimmed = name.trim();
     if (trimmed.length < 2) {
       showAlert(t('common.error'), t('onboarding.name.errorMinLength'));
@@ -79,8 +80,7 @@ export default function OnboardingNameScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          styles.scrollNameCentered,
-          { paddingBottom: bottomPadding },
+          { paddingBottom: footerBottom + 88 },
         ]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
@@ -115,37 +115,33 @@ export default function OnboardingNameScreen() {
               />
             </View>
           </View>
-
-          <View style={styles.ctaShadowWrap}>
-            <Pressable
-              onPress={() => void handleContinue()}
-              disabled={loading}
-              style={({ pressed }) => [
-                styles.ctaPressable,
-                pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-                loading && { opacity: 0.65 },
-              ]}
-            >
-              <LinearGradient
-                colors={[...OnboardingGradient.colors]}
-                start={OnboardingGradient.start}
-                end={OnboardingGradient.end}
-                style={styles.primaryCta}
-              >
-                <Text style={styles.primaryCtaText}>
-                  {loading ? t('onboarding.name.saving') : t('onboarding.name.cta')}
-                </Text>
-                <MaterialCommunityIcons
-                  name="arrow-right"
-                  size={22}
-                  color={OnboardingPalette.surface}
-                  style={{ marginLeft: 8 }}
-                />
-              </LinearGradient>
-            </Pressable>
-          </View>
         </View>
       </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: footerBottom }]}>
+        <View style={styles.ctaShadowWrap}>
+          <Pressable
+            onPress={() => void handleSave()}
+            disabled={loading}
+            style={({ pressed }) => [
+              styles.ctaPressable,
+              pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
+              loading && { opacity: 0.65 },
+            ]}
+          >
+            <LinearGradient
+              colors={[...OnboardingGradient.colors]}
+              start={OnboardingGradient.start}
+              end={OnboardingGradient.end}
+              style={styles.primaryCta}
+            >
+              <Text style={styles.primaryCtaText}>
+                {loading ? t('onboarding.name.saving') : t('common.save')}
+              </Text>
+            </LinearGradient>
+          </Pressable>
+        </View>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -170,15 +166,10 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     width: '100%',
     paddingHorizontal: 24,
-    paddingBottom: 40,
-    alignItems: 'center',
-  },
-  scrollNameCentered: {
-    flexGrow: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: SCREEN_H,
     paddingTop: Platform.OS === 'ios' ? 20 : 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: SCREEN_H * 0.72,
   },
   nameColumn: {
     width: '100%',
@@ -193,9 +184,6 @@ const styles = StyleSheet.create({
     color: OnboardingPalette.textPrimary,
     textAlign: 'center',
     marginBottom: 12,
-    textShadowColor: 'rgba(249, 243, 239, 0.9)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 8,
   },
   subtitle: {
     width: '100%',
@@ -205,16 +193,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 28,
     opacity: 0.88,
-    textShadowColor: 'rgba(249, 243, 239, 0.95)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 6,
   },
   formCard: {
     width: '100%',
     backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: Theme.borderRadius.large,
     padding: 18,
-    marginBottom: 24,
     borderWidth: 1,
     borderColor: OnboardingPalette.border,
     shadowColor: OnboardingPalette.primaryDark,
@@ -240,6 +224,13 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     fontSize: 17,
     color: OnboardingPalette.textPrimary,
+  },
+  footer: {
+    paddingHorizontal: 24,
+    paddingTop: Theme.spacing.m,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: OnboardingPalette.border,
+    backgroundColor: OnboardingPalette.background,
   },
   ctaShadowWrap: {
     width: '100%',

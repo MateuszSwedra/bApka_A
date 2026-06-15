@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { Theme } from '../../constants/theme';
 import { MoodIcon } from '../mood/MoodIcon';
@@ -10,14 +10,23 @@ type Props = {
 };
 
 export function MoodWeekChart({ days, subtitle }: Props) {
-  if (days.length === 0) return null;
-
+  const scrollRef = useRef<ScrollView>(null);
   const useScroll = days.length > 7;
   const colMinWidth = days.length <= 7 ? undefined : 44;
 
+  useEffect(() => {
+    if (!useScroll) return;
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollToEnd({ animated: false });
+    }, 50);
+    return () => clearTimeout(timer);
+  }, [useScroll, days.length]);
+
+  if (days.length === 0) return null;
+
   const row = (
     <View style={[styles.row, useScroll && styles.rowScroll]}>
-      {days.map((day) => (
+      {days.map(day => (
         <View
           key={day.dayKey}
           style={[styles.col, colMinWidth != null && { minWidth: colMinWidth }]}
@@ -41,7 +50,12 @@ export function MoodWeekChart({ days, subtitle }: Props) {
     <View style={styles.wrap}>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {useScroll ? (
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
           {row}
         </ScrollView>
       ) : (
@@ -76,6 +90,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingVertical: 4,
+    flexGrow: 1,
+    justifyContent: 'flex-end',
   },
   col: {
     flex: 1,

@@ -30,6 +30,7 @@
     "prevMonth": "Poprzedni miesiąc",
     "nextMonth": "Następny miesiąc",
     "pickMonth": "Wybierz miesiąc",
+    "pickYear": "Wybierz rok",
     "moreEvents": "+{{count}}",
     "allDay": "Cały dzień",
     "weekdayShort": { "1": "Pn", "2": "Wt", "3": "Śr", "4": "Cz", "5": "Pt", "6": "Sb", "7": "Nd" }
@@ -455,7 +456,7 @@
     "mainDueCta": "Potwierdź",
     "mainUpcoming": "Następna aktywność o: {{time}}",
     "mainEmpty": "Kalendarz opiekuna nie wymaga teraz żadnej aktywności.",
-    "mainAllDone": "To wszystko na dziś - brak zaplanowanych aktywności.",
+    "mainAllDone": "Na dziś wszystko.\nBrak zaplanowanych leków.",
     "mainMissed": "Nie przyjęto na czas",
     "mainMissedHint": "Minęło 15 minut od planowanej godziny. Ta aktywność została oznaczona jako pominięta.",
     "activityMissed": "Pominięte",
@@ -510,7 +511,8 @@
       "moodNext": "Następny o {{time}}",
       "moodDone": "Na dziś zrobione",
       "moodDisabled": "Wyłączone",
-      "schedule": "Harmonogram",
+      "lateLabel": "Spóźnione",
+      "schedule": "Plan",
       "scheduleSub": "Plan leków",
       "sosSub": "Wezwij pomoc",
       "sosConfirm": "Czy na pewno chcesz wysłać pomoc do opiekuna?",
@@ -699,6 +701,7 @@
       "pickActivityTitle": "Wybierz aktywność",
       "pickActivityLead": "Wybierz aktywność z apteczki podopiecznego, którą chcesz dodać do kalendarza.",
       "slotA11y": "Dodaj aktywność o {{time}}",
+      "pastNotAllowed": "Nie można zaplanować aktywności w przeszłości.",
       "continue": "Kontynuuj",
       "pickFrequencyTitle": "Jak często?",
       "pickFrequencyLead": "Wybierz, czy podanie jest jednorazowe, stałe, czy tylko przez określony czas.",
@@ -771,6 +774,20 @@
       "placeholderPills": "np. 60",
       "placeholderHints": "np. wskazówki dla seniora",
       "errorSave": "Nie udało się zapisać zmian."
+    },
+    "restock": {
+      "title": "Dokupiono lek",
+      "lead": "Ile tabletek dodajesz do apteczki?",
+      "currentStock": "Obecny zapas: {{count}} szt.",
+      "afterStock": "Po dodaniu: {{count}} szt.",
+      "quantityLabel": "Dodajesz",
+      "confirm": "Dodaj do zapasu",
+      "error": "Nie udało się zaktualizować zapasu.",
+      "a11y": "Dokup lek"
+    },
+    "delete": {
+      "title": "Usunąć aktywność?",
+      "message": "„{{name}}” zostanie usunięte wraz z powiązanym harmonogramem. Tej operacji nie można cofnąć."
     },
     "type": {
       "medication": { "label": "Lek", "hint": "Tabletki, kapsułki itp.", "defaultName": "Lek" },

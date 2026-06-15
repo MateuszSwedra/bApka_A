@@ -107,7 +107,7 @@ export default function PickActivityScreen() {
             accessibilityLabel={t('schedule.add.a11yAddActivity')}
           >
             <View style={styles.addIconCircle}>
-              <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} />
+              <MaterialIcons name="add" size={26} color={Theme.colors.primaryLimeDark} style={styles.addIconGlyph} />
             </View>
             <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
           </Pressable>
@@ -282,6 +282,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginRight: Theme.spacing.m,
     backgroundColor: Theme.colors.surfaceWhite,
+  },
+  addIconGlyph: {
+    marginTop: 2,
   },
   addRowText: {
     flex: 1,

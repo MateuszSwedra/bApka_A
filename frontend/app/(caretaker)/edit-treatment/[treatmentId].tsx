@@ -21,10 +21,11 @@ import type { TreatmentType } from '../../../constants/treatmentVisuals';
 import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../../../utils/safeAreaInsets';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
+import { HugeButton } from '../../../components/HugeButton';
 
 export default function EditTreatmentScreen() {
   const { t } = useTranslation();
-  const bottomPadding = useScreenBottomPadding(Theme.spacing.xl);
+  const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
   const params = useLocalSearchParams<{ treatmentId: string }>();
   const treatmentId = Array.isArray(params.treatmentId) ? params.treatmentId[0] : params.treatmentId;
 
@@ -152,14 +153,14 @@ export default function EditTreatmentScreen() {
           <MaterialIcons name="close" size={28} color={Theme.colors.textDark} />
         </Pressable>
         <Text style={styles.headerTitle}>{t('treatment.edit.title')}</Text>
-        <Pressable onPress={() => void handleSave()} style={styles.saveBtn} disabled={!canSave()}>
-          <Text style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}>
-            {t('common.save')}
-          </Text>
-        </Pressable>
+        <View style={styles.headerSpacer} />
       </View>
 
-      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <View style={styles.typePill}>
           <View style={[styles.typeIconCircle, { backgroundColor: vis.accent + '22' }]}>
             <MaterialIcons name={vis.icon} size={22} color={vis.accent} />
@@ -201,6 +202,14 @@ export default function EditTreatmentScreen() {
           textAlignVertical="top"
         />
       </ScrollView>
+
+      <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
+        <HugeButton
+          title={t('common.save')}
+          onPress={() => void handleSave()}
+          disabled={!canSave()}
+        />
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -242,10 +251,11 @@ const styles = StyleSheet.create({
     padding: 8,
     width: 44,
   },
-  saveBtn: {
-    padding: 8,
-    width: 60,
-    alignItems: 'flex-end',
+  headerSpacer: {
+    width: 44,
+  },
+  scroll: {
+    flex: 1,
   },
   saveBtnText: {
     color: Theme.colors.primaryLimeDark,
@@ -254,6 +264,14 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: Theme.spacing.l,
+    paddingBottom: Theme.spacing.l,
+  },
+  footer: {
+    paddingHorizontal: Theme.spacing.l,
+    paddingTop: Theme.spacing.s,
+    backgroundColor: Theme.colors.background,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.border,
   },
   typePill: {
     flexDirection: 'row',

@@ -79,7 +79,7 @@ export default function HybridCalendarMonthScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('schedule.add.pickActivityTitle')}
         >
-          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
+          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
         </Pressable>
       </SeniorTourAnchor>
     </View>
@@ -112,5 +112,8 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  fabAddIcon: {
+    marginTop: 3,
   },
 });

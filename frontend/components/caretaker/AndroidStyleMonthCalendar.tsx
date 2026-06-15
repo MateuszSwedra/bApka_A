@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,8 @@ import {
   Pressable,
   Modal,
   ScrollView,
+  PanResponder,
+  Animated,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import {
@@ -26,6 +28,7 @@ import { TREATMENT_VISUAL, type TreatmentType } from '../../constants/treatmentV
 import type { ScheduleItem } from '../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../context/MedsContext';
 import { scheduleAppliesToDate } from '../../utils/scheduleHelpers';
+import { useBottomSheetDismiss } from '../../hooks/useBottomSheetDismiss';
 
 export type CalendarDepletionAlert = { date: string; inventoryItemName: string; pillsLeft?: number };
 
@@ -68,6 +71,18 @@ export function AndroidStyleMonthCalendar({
     startOfMonth(parseISO(selectedDate)),
   );
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
+  const [pickerYear, setPickerYear] = useState(() => visibleMonth.getFullYear());
+  const [yearPickerOpen, setYearPickerOpen] = useState(false);
+
+  useEffect(() => {
+    if (!monthPickerOpen) return;
+    setPickerYear(visibleMonth.getFullYear());
+    setYearPickerOpen(false);
+  }, [monthPickerOpen, visibleMonth]);
+
+  const closeMonthPicker = () => setMonthPickerOpen(false);
+  const { panHandlers: pickerPanHandlers, translateY: pickerTranslateY } =
+    useBottomSheetDismiss(closeMonthPicker);
 
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
   const monthTitle = monthNames[visibleMonth.getMonth()] ?? format(visibleMonth, 'MMMM');
@@ -144,11 +159,41 @@ export function AndroidStyleMonthCalendar({
   const goPrevMonth = () => setVisibleMonth(m => addMonths(m, -1));
   const goNextMonth = () => setVisibleMonth(m => addMonths(m, 1));
 
+  const monthSwipeHandlers = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponder: (_, gesture) =>
+          Math.abs(gesture.dx) > 32 && Math.abs(gesture.dx) > Math.abs(gesture.dy) * 1.8,
+        onPanResponderTerminationRequest: () => true,
+        onPanResponderRelease: (_, gesture) => {
+          if (gesture.dx < -48 || gesture.vx < -0.4) goNextMonth();
+          else if (gesture.dx > 48 || gesture.vx > 0.4) goPrevMonth();
+        },
+      }).panHandlers,
+    [],
+  );
+
   const pickMonth = (monthIndex: number) => {
-    const next = new Date(visibleMonth.getFullYear(), monthIndex, 1);
+    const next = new Date(pickerYear, monthIndex, 1);
     setVisibleMonth(next);
     setMonthPickerOpen(false);
   };
+
+  const pickYear = (year: number) => {
+    setPickerYear(year);
+    setYearPickerOpen(false);
+    setVisibleMonth(m => new Date(year, m.getMonth(), 1));
+  };
+
+  const yearOptions = useMemo(() => {
+    const base = pickerYear;
+    const years: number[] = [];
+    for (let y = base - 6; y <= base + 6; y += 1) {
+      if (y >= 2000 && y <= 2100) years.push(y);
+    }
+    return years;
+  }, [pickerYear]);
 
   return (
     <View style={styles.root}>
@@ -190,93 +235,135 @@ export function AndroidStyleMonthCalendar({
         ))}
       </View>
 
-      <View style={[styles.gridBody, { minHeight: gridBodyMinHeight }]}>
-        {weeks.map((week, wi) => (
-          <View key={wi} style={styles.weekRow}>
-            {week.map(day => {
-              const dateStr = format(day, 'yyyy-MM-dd');
-              const isSelected = isSameDay(day, selectedParsed);
-              const isTodayDate = isToday(day);
-              const chips = chipsByDate.get(dateStr) ?? [];
-              const visibleChips = chips.slice(0, MAX_CHIPS);
-              const extra = chips.length - visibleChips.length;
+      <View style={styles.gridSwipeClip}>
+        <View
+          style={[styles.gridBody, { minHeight: gridBodyMinHeight }]}
+          {...monthSwipeHandlers}
+        >
+          {weeks.map((week, wi) => (
+            <View key={wi} style={styles.weekRow}>
+              {week.map(day => {
+                const dateStr = format(day, 'yyyy-MM-dd');
+                const isSelected = isSameDay(day, selectedParsed);
+                const isTodayDate = isToday(day);
+                const chips = chipsByDate.get(dateStr) ?? [];
+                const visibleChips = chips.slice(0, MAX_CHIPS);
+                const extra = chips.length - visibleChips.length;
 
-              return (
-                <Pressable
-                  key={dateStr}
-                  style={[styles.dayCell, isSelected && styles.dayCellSelected]}
-                  onPress={() => onSelectDate(dateStr)}
-                >
-                  <View style={styles.dayNumberWrap}>
-                    {isTodayDate ? (
-                      <View style={styles.todayPill}>
-                        <Text style={styles.todayPillText}>{format(day, 'd')}</Text>
-                      </View>
-                    ) : (
-                      <Text style={[styles.dayNumber, isSelected && styles.dayNumberSelected]}>
-                        {format(day, 'd')}
-                      </Text>
-                    )}
-                  </View>
-
-                  <View style={styles.chipColumn}>
-                    {visibleChips.map(chip => (
-                      <View
-                        key={chip.id}
-                        style={[styles.eventChip, { backgroundColor: chip.color }]}
-                      >
-                        <Text
-                          style={[styles.eventChipText, { color: chip.textColor }]}
-                          numberOfLines={1}
-                          ellipsizeMode="tail"
-                        >
-                          {chip.label}
-                        </Text>
-                      </View>
-                    ))}
-                    {extra > 0 && (
-                      <Text style={styles.moreEvents} numberOfLines={1}>
-                        {t('calendar.moreEvents', { count: extra })}
-                      </Text>
-                    )}
-                  </View>
-                </Pressable>
-              );
-            })}
-          </View>
-        ))}
-      </View>
-
-      <Modal visible={monthPickerOpen} transparent animationType="fade">
-        <Pressable style={styles.pickerBackdrop} onPress={() => setMonthPickerOpen(false)}>
-          <Pressable style={styles.pickerCard} onPress={e => e.stopPropagation()}>
-            <Text style={styles.pickerTitle}>{visibleMonth.getFullYear()}</Text>
-            <ScrollView style={styles.pickerScroll}>
-              {monthNames.map((name, idx) => {
-                const active = idx === visibleMonth.getMonth();
                 return (
                   <Pressable
-                    key={name}
-                    style={[styles.pickerRow, active && styles.pickerRowActive]}
-                    onPress={() => pickMonth(idx)}
+                    key={dateStr}
+                    style={[styles.dayCell, isSelected && styles.dayCellSelected]}
+                    onPress={() => onSelectDate(dateStr)}
                   >
-                    <Text style={[styles.pickerRowText, active && styles.pickerRowTextActive]}>{name}</Text>
+                    <View style={styles.dayNumberWrap}>
+                      {isTodayDate ? (
+                        <View style={styles.todayPill}>
+                          <Text style={styles.todayPillText}>{format(day, 'd')}</Text>
+                        </View>
+                      ) : (
+                        <Text style={[styles.dayNumber, isSelected && styles.dayNumberSelected]}>
+                          {format(day, 'd')}
+                        </Text>
+                      )}
+                    </View>
+
+                    <View style={styles.chipColumn}>
+                      {visibleChips.map(chip => (
+                        <View
+                          key={chip.id}
+                          style={[styles.eventChip, { backgroundColor: chip.color }]}
+                        >
+                          <Text
+                            style={[styles.eventChipText, { color: chip.textColor }]}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {chip.label}
+                          </Text>
+                        </View>
+                      ))}
+                      {extra > 0 && (
+                        <Text style={styles.moreEvents} numberOfLines={1}>
+                          {t('calendar.moreEvents', { count: extra })}
+                        </Text>
+                      )}
+                    </View>
                   </Pressable>
                 );
               })}
-            </ScrollView>
-            <Pressable
-              style={styles.todayBtn}
-              onPress={() => {
-                const now = new Date();
-                setVisibleMonth(startOfMonth(now));
-                onSelectDate(format(now, 'yyyy-MM-dd'));
-                setMonthPickerOpen(false);
-              }}
-            >
-              <Text style={styles.todayBtnText}>{t('calendar.today')}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      <Modal visible={monthPickerOpen} transparent animationType="slide" onRequestClose={closeMonthPicker}>
+        <Pressable style={styles.pickerBackdrop} onPress={closeMonthPicker}>
+          <Animated.View
+            style={[styles.pickerSheet, { transform: [{ translateY: pickerTranslateY }] }]}
+          >
+            <Pressable onPress={e => e.stopPropagation()}>
+              <View style={styles.pickerHandle} {...pickerPanHandlers}>
+                <View style={styles.pickerHandleBar} />
+              </View>
+              <Pressable
+                style={styles.pickerYearBtn}
+                onPress={() => setYearPickerOpen(open => !open)}
+                accessibilityRole="button"
+                accessibilityLabel={t('calendar.pickYear')}
+              >
+                <Text style={styles.pickerTitle}>{pickerYear}</Text>
+                <MaterialIcons
+                  name={yearPickerOpen ? 'arrow-drop-up' : 'arrow-drop-down'}
+                  size={28}
+                  color={Theme.colors.textDark}
+                />
+              </Pressable>
+              <ScrollView style={styles.pickerScroll} keyboardShouldPersistTaps="handled">
+                {yearPickerOpen
+                  ? yearOptions.map(year => {
+                      const active = year === pickerYear;
+                      return (
+                        <Pressable
+                          key={year}
+                          style={[styles.pickerRow, active && styles.pickerRowActive]}
+                          onPress={() => pickYear(year)}
+                        >
+                          <Text style={[styles.pickerRowText, active && styles.pickerRowTextActive]}>
+                            {year}
+                          </Text>
+                        </Pressable>
+                      );
+                    })
+                  : monthNames.map((name, idx) => {
+                      const active =
+                        idx === visibleMonth.getMonth() && pickerYear === visibleMonth.getFullYear();
+                      return (
+                        <Pressable
+                          key={name}
+                          style={[styles.pickerRow, active && styles.pickerRowActive]}
+                          onPress={() => pickMonth(idx)}
+                        >
+                          <Text style={[styles.pickerRowText, active && styles.pickerRowTextActive]}>
+                            {name}
+                          </Text>
+                        </Pressable>
+                      );
+                    })}
+              </ScrollView>
+              <Pressable
+                style={styles.todayBtn}
+                onPress={() => {
+                  const now = new Date();
+                  setVisibleMonth(startOfMonth(now));
+                  onSelectDate(format(now, 'yyyy-MM-dd'));
+                  closeMonthPicker();
+                }}
+              >
+                <Text style={styles.todayBtnText}>{t('calendar.today')}</Text>
+              </Pressable>
             </Pressable>
-          </Pressable>
+          </Animated.View>
         </Pressable>
       </Modal>
     </View>
@@ -330,6 +417,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: Theme.colors.textLight,
     textTransform: 'uppercase',
+  },
+  gridSwipeClip: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: Theme.colors.calendarCanvas,
   },
   gridBody: {
     flex: 1,
@@ -414,14 +506,37 @@ const styles = StyleSheet.create({
   pickerBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(27, 60, 83, 0.45)',
-    justifyContent: 'center',
-    padding: Theme.spacing.l,
+    justifyContent: 'flex-end',
   },
-  pickerCard: {
+  pickerSheet: {
     backgroundColor: Theme.colors.calendarCell,
-    borderRadius: Theme.borderRadius.large,
-    maxHeight: '70%',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: '72%',
     padding: Theme.spacing.m,
+    paddingBottom: Theme.spacing.xl,
+  },
+  pickerHandle: {
+    alignSelf: 'center',
+    width: 56,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Theme.spacing.s,
+  },
+  pickerHandleBar: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: Theme.colors.border,
+  },
+  pickerYearBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 2,
+    marginBottom: Theme.spacing.m,
+    minHeight: 44,
   },
   pickerRow: {
     paddingVertical: 12,
@@ -455,7 +570,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: Theme.colors.textDark,
     textAlign: 'center',
-    marginBottom: Theme.spacing.m,
   },
   pickerScroll: {
     maxHeight: 320,

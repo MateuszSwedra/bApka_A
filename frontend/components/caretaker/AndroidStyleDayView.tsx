@@ -5,10 +5,12 @@ import {
   StyleSheet,
   Pressable,
   ScrollView,
+  useWindowDimensions,
   type ViewStyle,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { format, isToday, parseISO } from 'date-fns';
+import { format, isToday } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { Theme } from '../../constants/theme';
@@ -16,14 +18,23 @@ import { TREATMENT_VISUAL, type TreatmentType } from '../../constants/treatmentV
 import type { ScheduleItem } from '../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../context/MedsContext';
 import { scheduleAppliesToDate, timeToMinutes } from '../../utils/scheduleHelpers';
+import {
+  isCalendarHourSlotInPast,
+  isScheduleItemInPast,
+  isCalendarDayInPast,
+} from '../../utils/scheduleDateHelpers';
+import { parseYmdLocal } from '../../utils/ymdDate';
 import type { CalendarDepletionAlert } from './AndroidStyleMonthCalendar';
 import { useCaretakerTourLock } from '../../context/CaretakerTourLockContext';
-import { useTabScreenScrollBottomPadding } from '../../utils/safeAreaInsets';
 
-const HOUR_HEIGHT = 56;
+const HOUR_HEIGHT = 64;
 const HOURS = 24;
-const TIME_GUTTER = 52;
-const EVENT_DURATION_MIN = 48;
+const TIME_GUTTER = 56;
+const EVENT_COL_PAD = 4;
+const EVENT_COL_RIGHT = 12;
+const EVENT_GAP = 4;
+const EVENT_DURATION_MIN = 60;
+const MIN_EVENT_HEIGHT = 52;
 
 type Props = {
   dateStr: string;
@@ -62,14 +73,18 @@ export function AndroidStyleDayView({
 }: Props) {
   const { t } = useTranslation();
   const tourLock = useCaretakerTourLock();
-  const scrollBottomPadding = useTabScreenScrollBottomPadding();
+  const { width: windowWidth } = useWindowDimensions();
+  const scrollBottomPadding = Theme.spacing.xl;
   const [activeSlotHour, setActiveSlotHour] = useState<number | null>(null);
-  const day = parseISO(dateStr);
+  const [timelineWidth, setTimelineWidth] = useState(0);
+
+  const day = parseYmdLocal(dateStr);
   const monthNames = t('calendar.monthNames', { returnObjects: true }) as string[];
   const monthTitle = monthNames[day.getMonth()] ?? format(day, 'MMMM');
-
   const weekdayShort = t(`calendar.weekdayShort.${day.getDay() === 0 ? 7 : day.getDay()}`);
   const dayHeader = `${weekdayShort} ${format(day, 'd')}`;
+  const dayIsToday = isToday(day);
+  const dayIsPast = isCalendarDayInPast(dateStr);
 
   const daySchedules = useMemo(
     () =>
@@ -77,6 +92,17 @@ export function AndroidStyleDayView({
         .filter(s => scheduleAppliesToDate(s, dateStr))
         .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time)),
     [schedules, dateStr],
+  );
+
+  const resolveTreatment = useCallback(
+    (sch: ScheduleItem) => {
+      const tid = getScheduleTreatmentId(sch);
+      return (
+        treatments.find(tr => tr.id === tid) ??
+        (sch.customName ? treatments.find(tr => tr.name === sch.customName) : undefined)
+      );
+    },
+    [treatments],
   );
 
   const dayAlerts = useMemo(
@@ -90,6 +116,17 @@ export function AndroidStyleDayView({
   const scrollRef = scrollRefProp ?? internalScrollRef;
   const timelineContentRef = timelineContentRefProp ?? internalContentRef;
 
+  const nowLineTop = useMemo(() => {
+    if (!dayIsToday) return null;
+    const now = new Date();
+    return ((now.getHours() * 60 + now.getMinutes()) / 60) * HOUR_HEIGHT;
+  }, [dayIsToday, dateStr]);
+
+  const onTimelineLayout = useCallback((e: LayoutChangeEvent) => {
+    const w = e.nativeEvent.layout.width;
+    if (w > 0) setTimelineWidth(w);
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       return () => setActiveSlotHour(null);
@@ -97,12 +134,19 @@ export function AndroidStyleDayView({
   );
 
   useEffect(() => {
-    const d = parseISO(dateStr);
-    if (!isToday(d)) return;
-    const y = Math.max(0, d.getHours() * HOUR_HEIGHT - HOUR_HEIGHT);
-    const t = setTimeout(() => scrollRef.current?.scrollTo({ y, animated: false }), 50);
-    return () => clearTimeout(t);
-  }, [dateStr]);
+    let y = 0;
+    if (dayIsToday) {
+      const now = new Date();
+      y = Math.max(0, now.getHours() * HOUR_HEIGHT - HOUR_HEIGHT * 2);
+    } else if (daySchedules.length > 0) {
+      const firstMin = timeToMinutes(daySchedules[0].time);
+      y = Math.max(0, (firstMin / 60) * HOUR_HEIGHT - HOUR_HEIGHT);
+    }
+    const timer = setTimeout(() => scrollRef.current?.scrollTo({ y, animated: false }), 80);
+    return () => clearTimeout(timer);
+  }, [dateStr, scrollRef, dayIsToday, daySchedules]);
+
+  const effectiveTimelineWidth = timelineWidth > 0 ? timelineWidth : windowWidth - Theme.spacing.m;
 
   const positionedEvents = useMemo(() => {
     const byTime = new Map<string, ScheduleItem[]>();
@@ -112,24 +156,30 @@ export function AndroidStyleDayView({
       byTime.set(sch.time, list);
     }
 
+    const colLeft = TIME_GUTTER + EVENT_COL_PAD;
+    const colWidth = Math.max(0, effectiveTimelineWidth - colLeft - EVENT_COL_RIGHT);
+
     const result: {
       sch: ScheduleItem;
       top: number;
       height: number;
+      left: number;
+      width: number;
       accent: string;
       label: string;
-      columnIndex: number;
-      columnCount: number;
     }[] = [];
 
     byTime.forEach(group => {
       const startMin = timeToMinutes(group[0].time);
       const top = (startMin / 60) * HOUR_HEIGHT;
-      const height = Math.max((EVENT_DURATION_MIN / 60) * HOUR_HEIGHT, 40);
+      const height = Math.max((EVENT_DURATION_MIN / 60) * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
       const columnCount = group.length;
+      const slotWidth =
+        columnCount > 0 ? (colWidth - (columnCount - 1) * EVENT_GAP) / columnCount : colWidth;
+
       group.forEach((sch, columnIndex) => {
-        const tid = getScheduleTreatmentId(sch);
-        const treatmentType = treatments.find(tr => tr.id === tid)?.type;
+        const treatment = resolveTreatment(sch);
+        const treatmentType = treatment?.type;
         const accent =
           treatmentType && TREATMENT_VISUAL[treatmentType]
             ? TREATMENT_VISUAL[treatmentType].accent
@@ -138,16 +188,16 @@ export function AndroidStyleDayView({
           sch,
           top,
           height,
+          left: colLeft + columnIndex * (slotWidth + EVENT_GAP),
+          width: Math.max(slotWidth, 48),
           accent,
           label: labelForSchedule(sch),
-          columnIndex,
-          columnCount,
         });
       });
     });
 
     return result;
-  }, [daySchedules, treatments, labelForSchedule]);
+  }, [daySchedules, labelForSchedule, resolveTreatment, effectiveTimelineWidth]);
 
   return (
     <View style={styles.root}>
@@ -182,128 +232,164 @@ export function AndroidStyleDayView({
         bounces={!tourLock?.locked}
       >
         <View ref={timelineContentRef} collapsable={false}>
-        {dayAlerts.length > 0 && (
-          <View style={styles.allDayRow}>
-            <View style={styles.timeGutter}>
-              <Text style={styles.allDayLabel}>{t('calendar.allDay')}</Text>
+          {dayAlerts.length > 0 ? (
+            <View style={styles.allDayRow}>
+              <View style={styles.timeGutter}>
+                <Text style={styles.allDayLabel}>{t('calendar.allDay')}</Text>
+              </View>
+              <View style={styles.allDayEvents}>
+                {dayAlerts.map((alert, i) => (
+                  <View key={`alert-${i}`} style={[styles.allDayChip, styles.allDayChipAlert]}>
+                    <Text style={styles.allDayChipText} numberOfLines={1} ellipsizeMode="tail">
+                      {typeof alert.pillsLeft === 'number'
+                        ? `${alert.inventoryItemName} · ${alert.pillsLeft}`
+                        : t('caretaker.calendar.alertDepletionWithName', {
+                            name: alert.inventoryItemName,
+                          })}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
-            <View style={styles.allDayEvents}>
-              {dayAlerts.map((alert, i) => (
-                <View key={`alert-${i}`} style={[styles.allDayChip, styles.allDayChipAlert]}>
-                  <Text style={styles.allDayChipText} numberOfLines={1} ellipsizeMode="tail">
-                    {typeof alert.pillsLeft === 'number'
-                      ? `${alert.inventoryItemName} · ${alert.pillsLeft}`
-                      : t('caretaker.calendar.alertDepletionWithName', {
-                          name: alert.inventoryItemName,
-                        })}
-                  </Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
+          ) : null}
 
-        <View style={[styles.timeline, { height: timelineHeight }]}>
-          {Array.from({ length: HOURS }, (_, hour) => {
-            const hourRowStyle: ViewStyle = {
-              top: hour * HOUR_HEIGHT,
-              height: HOUR_HEIGHT,
-            };
-            const isTourSlot =
-              !tourTargetScheduleId && wrapTourTarget && hour === tourFallbackHour;
-            const hourNode = (
-              <Pressable
-                disabled={!onSlotPress}
-                onPress={() => onSlotPress?.(hour)}
-                onPressIn={() => setActiveSlotHour(hour)}
-                onPressOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
-                onHoverIn={() => setActiveSlotHour(hour)}
-                onHoverOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
-                style={({ pressed, hovered }) => [
-                  styles.hourRow,
-                  hourRowStyle,
-                  (hovered || pressed) && onSlotPress ? styles.hourRowActive : null,
-                ]}
-                accessibilityRole="button"
-                accessibilityLabel={t('schedule.add.slotA11y', { time: hourLabel(hour) })}
+          <View
+            style={[styles.timeline, { height: timelineHeight }]}
+            onLayout={onTimelineLayout}
+          >
+            {/* Siatka godzin — tylko wizualna */}
+            {Array.from({ length: HOURS }, (_, hour) => (
+              <View
+                key={`grid-${hour}`}
+                pointerEvents="none"
+                style={[styles.hourGridRow, { top: hour * HOUR_HEIGHT, height: HOUR_HEIGHT }]}
               >
                 <Text style={styles.hourLabel}>{hourLabel(hour)}</Text>
                 <View style={styles.hourLine} />
-                {onSlotPress && activeSlotHour === hour ? (
-                  <View style={styles.slotAddBtn}>
-                    <MaterialIcons name="add" size={18} color={Theme.colors.primaryLimeDark} />
-                  </View>
-                ) : null}
-              </Pressable>
-            );
+              </View>
+            ))}
 
-            if (isTourSlot) {
-              return (
-                <React.Fragment key={`tour-hour-${hour}`}>
-                  {wrapTourTarget(hourNode, {
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    ...hourRowStyle,
-                  })}
-                </React.Fragment>
-              );
-            }
+            {/* Strefy dotyku — dodawanie w pustym slocie */}
+            {onSlotPress
+              ? Array.from({ length: HOURS }, (_, hour) => {
+                  const hourRowStyle: ViewStyle = {
+                    top: hour * HOUR_HEIGHT,
+                    height: HOUR_HEIGHT,
+                  };
+                  const slotPast = !dayIsPast && isCalendarHourSlotInPast(dateStr, hour);
+                  const isTourSlot =
+                    !tourTargetScheduleId && wrapTourTarget && hour === tourFallbackHour;
 
-            return <React.Fragment key={hour}>{hourNode}</React.Fragment>;
-          })}
+                  const slotNode = (
+                    <Pressable
+                      disabled={dayIsPast || slotPast}
+                      onPress={() => {
+                        if (dayIsPast || slotPast) return;
+                        onSlotPress(hour);
+                      }}
+                      onPressIn={() => {
+                        if (!dayIsPast && !slotPast) setActiveSlotHour(hour);
+                      }}
+                      onPressOut={() => setActiveSlotHour(prev => (prev === hour ? null : prev))}
+                      style={({ pressed }) => [
+                        styles.hourSlot,
+                        hourRowStyle,
+                        !dayIsPast && !slotPast && pressed ? styles.hourSlotActive : null,
+                      ]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('schedule.add.slotA11y', { time: hourLabel(hour) })}
+                    >
+                      {!dayIsPast && !slotPast && activeSlotHour === hour ? (
+                        <View style={styles.slotAddBtn}>
+                          <MaterialIcons name="add" size={18} color={Theme.colors.primaryLimeDark} />
+                        </View>
+                      ) : null}
+                    </Pressable>
+                  );
 
-          <View style={[styles.eventsLayer, { height: timelineHeight }]} pointerEvents="box-none">
-            {positionedEvents.map(({ sch, top, height, accent, label, columnIndex, columnCount }) => {
-              const gap = 2;
-              const widthPct = 100 / columnCount;
-              const leftPct = columnIndex * widthPct;
-              const eventLayout = {
-                top,
-                height,
-                backgroundColor: accent,
-                left: `${leftPct}%` as `${number}%`,
-                width: `${widthPct}%` as `${number}%`,
-                paddingRight: columnIndex < columnCount - 1 ? gap : 4,
-                paddingLeft: columnIndex > 0 ? gap : 4,
-              };
-              const eventNode = (
-                <Pressable
-                  style={[styles.timedEvent, eventLayout]}
-                  onPress={() => onEventPress?.(sch)}
-                  disabled={!onEventPress}
-                >
-                  <Text style={styles.timedEventText} numberOfLines={1} ellipsizeMode="tail">
-                    {label}
-                  </Text>
-                  <Text style={styles.timedEventTime} numberOfLines={1}>
-                    {sch.time}
-                  </Text>
-                </Pressable>
-              );
+                  if (isTourSlot) {
+                    return (
+                      <React.Fragment key={`tour-hour-${hour}`}>
+                        {wrapTourTarget(slotNode, {
+                          position: 'absolute',
+                          left: 0,
+                          right: 0,
+                          ...hourRowStyle,
+                        })}
+                      </React.Fragment>
+                    );
+                  }
 
-              if (wrapTourTarget && tourTargetScheduleId === sch.id) {
-                return (
-                  <React.Fragment key={sch.id}>
-                    {wrapTourTarget(eventNode, {
-                      position: 'absolute',
-                      top,
-                      height,
-                      left: `${leftPct}%`,
-                      width: `${widthPct}%`,
-                      paddingRight: columnIndex < columnCount - 1 ? gap : 4,
-                      paddingLeft: columnIndex > 0 ? gap : 4,
-                    })}
-                  </React.Fragment>
+                  return <React.Fragment key={`slot-${hour}`}>{slotNode}</React.Fragment>;
+                })
+              : null}
+
+            {/* Wskaźnik „teraz” */}
+            {nowLineTop != null ? (
+              <View
+                pointerEvents="none"
+                style={[styles.nowLine, { top: nowLineTop }]}
+              >
+                <View style={styles.nowDot} />
+                <View style={styles.nowBar} />
+              </View>
+            ) : null}
+
+            {/* Wydarzenia na osi czasu */}
+            <View
+              style={[styles.eventsLayer, { height: timelineHeight }]}
+              pointerEvents="box-none"
+            >
+              {positionedEvents.map(({ sch, top, height, left, width, accent, label }) => {
+                const eventPast = isScheduleItemInPast(dateStr, sch.time);
+                const eventLayout: ViewStyle = {
+                  top,
+                  height,
+                  left,
+                  width,
+                  backgroundColor: accent,
+                };
+
+                const eventNode = (
+                  <Pressable
+                    style={[
+                      styles.timedEvent,
+                      eventLayout,
+                      eventPast && styles.timedEventPast,
+                    ]}
+                    onPress={() => {
+                      if (eventPast) return;
+                      onEventPress?.(sch);
+                    }}
+                    disabled={!onEventPress}
+                  >
+                    <Text style={styles.timedEventText} numberOfLines={2} ellipsizeMode="tail">
+                      {label}
+                    </Text>
+                    <Text style={styles.timedEventTime} numberOfLines={1}>
+                      {sch.time}
+                    </Text>
+                  </Pressable>
                 );
-              }
 
-              return (
-                <React.Fragment key={sch.id}>{eventNode}</React.Fragment>
-              );
-            })}
+                if (wrapTourTarget && tourTargetScheduleId === sch.id) {
+                  return (
+                    <React.Fragment key={sch.id}>
+                      {wrapTourTarget(eventNode, {
+                        position: 'absolute',
+                        top,
+                        height,
+                        left,
+                        width,
+                      })}
+                    </React.Fragment>
+                  );
+                }
+
+                return <React.Fragment key={sch.id}>{eventNode}</React.Fragment>;
+              })}
+            </View>
           </View>
-        </View>
         </View>
       </ScrollView>
     </View>
@@ -372,7 +458,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: Theme.colors.border,
     backgroundColor: Theme.colors.calendarCell,
-    marginBottom: Theme.spacing.xs,
   },
   timeGutter: {
     width: TIME_GUTTER,
@@ -406,22 +491,40 @@ const styles = StyleSheet.create({
   },
   timeline: {
     position: 'relative',
-    backgroundColor: Theme.colors.calendarCell,
+    backgroundColor: Theme.colors.surfaceWhite,
     marginHorizontal: Theme.spacing.xs,
-    borderRadius: 8,
+    borderRadius: Theme.borderRadius.small,
     overflow: 'hidden',
-    width: '100%',
-    alignSelf: 'stretch',
   },
-  hourRow: {
+  hourGridRow: {
     position: 'absolute',
     left: 0,
     right: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
-  hourRowActive: {
-    backgroundColor: 'rgba(69, 104, 130, 0.06)',
+  hourLabel: {
+    width: TIME_GUTTER,
+    paddingLeft: Theme.spacing.s,
+    marginTop: -7,
+    fontSize: 11,
+    color: Theme.colors.textLight,
+    fontWeight: '600',
+  },
+  hourLine: {
+    flex: 1,
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: Theme.colors.border,
+    marginRight: Theme.spacing.s,
+  },
+  hourSlot: {
+    position: 'absolute',
+    left: TIME_GUTTER,
+    right: 0,
+    zIndex: 1,
+  },
+  hourSlotActive: {
+    backgroundColor: 'rgba(69, 104, 130, 0.08)',
   },
   slotAddBtn: {
     position: 'absolute',
@@ -435,44 +538,63 @@ const styles = StyleSheet.create({
     borderColor: Theme.colors.primaryLimeDark,
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 2,
   },
-  hourLabel: {
-    width: TIME_GUTTER,
-    paddingLeft: Theme.spacing.s,
-    paddingTop: 2,
-    fontSize: 10,
-    color: Theme.colors.textLight,
-    fontWeight: '500',
+  nowLine: {
+    position: 'absolute',
+    left: TIME_GUTTER - 5,
+    right: Theme.spacing.s,
+    flexDirection: 'row',
+    alignItems: 'center',
+    zIndex: 3,
   },
-  hourLine: {
+  nowDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Theme.colors.accentOrange,
+    marginRight: 2,
+  },
+  nowBar: {
     flex: 1,
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Theme.colors.border,
-    marginTop: 8,
+    height: 2,
+    backgroundColor: Theme.colors.accentOrange,
   },
   eventsLayer: {
     position: 'absolute',
-    left: TIME_GUTTER,
-    right: Theme.spacing.s,
+    left: 0,
+    right: 0,
     top: 0,
+    zIndex: 2,
+    elevation: 2,
   },
   timedEvent: {
     position: 'absolute',
     borderRadius: 6,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    justifyContent: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    justifyContent: 'flex-start',
     overflow: 'hidden',
+    borderLeftWidth: 3,
+    borderLeftColor: 'rgba(255,255,255,0.5)',
+    elevation: 3,
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  timedEventPast: {
+    opacity: 0.55,
   },
   timedEventText: {
     fontSize: Theme.typography.small,
     fontWeight: '700',
     color: Theme.colors.surfaceWhite,
+    lineHeight: 16,
   },
   timedEventTime: {
     fontSize: 10,
-    color: 'rgba(255,255,255,0.85)',
-    marginTop: 1,
+    color: 'rgba(255,255,255,0.9)',
+    marginTop: 2,
+    fontWeight: '600',
   },
 });

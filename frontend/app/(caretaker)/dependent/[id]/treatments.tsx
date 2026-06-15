@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useCallback, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
@@ -14,11 +14,11 @@ import {
 } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
-import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 import { CaretakerTourAnchor } from '../../../../components/caretaker/CaretakerTourAnchor';
+import { RestockMedicationSheet } from '../../../../components/caretaker/RestockMedicationSheet';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
@@ -30,8 +30,10 @@ export default function DependentTreatmentsScreen() {
   const globalParams = useGlobalSearchParams<{ id?: string }>();
   const segments = useSegments();
   const topInset = useDependentTabTopInset();
-  const scrollBottomPadding = useTabScreenScrollBottomPadding();
+  const scrollBottomPadding = Theme.spacing.xl;
   const { treatments, removeTreatment, refetchFromServer, targetUserId } = useMeds();
+
+  const [restockTarget, setRestockTarget] = useState<Treatment | null>(null);
 
   const dependentId = useMemo(
     () =>
@@ -54,6 +56,21 @@ export default function DependentTreatmentsScreen() {
     if (dependentId) openAddTreatment(dependentId, resolveMedsFlowScope(segments));
   };
 
+  const confirmRemoveTreatment = (item: Treatment) => {
+    Alert.alert(
+      t('treatment.delete.title'),
+      t('treatment.delete.message', { name: item.name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => void removeTreatment(item.id, dependentId ?? undefined),
+        },
+      ],
+    );
+  };
+
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
     type,
     meta: TREATMENT_VISUAL[type],
@@ -65,7 +82,10 @@ export default function DependentTreatmentsScreen() {
   return (
     <CaretakerTourScrollProvider>
       <View style={styles.container}>
-        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
+        <CaretakerTourScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}
+        >
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
@@ -108,12 +128,15 @@ export default function DependentTreatmentsScreen() {
                   item={item}
                   accent={group.meta.accent}
                   onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
-                  onRemove={() => void removeTreatment(item.id, dependentId ?? undefined)}
+                  onRestock={
+                    item.type === 'MEDICATION' ? () => setRestockTarget(item) : undefined
+                  }
+                  onRemove={() => confirmRemoveTreatment(item)}
                 />
               );
 
               if (item.id !== firstTreatmentId) {
-                return card;
+                return <React.Fragment key={item.id}>{card}</React.Fragment>;
               }
 
               return (
@@ -134,6 +157,15 @@ export default function DependentTreatmentsScreen() {
           </View>
         ))}
       </CaretakerTourScrollView>
+
+      <RestockMedicationSheet
+        treatment={restockTarget}
+        visible={restockTarget != null}
+        onClose={() => setRestockTarget(null)}
+        onSaved={() => {
+          if (dependentId) void refetchFromServer(dependentId);
+        }}
+      />
     </View>
     </CaretakerTourScrollProvider>
   );
@@ -143,22 +175,23 @@ function TreatmentCard({
   item,
   accent,
   onEdit,
+  onRestock,
   onRemove,
 }: {
   item: Treatment;
   accent: string;
   onEdit: () => void;
+  onRestock?: () => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
+  const stock = item.currentPills ?? item.totalPills ?? 0;
   return (
-    <Pressable onPress={onEdit}>
-      <Card variant="white" style={styles.itemCard}>
-        <View style={styles.itemHeader}>
-          <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            {item.type === 'MEDICATION' &&
-            (item.currentPills ?? item.totalPills ?? 999) <= 10 ? (
+    <Card variant="white" style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <Pressable onPress={onEdit} style={styles.itemMain}>
+          <Text style={styles.itemName}>{item.name}</Text>
+            {item.type === 'MEDICATION' && stock <= 10 ? (
               <Text style={[styles.itemMeta, { color: accent }]}>
                 {t('dependent.home.lowMedToday', { names: item.name })}
               </Text>
@@ -168,25 +201,37 @@ function TreatmentCard({
             ) : (
               <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
             )}
-          </View>
-          <View style={styles.actions}>
+        </Pressable>
+        <View style={styles.actions}>
             {item.type === 'MEDICATION' ? (
-              <Text
-                style={[
-                  styles.stockMarginBadge,
-                  (item.currentPills ?? item.totalPills ?? 999) <= 10 && styles.stockMarginBadgeLow,
-                ]}
-              >
-                {item.currentPills ?? item.totalPills ?? 0}
-              </Text>
+              <>
+                {onRestock ? (
+                  <Pressable
+                    onPress={onRestock}
+                    style={styles.actionBtn}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('treatment.restock.a11y')}
+                  >
+                    <MaterialIcons name="add-shopping-cart" size={24} color={Theme.colors.primaryLimeDark} />
+                  </Pressable>
+                ) : null}
+                <Text
+                  style={[
+                    styles.stockMarginBadge,
+                    stock <= 10 && styles.stockMarginBadgeLow,
+                  ]}
+                >
+                  {stock}
+                </Text>
+              </>
             ) : null}
             <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
               <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
             </Pressable>
           </View>
         </View>
-      </Card>
-    </Pressable>
+    </Card>
   );
 }
 
@@ -277,6 +322,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
+  },
+  itemMain: {
+    flex: 1,
+    paddingRight: Theme.spacing.s,
   },
   itemName: {
     fontSize: Theme.typography.body,

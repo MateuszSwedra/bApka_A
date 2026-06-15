@@ -18,7 +18,9 @@ import { Theme } from '../../../constants/theme';
 import { useMeds } from '../../../context/MedsContext';
 import { TreatmentType } from '../../../constants/treatmentVisuals';
 import { useTranslation } from 'react-i18next';
-import { useScreenBottomPadding } from '../../../utils/safeAreaInsets';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getScreenBottomPadding } from '../../../utils/safeAreaInsets';
+import { HugeButton } from '../../../components/HugeButton';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -69,7 +71,8 @@ const TYPE_OPTION_META: Omit<TypeOption, 'label' | 'defaultName' | 'hint'>[] = [
 
 export default function AddTreatmentScreen() {
   const { t } = useTranslation();
-  const bottomPadding = useScreenBottomPadding(Theme.spacing.xl);
+  const insets = useSafeAreaInsets();
+  const bottomPadding = getScreenBottomPadding(insets.bottom, Theme.spacing.m);
   const typeOptions: TypeOption[] = useMemo(
     () =>
       TYPE_OPTION_META.map(meta => {
@@ -203,21 +206,14 @@ export default function AddTreatmentScreen() {
         <Text style={styles.headerTitle}>
           {currentOption ? currentOption.label : t('treatment.add.title')}
         </Text>
-        {currentOption ? (
-          <Pressable onPress={handleSave} style={styles.saveBtn} disabled={!canSave()}>
-            <Text
-              style={[styles.saveBtnText, !canSave() && { color: Theme.colors.textLight }]}
-            >
-              {t('common.save')}
-            </Text>
-          </Pressable>
-        ) : (
-          <View style={styles.saveBtn} />
-        )}
+        <View style={styles.headerSpacer} />
       </View>
 
       <ScrollView
-        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
+        contentContainerStyle={[
+          styles.content,
+          { paddingBottom: currentOption ? bottomPadding + 80 : bottomPadding },
+        ]}
         keyboardShouldPersistTaps="handled"
       >
         {!currentOption ? (
@@ -311,6 +307,17 @@ export default function AddTreatmentScreen() {
           </>
         )}
       </ScrollView>
+
+      {currentOption ? (
+        <View style={[styles.footer, { paddingBottom: bottomPadding }]}>
+          <HugeButton
+            title={t('common.save')}
+            onPress={() => void handleSave()}
+            disabled={!canSave()}
+            style={styles.saveBtn}
+          />
+        </View>
+      ) : null}
     </KeyboardAvoidingView>
   );
 }
@@ -339,15 +346,19 @@ const styles = StyleSheet.create({
     padding: 8,
     width: 44,
   },
-  saveBtn: {
-    padding: 8,
-    width: 60,
-    alignItems: 'flex-end',
+  headerSpacer: {
+    width: 44,
   },
-  saveBtnText: {
-    color: Theme.colors.primaryLimeDark,
-    fontWeight: '800',
-    fontSize: Theme.typography.body,
+  footer: {
+    paddingHorizontal: Theme.spacing.l,
+    paddingTop: Theme.spacing.m,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: Theme.colors.border,
+    backgroundColor: Theme.colors.background,
+  },
+  saveBtn: {
+    width: '100%',
+    minHeight: 56,
   },
   content: {
     paddingHorizontal: Theme.spacing.l,

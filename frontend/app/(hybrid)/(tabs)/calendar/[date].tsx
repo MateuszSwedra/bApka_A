@@ -5,6 +5,7 @@ import { Theme } from '../../../../constants/theme';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { useMeds } from '../../../../context/MedsContext';
 import { openAddMed, openAddMedFromCalendarSlot } from '../../../../utils/medsFlowNavigation';
+import { isCalendarHourSlotInPast, isScheduleItemInPast, isCalendarDayInPast } from '../../../../utils/scheduleDateHelpers';
 import { useFabBottomOffset } from '../../../../utils/useFabBottomOffset';
 import type { ScheduleItem } from '../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../context/MedsContext';
@@ -82,9 +83,20 @@ export default function HybridCalendarDayScreen() {
         Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
         return;
       }
+      if (isCalendarDayInPast(dateStr) || isCalendarHourSlotInPast(dateStr, hour)) {
+        return;
+      }
       openAddMedFromCalendarSlot(selfUserId, 'hybrid', dateStr, hour);
     },
     [selfUserId, dateStr, t],
+  );
+
+  const handleEventPress = useCallback(
+    (sch: ScheduleItem) => {
+      if (isScheduleItemInPast(dateStr, sch.time)) return;
+      setSelectedSchedule(sch);
+    },
+    [dateStr],
   );
 
   if (!dateStr) {
@@ -104,7 +116,7 @@ export default function HybridCalendarDayScreen() {
             treatments={treatments}
             depletionAlerts={depletionAlerts}
             labelForSchedule={labelForSchedule}
-            onEventPress={sch => setSelectedSchedule(sch)}
+            onEventPress={handleEventPress}
             onSlotPress={handleSlotPress}
             scrollRef={dayScrollRef}
             timelineContentRef={dayContentRef}
@@ -130,7 +142,7 @@ export default function HybridCalendarDayScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('schedule.add.pickActivityTitle')}
         >
-          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
+          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
         </Pressable>
       </View>
     </View>
@@ -159,5 +171,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: Theme.colors.primaryLimeDark,
+  },
+  fabAddIcon: {
+    marginTop: 3,
   },
 });

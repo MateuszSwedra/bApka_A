@@ -32,19 +32,23 @@ export function HybridTakeMedCard({
 
   const title = active ? actionTile.title : t('hybrid.takeMedIdle');
   const line1 =
-    mainState.kind === 'due' || mainState.kind === 'missed'
+    mainState.kind === 'due'
       ? mainState.name
-      : mainState.kind === 'upcoming'
-        ? t('dependent.home.medAt', { time: mainState.nextTime })
-        : mainState.kind === 'all_done'
-          ? t('dependent.mainAllDone')
-          : t('dependent.home.medNoPlan');
+      : mainState.kind === 'missed'
+        ? actionTile.lateLabel ?? mainState.name
+        : mainState.kind === 'upcoming'
+          ? t('dependent.home.medAt', { time: mainState.nextTime })
+          : mainState.kind === 'all_done'
+            ? t('dependent.mainAllDone')
+            : t('dependent.home.medNoPlan');
   const line2 =
-    mainState.kind === 'due' || mainState.kind === 'missed'
+    mainState.kind === 'due'
       ? mainState.dose
-      : mainState.kind === 'upcoming'
-        ? `${mainState.nextName} · ${mainState.dose}`
-        : '';
+      : mainState.kind === 'missed'
+        ? `${mainState.name} · ${mainState.dose}`
+        : mainState.kind === 'upcoming'
+          ? `${mainState.nextName} · ${mainState.dose}`
+          : '';
 
   return (
     <Pressable
@@ -65,7 +69,15 @@ export function HybridTakeMedCard({
       />
       <Text style={[styles.title, active && styles.titleActive]}>{title}</Text>
       <Text style={[styles.line1, active && styles.line1Active]}>{line1}</Text>
-      {line2 ? <Text style={[styles.line2, active && styles.line2Active]}>{line2}</Text> : null}
+      {line2 ? (
+        <Text
+          style={[styles.line2, active && styles.line2Active]}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {line2}
+        </Text>
+      ) : null}
       {active ? (
         <View style={styles.ctaPill}>
           <Text style={styles.ctaText}>{t('hybrid.takeMedCta')}</Text>

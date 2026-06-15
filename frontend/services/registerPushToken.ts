@@ -1,7 +1,7 @@
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { usersAPI } from './api';
+import { usersAPI, getStoredAuthToken, isAuthApiError } from './api';
 import {
   prepareAndroidNotificationChannel,
   requestUserNotificationPermission,
@@ -16,9 +16,13 @@ function getEasProjectId(): string | null {
 export async function clearPushTokenFromBackend(): Promise<void> {
   if (Platform.OS === 'web') return;
 
+  const token = await getStoredAuthToken();
+  if (!token) return;
+
   try {
     await usersAPI.clearFcmToken();
   } catch (e) {
+    if (isAuthApiError(e)) return;
     console.warn('Push token clear failed', e);
   }
 }

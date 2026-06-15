@@ -6,7 +6,6 @@ import {
   persistSession,
   clearSessionStorage,
 } from '../services/sessionStorage';
-import { clearSeniorPreview } from '../constants/devSeniorPreview';
 import { syncPushTokenWithBackend, clearPushTokenFromBackend } from '../services/registerPushToken';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
@@ -82,7 +81,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e) {
       console.warn('Logout error', e);
     }
-    clearSeniorPreview();
     setUserRole(null);
   };
 

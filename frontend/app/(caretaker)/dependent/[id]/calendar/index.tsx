@@ -94,7 +94,7 @@ export default function DependentCalendarMonthScreen() {
           accessibilityRole="button"
           accessibilityLabel={t('tabs.calendar')}
         >
-          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} />
+          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
         </Pressable>
       </CaretakerTourAnchor>
     </View>
@@ -128,5 +128,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: Theme.colors.primaryLimeDark,
+  },
+  fabAddIcon: {
+    marginTop: 3,
   },
 });

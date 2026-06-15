@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
   BackHandler,
+  Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ import { setRequiresCaretakerPairing } from '../services/caretakerPairingState';
 import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
 import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../utils/safeAreaInsets';
+import { phoneIntactWordsTextProps } from '../utils/phoneText';
 
 const showAlert = (title: string, message: string) => {
   if (Platform.OS === 'web') {
@@ -32,7 +34,7 @@ const showAlert = (title: string, message: string) => {
 
 export default function EnterPinScreen() {
   const { t } = useTranslation();
-  const { loginFake, setUserSession } = useAuth();
+  const { loginFake, setUserSession, logout } = useAuth();
   const [pin, setPin] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
@@ -81,8 +83,28 @@ export default function EnterPinScreen() {
     }
   };
 
+  const handleLogout = async () => {
+    await logout();
+    router.replace('/login');
+  };
+
   return (
     <View style={[styles.container, { paddingBottom: bottomPadding }]}>
+      <View style={styles.topBar}>
+        <Pressable
+          onPress={() => void handleLogout()}
+          style={({ pressed }) => [styles.logoutBtn, pressed && styles.logoutBtnPressed]}
+          accessibilityRole="button"
+          accessibilityLabel={t('hybrid.logout')}
+        >
+          <MaterialIcons name="logout" size={22} color={Theme.colors.textLight} />
+          <Text style={styles.logoutText} {...phoneIntactWordsTextProps()}>
+            {t('hybrid.logout')}
+          </Text>
+        </Pressable>
+      </View>
+
+      <View style={styles.body}>
       <MaterialIcons name="dialpad" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
       <Text style={styles.title}>{t('pairing.enterPin.title')}</Text>
       <Text style={styles.subtitle}>{t('pairing.enterPin.subtitle')}</Text>
@@ -107,6 +129,7 @@ export default function EnterPinScreen() {
           <HugeButton title={t('pairing.ctaConnect')} onPress={() => void handlePair()} style={styles.button} />
         </View>
       )}
+      </View>
     </View>
   );
 }
@@ -116,6 +139,33 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: Theme.spacing.l,
     backgroundColor: Theme.colors.background,
+  },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: Theme.spacing.s,
+  },
+  logoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: Theme.borderRadius.round,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  logoutBtnPressed: {
+    opacity: 0.85,
+  },
+  logoutText: {
+    fontSize: Theme.typography.small,
+    fontWeight: '700',
+    color: Theme.colors.textLight,
+  },
+  body: {
+    flex: 1,
     justifyContent: 'center',
   },
   icon: {

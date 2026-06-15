@@ -9,6 +9,7 @@ import { usersAPI } from '../services/api';
 import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../utils/safeAreaInsets';
+import { phoneIntactWordsStyle } from '../utils/phoneText';
 
 export default function RoleSelectionScreen() {
   const { t } = useTranslation();
@@ -165,6 +166,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: OnboardingPalette.textPrimary,
     marginBottom: Theme.spacing.xs,
+    ...phoneIntactWordsStyle(),
   },
   cardDescription: {
     fontSize: Theme.typography.small,

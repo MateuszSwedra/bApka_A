@@ -4,6 +4,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { FirebaseSosService, SOS_ANDROID_CHANNEL_ID } from './firebase-sos.service';
 import { EXPO_ANDROID_CHANNELS } from '../common/notification-channels';
 import { calculateInventoryDepletion, isMedicationInventory } from '../inventory/inventory-depletion';
+import {
+  activityKindFromInventoryType,
+  buildCompletionNotification,
+  buildMissedCaretakerNotification,
+  buildMissedSeniorNotification,
+  type NotificationLang,
+} from './activity-notification-messages';
 type MedScheduleRef = {
   id: string;
   medication?: string | null;
@@ -156,12 +163,20 @@ export class NotificationsService {
     medName: string,
     late: boolean,
     scheduleId: string,
+    inventoryType?: string | null,
+    lang: NotificationLang = 'pl',
   ): Promise<void> {
+    const kind = activityKindFromInventoryType(inventoryType);
+    const { title, body } = buildCompletionNotification(
+      kind,
+      dependentName,
+      medName,
+      late,
+      lang,
+    );
     await this.notifyCaretakersOfDependent(dependentId, {
-      title: late ? 'Lek przyjęty spóźnionie' : 'Lek przyjęty',
-      body: late
-        ? `${dependentName} przyjął(a) spóźnionie: ${medName}`
-        : `${dependentName} przyjął(a): ${medName}`,
+      title,
+      body,
       priority: 'high',
       channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
       data: { type: 'dose_taken', scheduleId, dependentId, late: late ? '1' : '0' },
@@ -173,33 +188,52 @@ export class NotificationsService {
     dependentName: string,
     medName: string,
     scheduleId: string,
+    inventoryType?: string | null,
+    lang: NotificationLang = 'pl',
   ): Promise<void> {
+    const kind = activityKindFromInventoryType(inventoryType);
+    const { title, body } = buildMissedCaretakerNotification(
+      kind,
+      dependentName,
+      medName,
+      lang,
+    );
     await this.notifyCaretakersOfDependent(dependentId, {
-      title: 'Pominięty lek',
-      body: `${dependentName} nie przyjął(a): ${medName}`,
+      title,
+      body,
       priority: 'high',
       channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
       data: { type: 'dose_missed_caretaker', scheduleId, dependentId },
     });
   }
 
-  /** Push do seniora — pominięta dawka. */
+  /** Push do seniora — pominięta dawka / aktywność. */
   async sendDoseMissedReminder(
     fcmToken: string | null | undefined,
-    params: { medication: string; scheduleId: string; email?: string },
+    params: {
+      medication: string;
+      scheduleId: string;
+      email?: string;
+      inventoryType?: string | null;
+      lang?: NotificationLang;
+    },
   ): Promise<void> {
     if (!fcmToken || !Expo.isExpoPushToken(fcmToken)) return;
 
+    const kind = activityKindFromInventoryType(params.inventoryType);
+    const lang = params.lang ?? 'pl';
+    const { title, body } = buildMissedSeniorNotification(kind, params.medication, lang);
+
     await this.sendToTokens([fcmToken], {
-      title: 'Pominięty lek',
-      body: `Nie potwierdziłeś/aś przyjęcia: ${params.medication || 'lek'}`,
+      title,
+      body,
       sound: 'default',
       priority: 'high',
       channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
       data: { type: 'dose_missed', scheduleId: params.scheduleId },
     });
     if (params.email) {
-      this.logger.log(`Wysłano powiadomienie o pominiętym leku do ${params.email}`);
+      this.logger.log(`Wysłano powiadomienie o pominiętej aktywności do ${params.email}`);
     }
   }
 

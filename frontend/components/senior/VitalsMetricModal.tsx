@@ -15,7 +15,7 @@ import { SeniorNumericStepper } from './SeniorNumericStepper';
 
 const DEFAULT_SYS = 120;
 const DEFAULT_DIA = 80;
-const DEFAULT_GLUCOSE = 100;
+const DEFAULT_GLUCOSE = 90;
 
 type VitalsMetricModalProps = {
   visible: boolean;
@@ -23,8 +23,6 @@ type VitalsMetricModalProps = {
   colors: SeniorSurfaceColors;
   onClose: () => void;
   onSaved?: () => void;
-  /** Podgląd dev - zapis tylko lokalnie, bez API. */
-  offlinePreview?: boolean;
 };
 
 export function VitalsMetricModal({
@@ -33,7 +31,6 @@ export function VitalsMetricModal({
   colors,
   onClose,
   onSaved,
-  offlinePreview = false,
 }: VitalsMetricModalProps) {
   const { t } = useTranslation();
   const [sys, setSys] = useState(DEFAULT_SYS);
@@ -55,11 +52,6 @@ export function VitalsMetricModal({
     setLoading(true);
     setError(null);
     try {
-      if (offlinePreview) {
-        onSaved?.();
-        onClose();
-        return;
-      }
       if (type === 'BP') {
         await usersAPI.createMetric({
           type: 'BP',

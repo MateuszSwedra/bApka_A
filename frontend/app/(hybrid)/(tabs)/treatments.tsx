@@ -1,5 +1,5 @@
-import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
@@ -7,12 +7,12 @@ import { useMeds, Treatment } from '../../../context/MedsContext';
 import { Card } from '../../../components/Card';
 import { useFocusEffect } from 'expo-router';
 import { useDependentTabTopInset } from '../../../utils/useDependentTabTopInset';
-import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { useSelfUserId } from '../../../hooks/useSelfUserId';
 import { openAddTreatment, openEditTreatment } from '../../../utils/medsFlowNavigation';
 import { SeniorTourAnchor } from '../../../components/senior/SeniorTourAnchor';
+import { RestockMedicationSheet } from '../../../components/caretaker/RestockMedicationSheet';
 import { getSeniorTourStepSeen, setSeniorTourStepSeen } from '../../../services/seniorTourState';
 import {
   CaretakerTourScrollProvider,
@@ -23,8 +23,9 @@ export default function HybridTreatmentsScreen() {
   const { t } = useTranslation();
   const selfUserId = useSelfUserId();
   const topInset = useDependentTabTopInset();
-  const scrollBottomPadding = useTabScreenScrollBottomPadding();
+  const scrollBottomPadding = Theme.spacing.xl;
   const { treatments, removeTreatment, refetchFromServer } = useMeds();
+  const [restockTarget, setRestockTarget] = useState<Treatment | null>(null);
 
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({
     type,
@@ -49,10 +50,28 @@ export default function HybridTreatmentsScreen() {
     if (selfUserId) openAddTreatment(selfUserId, 'hybrid');
   };
 
+  const confirmRemoveTreatment = (item: Treatment) => {
+    Alert.alert(
+      t('treatment.delete.title'),
+      t('treatment.delete.message', { name: item.name }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('common.delete'),
+          style: 'destructive',
+          onPress: () => void removeTreatment(item.id, selfUserId ?? undefined),
+        },
+      ],
+    );
+  };
+
   return (
     <CaretakerTourScrollProvider>
       <View style={styles.container}>
-        <CaretakerTourScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
+        <CaretakerTourScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}
+        >
           <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
           <Text style={styles.sectionSubtitle}>{t('hybrid.treatmentsSubtitle')}</Text>
 
@@ -94,7 +113,10 @@ export default function HybridTreatmentsScreen() {
                       item={item}
                       accent={group.meta.accent}
                       onEdit={() => openEditTreatment(item.id, 'hybrid')}
-                      onRemove={() => void removeTreatment(item.id, selfUserId ?? undefined)}
+                      onRestock={
+                        item.type === 'MEDICATION' ? () => setRestockTarget(item) : undefined
+                      }
+                      onRemove={() => confirmRemoveTreatment(item)}
                     />
                   );
 
@@ -121,6 +143,15 @@ export default function HybridTreatmentsScreen() {
             ))
           )}
         </CaretakerTourScrollView>
+
+        <RestockMedicationSheet
+          treatment={restockTarget}
+          visible={restockTarget != null}
+          onClose={() => setRestockTarget(null)}
+          onSaved={() => {
+            if (selfUserId) void refetchFromServer(selfUserId);
+          }}
+        />
       </View>
     </CaretakerTourScrollProvider>
   );
@@ -130,39 +161,56 @@ function TreatmentCard({
   item,
   accent,
   onEdit,
+  onRestock,
   onRemove,
 }: {
   item: Treatment;
   accent: string;
   onEdit: () => void;
+  onRestock?: () => void;
   onRemove: () => void;
 }) {
   const { t } = useTranslation();
+  const stock = item.currentPills ?? item.totalPills ?? 0;
   return (
-    <Pressable onPress={onEdit}>
-      <Card variant="white" style={styles.itemCard}>
-        <View style={styles.itemHeader}>
-          <View style={{ flex: 1, paddingRight: Theme.spacing.s }}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            {item.type === 'MEDICATION' && typeof item.totalPills === 'number' ? (
-              <Text style={[styles.itemMeta, { color: accent }]}>
-                {t('treatment.list.stock', { count: item.totalPills })}
-              </Text>
-            ) : null}
-            {item.description ? (
-              <Text style={styles.itemDescription}>{item.description}</Text>
-            ) : (
-              <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
-            )}
-          </View>
-          <View style={styles.actions}>
-            <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
-              <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
+    <Card variant="white" style={styles.itemCard}>
+      <View style={styles.itemHeader}>
+        <Pressable onPress={onEdit} style={styles.itemMain}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          {item.description ? (
+            <Text style={styles.itemDescription}>{item.description}</Text>
+          ) : (
+            <Text style={styles.itemDescriptionMuted}>{t('treatment.list.noDescription')}</Text>
+          )}
+        </Pressable>
+        <View style={styles.actions}>
+          {item.type === 'MEDICATION' && onRestock ? (
+            <Pressable
+              onPress={onRestock}
+              style={styles.actionBtn}
+              hitSlop={8}
+              accessibilityRole="button"
+              accessibilityLabel={t('treatment.restock.a11y')}
+            >
+              <MaterialIcons name="add-shopping-cart" size={24} color={Theme.colors.primaryLimeDark} />
             </Pressable>
-          </View>
+          ) : null}
+          {item.type === 'MEDICATION' ? (
+            <Text
+              style={[
+                styles.stockBadge,
+                stock <= 10 && styles.stockBadgeLow,
+              ]}
+            >
+              {stock}
+            </Text>
+          ) : null}
+          <Pressable onPress={onRemove} style={styles.actionBtn} hitSlop={8}>
+            <MaterialIcons name="delete-outline" size={24} color={Theme.colors.accentOrange} />
+          </Pressable>
         </View>
-      </Card>
-    </Pressable>
+      </View>
+    </Card>
   );
 }
 
@@ -206,11 +254,21 @@ const styles = StyleSheet.create({
   groupCount: { fontSize: Theme.typography.caption, color: Theme.colors.textLight, fontWeight: '600' },
   itemCard: { marginBottom: Theme.spacing.s },
   itemHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
+  itemMain: { flex: 1, paddingRight: Theme.spacing.s },
   itemName: { fontSize: Theme.typography.body, fontWeight: '700', color: Theme.colors.textDark },
   itemMeta: { marginTop: 2, fontSize: Theme.typography.caption, fontWeight: '600' },
   itemDescription: { marginTop: Theme.spacing.xs, fontSize: Theme.typography.caption, color: Theme.colors.textDark, lineHeight: 18 },
   itemDescriptionMuted: { marginTop: Theme.spacing.xs, fontSize: Theme.typography.caption, color: Theme.colors.textLight, fontStyle: 'italic' },
   actions: { flexDirection: 'row', alignItems: 'center' },
+  stockBadge: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: Theme.colors.textDark,
+    minWidth: 36,
+    textAlign: 'center',
+    marginRight: Theme.spacing.xs,
+  },
+  stockBadgeLow: { color: Theme.colors.accentOrange },
   actionBtn: { padding: 4, marginLeft: 4 },
   emptyText: { textAlign: 'center', color: Theme.colors.textLight, marginTop: Theme.spacing.xl, lineHeight: 22 },
 });

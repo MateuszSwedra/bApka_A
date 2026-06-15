@@ -181,4 +181,14 @@ describe('SchedulesService', () => {
       }),
     );
   });
+
+  it('remove deletes dose logs before schedule', async () => {
+    prisma.doseLog.deleteMany.mockResolvedValue({ count: 2 });
+    prisma.schedule.delete.mockResolvedValue({ id: 's1' });
+    await service.remove('s1');
+    expect(prisma.doseLog.deleteMany).toHaveBeenCalledWith({
+      where: { scheduleId: 's1' },
+    });
+    expect(prisma.schedule.delete).toHaveBeenCalledWith({ where: { id: 's1' } });
+  });
 });
