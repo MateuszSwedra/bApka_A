@@ -249,7 +249,7 @@
       },
       "dashboardSounds": {
         "title": "Ustawienia aplikacji",
-        "body": "Ikona regulacji w prawym górnym rogu otwiera dźwięki powiadomień o lekach i alarm SOS — dla Ciebie jako opiekuna."
+        "body": "Ikona koła zębatego otwiera ustawienia opiekuna — dźwięki powiadomień o lekach, alarm SOS i język panelu."
       },
       "pairingPin": {
         "title": "Kod parowania",

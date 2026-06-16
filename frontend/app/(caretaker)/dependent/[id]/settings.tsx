@@ -25,11 +25,14 @@ import {
 import { previewNotificationAsset } from '../../../../services/notificationSoundPreview';
 import { MoodCheckTimesEditor } from '../../../../components/caretaker/MoodCheckTimesEditor';
 import { normalizeMoodCheckTimes } from '../../../../utils/moodCheckTimes';
+import { normalizeAppLanguage } from '../../../../services/appLanguage';
+import type { AppLanguage } from '../../../../i18n/resolveLanguage';
 import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
 
 type DependentSettings = {
   moodEnabled: boolean;
   moodCheckTimes: string[];
+  appLanguage: AppLanguage;
   highContrast: boolean;
   colorBlindFriendly: boolean;
   medicationSoundChoice: NotificationSoundChoiceId;
@@ -38,6 +41,7 @@ type DependentSettings = {
 const DEFAULT_SETTINGS: DependentSettings = {
   moodEnabled: true,
   moodCheckTimes: normalizeMoodCheckTimes(undefined),
+  appLanguage: 'pl',
   highContrast: false,
   colorBlindFriendly: false,
   medicationSoundChoice: 'default',
@@ -81,6 +85,7 @@ export default function DependentSettingsScreen() {
         setSettings({
           moodEnabled: dep.moodEnabled ?? true,
           moodCheckTimes: normalizeMoodCheckTimes(dep.moodCheckTimes),
+          appLanguage: normalizeAppLanguage(dep.appLanguage),
           highContrast: dep.highContrast ?? false,
           colorBlindFriendly: dep.colorBlindFriendly ?? false,
           medicationSoundChoice: (dep.medicationSoundChoice ?? 'default') as NotificationSoundChoiceId,
@@ -199,6 +204,26 @@ export default function DependentSettingsScreen() {
                 onSave={time => void patchDependent({ moodCheckTimes: [time] }, 'moodCheckTimes')}
               />
             ) : null}
+
+            <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.languageSection')}</Text>
+            <Text style={styles.sectionHint}>{t('caretaker.settings.seniorLanguageSub')}</Text>
+            <View style={styles.langBlock}>
+              <Text style={styles.rowTitle}>{t('caretaker.settings.seniorLanguage')}</Text>
+              <View style={styles.langRow}>
+                {(['pl', 'en'] as AppLanguage[]).map(lang => (
+                  <Pressable
+                    key={lang}
+                    disabled={savingKey === 'appLanguage'}
+                    onPress={() => void patchDependent({ appLanguage: lang }, 'appLanguage')}
+                    style={[styles.langChip, settings.appLanguage === lang && styles.langChipActive]}
+                  >
+                    <Text style={[styles.langChipText, settings.appLanguage === lang && styles.langChipTextActive]}>
+                      {t(`caretaker.settings.language.${lang}`)}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.accessibility')}</Text>
             <Text style={styles.sectionHint}>{t('caretaker.settings.accessibilityHint')}</Text>

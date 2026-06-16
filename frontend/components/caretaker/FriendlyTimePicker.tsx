@@ -233,13 +233,13 @@ function Stepper({
   };
 
   return (
-    <View style={styles.stepperCol}>
+      <View style={styles.stepperCol}>
       <Text style={styles.stepperLabel}>{label}</Text>
-      <View style={styles.stepperControls}>
+      <View style={styles.stepperFrame}>
         <Pressable
           onPress={onMinus}
           disabled={minusDisabled}
-          style={[styles.stepBtn, minusDisabled && styles.stepBtnDisabled]}
+          style={[styles.stepBtn, styles.stepBtnLeft, minusDisabled && styles.stepBtnDisabled]}
           accessibilityRole="button"
         >
           <MaterialIcons
@@ -266,7 +266,11 @@ function Stepper({
             accessibilityLabel={label}
           />
         </View>
-        <Pressable onPress={onPlus} style={styles.stepBtn} accessibilityRole="button">
+        <Pressable
+          onPress={onPlus}
+          style={[styles.stepBtn, styles.stepBtnRight]}
+          accessibilityRole="button"
+        >
           <MaterialIcons name="add" size={22} color={Theme.colors.primaryLimeDark} />
         </Pressable>
       </View>
@@ -337,16 +341,15 @@ const styles = StyleSheet.create({
   steppersRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    justifyContent: 'center',
+    justifyContent: 'space-between',
     marginTop: Theme.spacing.l,
-    gap: Theme.spacing.m,
-    paddingHorizontal: 4,
+    gap: Theme.spacing.s,
+    width: '100%',
   },
   stepperCol: {
     flex: 1,
-    minWidth: 148,
-    maxWidth: 168,
-    alignItems: 'center',
+    minWidth: 0,
+    alignItems: 'stretch',
   },
   stepperLabel: {
     fontSize: Theme.typography.small,
@@ -354,34 +357,41 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
     marginBottom: Theme.spacing.s,
     textTransform: 'uppercase',
+    textAlign: 'center',
   },
-  stepperControls: {
+  stepperFrame: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
+    alignItems: 'stretch',
+    borderWidth: 1,
+    borderColor: Theme.colors.primaryLimeDark,
+    borderRadius: Theme.borderRadius.medium,
+    overflow: 'hidden',
+    backgroundColor: Theme.colors.surfaceWhite,
+    minHeight: 44,
   },
   stepBtn: {
     width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderWidth: 1,
-    borderColor: Theme.colors.border,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: Theme.colors.surfaceWhite,
+  },
+  stepBtnLeft: {
+    borderRightWidth: 1,
+    borderRightColor: Theme.colors.border,
+  },
+  stepBtnRight: {
+    borderLeftWidth: 1,
+    borderLeftColor: Theme.colors.border,
   },
   stepBtnDisabled: {
     opacity: 0.45,
   },
   stepValueBox: {
-    width: 52,
-    height: 44,
-    borderRadius: Theme.borderRadius.medium,
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderWidth: 2,
-    borderColor: Theme.colors.primaryLimeDark,
+    flex: 1,
+    minWidth: 36,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 4,
   },
   stepValueInput: {
     width: '100%',

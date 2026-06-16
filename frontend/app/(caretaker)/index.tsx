@@ -215,24 +215,15 @@ export default function CaretakerDashboard() {
       <View style={[styles.decorOrb, styles.decorOrbAccent]} />
 
       <View style={[styles.topBar, { paddingTop: headerTop }]}>
-        <CaretakerTourTarget
-          stepId="dashboard-sounds"
-        >
+        <CaretakerTourTarget stepId="dashboard-sounds">
           <Pressable
-            onPress={() => router.push('/notification-sound-settings' as never)}
+            onPress={() => router.push('/(caretaker)/settings' as never)}
             style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
-            accessibilityLabel={t('sounds.screenTitle')}
+            accessibilityLabel={t('tabs.settings')}
           >
-            <MaterialIcons name="tune" size={22} color={Theme.colors.primaryLimeDark} />
+            <MaterialIcons name="settings" size={22} color={Theme.colors.primaryLimeDark} />
           </Pressable>
         </CaretakerTourTarget>
-        <Pressable
-          onPress={() => router.push('/(caretaker)/settings' as never)}
-          style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
-          accessibilityLabel={t('tabs.settings')}
-        >
-          <MaterialIcons name="settings" size={22} color={Theme.colors.primaryLimeDark} />
-        </Pressable>
         <Pressable
           onPress={handleLogout}
           style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}

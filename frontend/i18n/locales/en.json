@@ -247,7 +247,7 @@
       },
       "dashboardSounds": {
         "title": "App settings",
-        "body": "The tune icon in the top-right opens medication reminder and SOS alarm sounds — for you as the caretaker."
+        "body": "The gear icon opens caretaker settings — medication reminder sounds, SOS alarm, and panel language."
       },
       "pairingPin": {
         "title": "Pairing code",
