@@ -17,7 +17,7 @@ import { Theme } from '../../constants/theme';
 import { TREATMENT_VISUAL, type TreatmentType } from '../../constants/treatmentVisuals';
 import type { ScheduleItem } from '../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../context/MedsContext';
-import { scheduleAppliesToDate, timeToMinutes } from '../../utils/scheduleHelpers';
+import { timeToMinutes } from '../../utils/scheduleHelpers';
 import {
   isCalendarHourSlotInPast,
   isScheduleItemInPast,
@@ -89,9 +89,9 @@ export function AndroidStyleDayView({
   const daySchedules = useMemo(
     () =>
       schedules
-        .filter(s => scheduleAppliesToDate(s, dateStr))
+        .filter(s => typeof s.time === 'string' && /^\d{1,2}:\d{2}$/.test(s.time))
         .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time)),
-    [schedules, dateStr],
+    [schedules],
   );
 
   const resolveTreatment = useCallback(
@@ -342,6 +342,7 @@ export function AndroidStyleDayView({
             >
               {positionedEvents.map(({ sch, top, height, left, width, accent, label }) => {
                 const eventPast = isScheduleItemInPast(dateStr, sch.time);
+                const isTourTarget = Boolean(wrapTourTarget && tourTargetScheduleId === sch.id);
                 const eventLayout: ViewStyle = {
                   top,
                   height,
@@ -354,7 +355,8 @@ export function AndroidStyleDayView({
                   <Pressable
                     style={[
                       styles.timedEvent,
-                      eventLayout,
+                      isTourTarget ? styles.timedEventInTourWrap : eventLayout,
+                      { backgroundColor: accent },
                       eventPast && styles.timedEventPast,
                     ]}
                     onPress={() => {
@@ -372,7 +374,7 @@ export function AndroidStyleDayView({
                   </Pressable>
                 );
 
-                if (wrapTourTarget && tourTargetScheduleId === sch.id) {
+                if (isTourTarget) {
                   return (
                     <React.Fragment key={sch.id}>
                       {wrapTourTarget(eventNode, {
@@ -581,6 +583,13 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
+  },
+  // W trybie "tour target" pozycję nadaje wrapper; tu wypełniamy tylko jego obszar.
+  timedEventInTourWrap: {
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
   timedEventPast: {
     opacity: 0.55,

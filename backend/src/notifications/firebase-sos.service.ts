@@ -4,9 +4,21 @@ import { readFileSync } from 'fs';
 
 import { isAbsolute, join } from 'path';
 
-import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
+// Używamy require, żeby uniknąć problemów rozwiązywania subpath exports
+// między wersjami TypeScript/Node w środowisku dockerowym.
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { cert, getApps, initializeApp } = require('firebase-admin/app') as {
+  cert: (serviceAccount: Record<string, unknown>) => unknown;
+  getApps: () => unknown[];
+  initializeApp: (options: { credential: unknown }) => unknown;
+};
 
-import { getMessaging } from 'firebase-admin/messaging';
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { getMessaging } = require('firebase-admin/messaging') as {
+  getMessaging: () => {
+    send: (message: Record<string, unknown>) => Promise<unknown>;
+  };
+};
 
 
 
@@ -40,7 +52,9 @@ export type SosFcmSendResult = {
 
 
 
-function loadServiceAccount(): ServiceAccount | null {
+type FirebaseServiceAccount = Record<string, unknown>;
+
+function loadServiceAccount(): FirebaseServiceAccount | null {
 
   const pathRaw = process.env.FIREBASE_SERVICE_ACCOUNT_PATH?.trim();
 
@@ -50,7 +64,7 @@ function loadServiceAccount(): ServiceAccount | null {
 
     try {
 
-      return JSON.parse(readFileSync(resolved, 'utf8')) as ServiceAccount;
+      return JSON.parse(readFileSync(resolved, 'utf8')) as FirebaseServiceAccount;
 
     } catch (error) {
 
@@ -66,7 +80,7 @@ function loadServiceAccount(): ServiceAccount | null {
 
   if (jsonRaw) {
 
-    return JSON.parse(jsonRaw) as ServiceAccount;
+    return JSON.parse(jsonRaw) as FirebaseServiceAccount;
 
   }
 

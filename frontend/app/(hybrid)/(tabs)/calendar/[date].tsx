@@ -50,12 +50,18 @@ export default function HybridCalendarDayScreen() {
     return labelForSchedule(selectedSchedule);
   }, [selectedSchedule, labelForSchedule]);
 
-  const tourTargetScheduleId = useMemo(() => {
-    const daySchedules = schedules
-      .filter(s => scheduleAppliesToDate(s, dateStr))
-      .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time));
-    return daySchedules[0]?.id ?? null;
-  }, [schedules, dateStr]);
+  const daySchedules = useMemo(
+    () =>
+      schedules
+        .filter(s => scheduleAppliesToDate(s, dateStr))
+        .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time)),
+    [schedules, dateStr],
+  );
+
+  const tourTargetScheduleId = useMemo(
+    () => daySchedules[0]?.id ?? null,
+    [daySchedules],
+  );
 
   const wrapTourTarget = useCallback(
     (node: React.ReactElement, wrapStyle: ViewStyle) => (
@@ -99,7 +105,7 @@ export default function HybridCalendarDayScreen() {
           <AndroidStyleDayView
             dateStr={dateStr}
             onBack={() => router.back()}
-            schedules={schedules}
+            schedules={daySchedules}
             treatments={treatments}
             depletionAlerts={depletionAlerts}
             labelForSchedule={labelForSchedule}

@@ -155,7 +155,10 @@ export default function PickScheduleTimingScreen() {
     if (medType === 'REGULAR') {
       router.push({
         pathname: schedulePath,
-        params: { ...base, daysOfWeek: selectedDays.join(',') },
+        // Dla zgodności z filtrem w widoku dnia/month:
+        // startDate ma pochodzić z daty wybranej w kalendarzu (prefillDate),
+        // a nie z domyślnego "dzisiaj" w ekranie schedule.
+        params: { ...base, startDate: selectedDate, daysOfWeek: selectedDays.join(',') },
       } as never);
       return;
     }
