@@ -1,9 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, Alert } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
-import { useFocusEffect } from 'expo-router';
+import { useForegroundDataRefresh } from '../../hooks/useForegroundDataRefresh';
+import { useSelfUserId } from '../../hooks/useSelfUserId';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { useMeds, getScheduleTreatmentId } from '../../context/MedsContext';
@@ -15,7 +16,6 @@ import { TREATMENT_VISUAL } from '../../constants/treatmentVisuals';
 import { HybridProfileHeader } from './HybridProfileHeader';
 import { HybridTakeMedCard } from './HybridTakeMedCard';
 import { DependentTodayHeroCard } from '../caretaker/DependentTodayHeroCard';
-import { useSelfUserId } from '../../hooks/useSelfUserId';
 import { useTabScreenScrollBottomPadding } from '../../utils/safeAreaInsets';
 import { computeDependentMainScheduleState } from '../../utils/dependentScheduleUi';
 import {
@@ -89,16 +89,15 @@ export default function HybridTodayScreen() {
     }
   }, [selfUserId]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void refetchFromServer();
-      void syncCompletionAndLogs();
-      void reload();
-      void fetchProfile();
-      const pollId = setInterval(() => void syncCompletionAndLogs(), 30_000);
-      return () => clearInterval(pollId);
-    }, [refetchFromServer, syncCompletionAndLogs, reload, fetchProfile]),
-  );
+  const syncTodayScreen = useCallback(async () => {
+    if (selfUserId) await refetchFromServer(selfUserId);
+    else await refetchFromServer();
+    await syncCompletionAndLogs();
+    await reload();
+    await fetchProfile();
+  }, [selfUserId, refetchFromServer, syncCompletionAndLogs, reload, fetchProfile]);
+
+  useForegroundDataRefresh({ onRefresh: syncTodayScreen });
 
   useOnCalendarDayChange(todayStr, useCallback(() => {
     void refetchFromServer();

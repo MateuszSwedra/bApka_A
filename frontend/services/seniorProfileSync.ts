@@ -1,7 +1,7 @@
 import { parseSoundChoiceId } from '../constants/notificationSounds';
 import { setMedicationSoundChoice } from './notificationSoundPreferences';
 import { setDaltonistFriendly, setHighContrast } from './seniorDisplayPreferences';
-import { applyAppLanguage, normalizeAppLanguage } from './appLanguage';
+import { applyAppLanguage, resolveEffectiveAppLanguage } from './appLanguage';
 
 export type SeniorProfileSettings = {
   highContrast?: boolean;
@@ -20,7 +20,6 @@ export async function applySeniorProfileSettings(profile: SeniorProfileSettings)
   if (typeof profile.medicationSoundChoice === 'string') {
     await setMedicationSoundChoice(parseSoundChoiceId(profile.medicationSoundChoice));
   }
-  if (typeof profile.appLanguage === 'string') {
-    await applyAppLanguage(normalizeAppLanguage(profile.appLanguage));
-  }
+  const effectiveLang = await resolveEffectiveAppLanguage(profile.appLanguage);
+  await applyAppLanguage(effectiveLang);
 }

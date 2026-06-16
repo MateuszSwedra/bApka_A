@@ -8,6 +8,7 @@ import React, {
   useCallback,
   useRef,
 } from 'react';
+import { AppState, type AppStateStatus } from 'react-native';
 import { format } from 'date-fns';
 import { normalizeYmd } from '../utils/ymdDate';
 import { getStoredAuthToken, inventoryAPI, scheduleAPI, usersAPI } from '../services/api';
@@ -119,6 +120,19 @@ function isInDependentCaretakerFlow(segments: string[]): boolean {
   return DEPENDENT_FLOW_MARKERS.some(m => segments.includes(m));
 }
 
+/** Opiekun na profilu podopiecznego (dependent/<uuid>/…), nie senior na własnym ekranie. */
+function isCaretakerManagingDependent(segments: string[]): boolean {
+  const depIdx = segments.indexOf('dependent');
+  if (depIdx < 0) return false;
+  return segments.some(s => isUserUuid(s));
+}
+
+function isSelfSeniorSession(role: string | null, segments: string[]): boolean {
+  if (role === 'DEPENDENT') return true;
+  if (role === 'HYBRID' && !isCaretakerManagingDependent(segments)) return true;
+  return false;
+}
+
 export function MedsProvider({ children }: { children: ReactNode }) {
   const { userRole, isReady } = useAuth();
   const { id, dependentId } = useGlobalSearchParams<{ id?: string; dependentId?: string }>();
@@ -156,7 +170,7 @@ export function MedsProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    if (scopedDependentUserId && inDependentFlow) {
+    if (scopedDependentUserId && isCaretakerManagingDependent(segList)) {
       setTargetUserId(scopedDependentUserId);
       return;
     }
@@ -247,6 +261,28 @@ export function MedsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refetchFromServer();
   }, [refetchFromServer]);
+
+  useEffect(() => {
+    if (!isSelfSeniorSession(userRole, segList) || !targetUserId) return;
+
+    let cancelled = false;
+    const tick = () => {
+      if (cancelled) return;
+      void refetchFromServer(targetUserId);
+    };
+
+    tick();
+    const pollId = setInterval(tick, 15_000);
+    const appStateSub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active') tick();
+    });
+
+    return () => {
+      cancelled = true;
+      clearInterval(pollId);
+      appStateSub.remove();
+    };
+  }, [userRole, segList, targetUserId, refetchFromServer]);
 
   // Widok zgodny ze starym API – tylko leki, używany przez kalendarz i ekran add-med.
   const inventory: InventoryItem[] = useMemo(

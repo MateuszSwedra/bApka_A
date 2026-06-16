@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import {
   startOfWeek,
 } from 'date-fns';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from 'expo-router';
 import { Theme } from '../../constants/theme';
 import { TREATMENT_VISUAL, type TreatmentType } from '../../constants/treatmentVisuals';
 import type { ScheduleItem } from '../../context/MedsContext';
@@ -53,6 +54,7 @@ const MAX_CHIPS = 2;
 const WEEK_STARTS_ON = 1 as const;
 const CELL_GAP = 3;
 const CELL_RADIUS = 8;
+const WEEK_ROW_HEIGHT = 80;
 
 function weekdayLabels(t: (key: string) => string): string[] {
   return ['1', '2', '3', '4', '5', '6', '7'].map(k => t(`calendar.weekdayShort.${k}`));
@@ -73,6 +75,14 @@ export function AndroidStyleMonthCalendar({
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [pickerYear, setPickerYear] = useState(() => visibleMonth.getFullYear());
   const [yearPickerOpen, setYearPickerOpen] = useState(false);
+  const [gridLayoutEpoch, setGridLayoutEpoch] = useState(0);
+
+  // Po powrocie z widoku dnia RN czasem nie przelicza flex — wymuś odświeżenie siatki.
+  useFocusEffect(
+    useCallback(() => {
+      setGridLayoutEpoch(epoch => epoch + 1);
+    }, []),
+  );
 
   useEffect(() => {
     if (!monthPickerOpen) return;
@@ -154,7 +164,7 @@ export function AndroidStyleMonthCalendar({
 
   const selectedParsed = parseISO(selectedDate);
   const rowCount = weeks.length;
-  const gridBodyMinHeight = Math.max(320, rowCount * 80);
+  const gridBodyMinHeight = Math.max(320, rowCount * WEEK_ROW_HEIGHT + (rowCount - 1) * CELL_GAP);
 
   const goPrevMonth = () => setVisibleMonth(m => addMonths(m, -1));
   const goNextMonth = () => setVisibleMonth(m => addMonths(m, 1));
@@ -237,11 +247,14 @@ export function AndroidStyleMonthCalendar({
 
       <View style={styles.gridSwipeClip}>
         <View
+          key={`grid-${format(visibleMonth, 'yyyy-MM')}-${gridLayoutEpoch}`}
           style={[styles.gridBody, { minHeight: gridBodyMinHeight }]}
           {...monthSwipeHandlers}
         >
-          {weeks.map((week, wi) => (
-            <View key={wi} style={styles.weekRow}>
+          {weeks.map(week => {
+            const weekKey = format(week[0], 'yyyy-MM-dd');
+            return (
+            <View key={weekKey} style={styles.weekRow}>
               {week.map(day => {
                 const dateStr = format(day, 'yyyy-MM-dd');
                 const isSelected = isSameDay(day, selectedParsed);
@@ -293,7 +306,8 @@ export function AndroidStyleMonthCalendar({
                 );
               })}
             </View>
-          ))}
+            );
+          })}
         </View>
       </View>
 
@@ -434,6 +448,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: CELL_GAP,
     marginBottom: CELL_GAP,
+    minHeight: WEEK_ROW_HEIGHT,
   },
   dayCell: {
     flex: 1,
@@ -454,6 +469,7 @@ const styles = StyleSheet.create({
   dayNumberWrap: {
     alignItems: 'center',
     marginBottom: 3,
+    flexShrink: 0,
   },
   dayNumber: {
     fontSize: Theme.typography.caption,
@@ -484,7 +500,9 @@ const styles = StyleSheet.create({
   },
   chipColumn: {
     flex: 1,
+    flexShrink: 1,
     gap: 2,
+    overflow: 'hidden',
   },
   eventChip: {
     borderRadius: 4,

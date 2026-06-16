@@ -194,7 +194,7 @@ export default function PickScheduleTimingScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <ScheduleTimingIllustration width={250} height={200} />
+        <ScheduleTimingIllustration width={156} height={124} />
         <Text style={styles.lead}>{t(leadKey)}</Text>
 
         {medType === 'ONCE' && (
@@ -346,8 +346,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lead: {
-    marginTop: Theme.spacing.m,
-    marginBottom: Theme.spacing.l,
+    marginTop: Theme.spacing.s,
+    marginBottom: Theme.spacing.m,
     fontSize: Theme.typography.body,
     color: Theme.colors.textLight,
     textAlign: 'center',

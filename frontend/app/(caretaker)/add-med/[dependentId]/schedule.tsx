@@ -23,7 +23,6 @@ import {
   FriendlyTimePicker,
   type FriendlyTimePickerRef,
 } from '../../../../components/caretaker/FriendlyTimePicker';
-import { ScheduleTimeDosageIllustration } from '../../../../components/caretaker/ScheduleTimeDosageIllustration';
 import { DosageStepper } from '../../../../components/caretaker/DosageStepper';
 import { formatTimeParts } from '../../../../components/TimeScrollPicker';
 import { HugeButton } from '../../../../components/HugeButton';
@@ -207,7 +206,6 @@ export default function AddScheduleDetailsScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        <ScheduleTimeDosageIllustration width={250} height={200} />
         <Text style={styles.lead}>
           {isMedication ? t('schedule.add.pickTimeLeadMed') : t('schedule.add.pickTimeLead')}
         </Text>
@@ -287,7 +285,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   activityName: {
-    marginBottom: Theme.spacing.l,
+    marginBottom: Theme.spacing.m,
     fontSize: Theme.typography.caption,
     fontWeight: '700',
     color: Theme.colors.primaryLimeDark,

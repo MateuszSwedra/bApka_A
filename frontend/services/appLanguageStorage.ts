@@ -1,6 +1,8 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Localization from 'expo-localization';
 import type { AppLanguage } from '../i18n/resolveLanguage';
+import { resolveDeviceLanguage } from '../i18n/resolveLanguage';
 
 const LANG_KEY = 'bapka_app_language_v1';
 
@@ -48,4 +50,21 @@ export async function getStoredAppLanguage(): Promise<AppLanguage | null> {
 
 export async function setStoredAppLanguage(lang: AppLanguage): Promise<void> {
   await storageSet(LANG_KEY, lang);
+}
+
+/** Lokalny wybór > język urządzenia > profil (domyślne `pl` z API nie nadpisuje EN telefonu). */
+export async function resolveEffectiveAppLanguage(
+  profileLanguage?: string | null,
+): Promise<AppLanguage> {
+  const stored = await getStoredAppLanguage();
+  if (stored) return stored;
+
+  const device = resolveDeviceLanguage(Localization.getLocales());
+  const raw = profileLanguage?.trim();
+  if (!raw) return device;
+
+  const profileLang = normalizeAppLanguage(raw);
+  if (profileLang === 'pl' && device === 'en') return device;
+
+  return profileLang;
 }

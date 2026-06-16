@@ -113,7 +113,7 @@ export default function PickScheduleFrequencyScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <ScheduleFrequencyIllustration width={250} height={220} />
+        <ScheduleFrequencyIllustration width={156} height={136} />
 
         <Text style={styles.lead}>{t('schedule.add.pickFrequencyLead')}</Text>
 
@@ -196,8 +196,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   lead: {
-    marginTop: Theme.spacing.m,
-    marginBottom: Theme.spacing.l,
+    marginTop: Theme.spacing.s,
+    marginBottom: Theme.spacing.m,
     fontSize: Theme.typography.body,
     color: Theme.colors.textLight,
     textAlign: 'center',

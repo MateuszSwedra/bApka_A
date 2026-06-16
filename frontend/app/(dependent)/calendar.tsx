@@ -10,6 +10,8 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useSelfUserId } from '../../hooks/useSelfUserId';
+import { useForegroundDataRefresh } from '../../hooks/useForegroundDataRefresh';
 import { Theme } from '../../constants/theme';
 import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../../utils/safeAreaInsets';
@@ -25,7 +27,8 @@ export default function DependentCalendarScreen() {
   const { t } = useTranslation();
   const bottomPadding = useScreenBottomPadding(Theme.spacing.m);
   const { colors } = useDependentDisplay();
-  const { depletionAlerts, schedules, treatments } = useMeds();
+  const selfUserId = useSelfUserId();
+  const { depletionAlerts, schedules, treatments, refetchFromServer } = useMeds();
   const [weekAnchor, setWeekAnchor] = useState(() => startOfSeniorPlanWindow(new Date()));
   const [showScrollHint, setShowScrollHint] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -40,6 +43,13 @@ export default function DependentCalendarScreen() {
     setShowScrollHint(scrollable && !atBottom);
     setShowBackToTop(scrollable && atBottom);
   }, []);
+
+  const syncCalendarData = useCallback(async () => {
+    if (selfUserId) await refetchFromServer(selfUserId);
+    else await refetchFromServer();
+  }, [selfUserId, refetchFromServer]);
+
+  useForegroundDataRefresh({ onRefresh: syncCalendarData });
 
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     scrollY.current = e.nativeEvent.contentOffset.y;

@@ -35,7 +35,8 @@ import { SeniorConfirmModal } from '../../components/SeniorConfirmModal';
 import { MoodPickerModal } from '../../components/MoodPickerModal';
 import { VitalsMetricModal } from '../../components/senior/VitalsMetricModal';
 import { MoodIcon } from '../../components/mood/MoodIcon';
-import { useFocusEffect } from '@react-navigation/native';
+import { useSelfUserId } from '../../hooks/useSelfUserId';
+import { useForegroundDataRefresh } from '../../hooks/useForegroundDataRefresh';
 import { treatmentTypeForSchedule } from '../../utils/scheduleTreatmentType';
 import { seniorActionTileContent } from '../../utils/seniorActionTile';
 import { phoneIntactWordsStyle, phoneIntactWordsTextProps } from '../../utils/phoneText';
@@ -54,6 +55,7 @@ export default function DependentDashboard() {
   const bottomPadding = useScreenBottomPadding(Theme.spacing.s);
   const { logout } = useAuth();
   const { colors, colorBlindFriendly, highContrast, reload } = useDependentDisplay();
+  const selfUserId = useSelfUserId();
   const { schedules, treatments, refetchFromServer } = useMeds();
   const [now, setNow] = useState(() => new Date());
   const [completedIds, setCompletedIds] = useState<Set<string>>(new Set());
@@ -110,23 +112,24 @@ export default function DependentDashboard() {
     setCompletedMoodSlots(new Set(moodSlots));
   }, [todayStr]);
 
-  useFocusEffect(
-    useCallback(() => {
-      void refetchFromServer();
-      void loadCompleted();
-      void reload();
-      usersAPI
-        .getMe()
-        .then(me => {
-          if (me?.name?.trim()) setSeniorName(me.name.trim());
-          else if (me?.email) setSeniorName(me.email);
-          if (me && typeof me.moodEnabled === 'boolean') setMoodEnabled(me.moodEnabled);
-          setMoodCheckTimes(normalizeMoodCheckTimes(me?.moodCheckTimes));
-          if (me && typeof me.vitalsEntryEnabled === 'boolean') setVitalsEntryEnabled(me.vitalsEntryEnabled);
-        })
-        .catch(() => {});
-    }, [refetchFromServer, loadCompleted, reload]),
-  );
+  const syncDashboardData = useCallback(async () => {
+    if (selfUserId) await refetchFromServer(selfUserId);
+    else await refetchFromServer();
+    await loadCompleted();
+    await reload();
+    try {
+      const me = await usersAPI.getMe();
+      if (me?.name?.trim()) setSeniorName(me.name.trim());
+      else if (me?.email) setSeniorName(me.email);
+      if (me && typeof me.moodEnabled === 'boolean') setMoodEnabled(me.moodEnabled);
+      setMoodCheckTimes(normalizeMoodCheckTimes(me?.moodCheckTimes));
+      if (me && typeof me.vitalsEntryEnabled === 'boolean') setVitalsEntryEnabled(me.vitalsEntryEnabled);
+    } catch {
+      /* offline */
+    }
+  }, [selfUserId, refetchFromServer, loadCompleted, reload]);
+
+  useForegroundDataRefresh({ onRefresh: syncDashboardData });
 
   const mainState = useMemo(
     () => computeDependentMainScheduleState(schedules, treatments, completedIds, now),

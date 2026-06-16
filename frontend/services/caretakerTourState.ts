@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const PREFIX = 'caretakerTour_v4:';
+// SecureStore: tylko [a-zA-Z0-9._-] — bez dwukropka
+const PREFIX = 'caretakerTour_v4_';
 const SKIPPED_KEY = `${PREFIX}skipped`;
 const PRE_COMPLETE_KEY = `${PREFIX}pre-complete`;
 const POST_COMPLETE_KEY = `${PREFIX}post-complete`;
@@ -98,11 +99,15 @@ async function readFlag(key: string): Promise<boolean> {
 }
 
 async function writeFlag(key: string, value: boolean): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, value ? 'true' : 'false');
-    return;
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value ? 'true' : 'false');
+      return;
+    }
+    await SecureStore.setItemAsync(key, value ? 'true' : 'false');
+  } catch {
+    /* SecureStore odrzuca nieprawidłowy klucz — nie blokuj UI */
   }
-  await SecureStore.setItemAsync(key, value ? 'true' : 'false');
 }
 
 async function deleteFlag(key: string): Promise<void> {
