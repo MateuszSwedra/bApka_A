@@ -149,15 +149,14 @@ export function AndroidStyleDayView({
   const effectiveTimelineWidth = timelineWidth > 0 ? timelineWidth : windowWidth - Theme.spacing.m;
 
   const positionedEvents = useMemo(() => {
-    const byTime = new Map<string, ScheduleItem[]>();
-    for (const sch of daySchedules) {
-      const list = byTime.get(sch.time) ?? [];
-      list.push(sch);
-      byTime.set(sch.time, list);
-    }
-
     const colLeft = TIME_GUTTER + EVENT_COL_PAD;
     const colWidth = Math.max(0, effectiveTimelineWidth - colLeft - EVENT_COL_RIGHT);
+
+    type TimedEvent = {
+      sch: ScheduleItem;
+      startMin: number;
+      endMin: number;
+    };
 
     const result: {
       sch: ScheduleItem;
@@ -169,15 +168,61 @@ export function AndroidStyleDayView({
       label: string;
     }[] = [];
 
-    byTime.forEach(group => {
-      const startMin = timeToMinutes(group[0].time);
-      const top = (startMin / 60) * HOUR_HEIGHT;
-      const height = Math.max((EVENT_DURATION_MIN / 60) * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
-      const columnCount = group.length;
-      const slotWidth =
-        columnCount > 0 ? (colWidth - (columnCount - 1) * EVENT_GAP) / columnCount : colWidth;
+    const timedEvents: TimedEvent[] = daySchedules.map((sch) => {
+      const startMin = timeToMinutes(sch.time);
+      return {
+        sch,
+        startMin,
+        endMin: startMin + EVENT_DURATION_MIN,
+      };
+    });
 
-      group.forEach((sch, columnIndex) => {
+    const clusters: TimedEvent[][] = [];
+    let currentCluster: TimedEvent[] = [];
+    let currentClusterEnd = -1;
+
+    for (const ev of timedEvents) {
+      if (currentCluster.length === 0) {
+        currentCluster = [ev];
+        currentClusterEnd = ev.endMin;
+        continue;
+      }
+      if (ev.startMin < currentClusterEnd) {
+        currentCluster.push(ev);
+        currentClusterEnd = Math.max(currentClusterEnd, ev.endMin);
+      } else {
+        clusters.push(currentCluster);
+        currentCluster = [ev];
+        currentClusterEnd = ev.endMin;
+      }
+    }
+    if (currentCluster.length > 0) {
+      clusters.push(currentCluster);
+    }
+
+    for (const cluster of clusters) {
+      const columnEnds: number[] = [];
+      const placed = cluster.map((ev) => {
+        let columnIndex = columnEnds.findIndex((colEnd) => colEnd <= ev.startMin);
+        if (columnIndex < 0) {
+          columnIndex = columnEnds.length;
+          columnEnds.push(ev.endMin);
+        } else {
+          columnEnds[columnIndex] = ev.endMin;
+        }
+        return { ...ev, columnIndex };
+      });
+
+      const columnCount = Math.max(1, columnEnds.length);
+      const slotWidth =
+        columnCount > 1
+          ? (colWidth - (columnCount - 1) * EVENT_GAP) / columnCount
+          : colWidth;
+
+      for (const ev of placed) {
+        const top = (ev.startMin / 60) * HOUR_HEIGHT;
+        const height = Math.max((EVENT_DURATION_MIN / 60) * HOUR_HEIGHT, MIN_EVENT_HEIGHT);
+        const sch = ev.sch;
         const treatment = resolveTreatment(sch);
         const treatmentType = treatment?.type;
         const accent =
@@ -188,13 +233,13 @@ export function AndroidStyleDayView({
           sch,
           top,
           height,
-          left: colLeft + columnIndex * (slotWidth + EVENT_GAP),
+          left: colLeft + ev.columnIndex * (slotWidth + EVENT_GAP),
           width: Math.max(slotWidth, 48),
           accent,
           label: labelForSchedule(sch),
         });
-      });
-    });
+      }
+    }
 
     return result;
   }, [daySchedules, labelForSchedule, resolveTreatment, effectiveTimelineWidth]);
