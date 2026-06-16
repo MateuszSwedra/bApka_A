@@ -59,7 +59,7 @@
     "name": {
       "title": "Jak mamy się do Ciebie zwracać?",
       "subtitle": "To imię zobaczą opiekun i podopieczni w aplikacji.",
-      "placeholder": "Np. Ania, Pani Basia, Tato…",
+      "placeholder": "np. Babcia Ania",
       "cta": "Dalej",
       "saving": "Zapisujemy…",
       "errorEmpty": "Podaj imię lub pseudonim.",
@@ -408,7 +408,7 @@
       "seniorLanguageSub": "Interfejs na telefonie podopiecznego.",
       "caretakerLanguage": "Twój język (opiekun)",
       "caretakerLanguageSub": "Interfejs panelu opiekuna na tym urządzeniu.",
-      "language": { "pl": "Polski", "en": "English" },
+      "language": { "system": "Systemowy", "pl": "Polski", "en": "English" },
       "soundHint": "Dźwięk przypomnienia o lekach na telefonie seniora.",
       "loadError": "Nie udało się wczytać ustawień.",
       "saveError": "Nie udało się zapisać ustawień."

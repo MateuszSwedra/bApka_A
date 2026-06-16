@@ -227,6 +227,13 @@ export default function CaretakerDashboard() {
           </Pressable>
         </CaretakerTourTarget>
         <Pressable
+          onPress={() => router.push('/(caretaker)/settings' as never)}
+          style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
+          accessibilityLabel={t('tabs.settings')}
+        >
+          <MaterialIcons name="settings" size={22} color={Theme.colors.primaryLimeDark} />
+        </Pressable>
+        <Pressable
           onPress={handleLogout}
           style={({ pressed }) => [styles.topBarBtn, pressed && styles.topBarBtnPressed]}
         >

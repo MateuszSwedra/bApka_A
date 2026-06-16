@@ -23,8 +23,6 @@ import {
   resolveMedicationSoundAsset,
 } from '../../../../constants/notificationSounds';
 import { previewNotificationAsset } from '../../../../services/notificationSoundPreview';
-import { applyAppLanguage, normalizeAppLanguage } from '../../../../services/appLanguage';
-import type { AppLanguage } from '../../../../i18n/resolveLanguage';
 import { MoodCheckTimesEditor } from '../../../../components/caretaker/MoodCheckTimesEditor';
 import { normalizeMoodCheckTimes } from '../../../../utils/moodCheckTimes';
 import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInsets';
@@ -34,7 +32,6 @@ type DependentSettings = {
   moodCheckTimes: string[];
   highContrast: boolean;
   colorBlindFriendly: boolean;
-  appLanguage: AppLanguage;
   medicationSoundChoice: NotificationSoundChoiceId;
 };
 
@@ -43,7 +40,6 @@ const DEFAULT_SETTINGS: DependentSettings = {
   moodCheckTimes: normalizeMoodCheckTimes(undefined),
   highContrast: false,
   colorBlindFriendly: false,
-  appLanguage: 'pl',
   medicationSoundChoice: 'default',
 };
 
@@ -67,7 +63,6 @@ export default function DependentSettingsScreen() {
   );
   const [dependentName, setDependentName] = useState('');
   const [settings, setSettings] = useState<DependentSettings>(DEFAULT_SETTINGS);
-  const [caretakerLanguage, setCaretakerLanguage] = useState<AppLanguage>('pl');
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
@@ -79,7 +74,7 @@ export default function DependentSettingsScreen() {
     }
     setLoading(true);
     try {
-      const [dependents, me] = await Promise.all([usersAPI.getDependents(), usersAPI.getMe()]);
+      const dependents = await usersAPI.getDependents();
       const dep = (dependents as any[]).find(d => d.id === dependentId);
       if (dep) {
         setDependentName(dep.name?.trim() || dep.email || '');
@@ -88,12 +83,8 @@ export default function DependentSettingsScreen() {
           moodCheckTimes: normalizeMoodCheckTimes(dep.moodCheckTimes),
           highContrast: dep.highContrast ?? false,
           colorBlindFriendly: dep.colorBlindFriendly ?? false,
-          appLanguage: normalizeAppLanguage(dep.appLanguage),
           medicationSoundChoice: (dep.medicationSoundChoice ?? 'default') as NotificationSoundChoiceId,
         });
-      }
-      if (me?.appLanguage) {
-        setCaretakerLanguage(normalizeAppLanguage(me.appLanguage));
       }
     } catch {
       Alert.alert(t('common.error'), t('caretaker.settings.loadError'));
@@ -126,19 +117,6 @@ export default function DependentSettingsScreen() {
     }
   };
 
-  const patchCaretakerLanguage = async (lang: AppLanguage) => {
-    setSavingKey('caretakerLang');
-    try {
-      await usersAPI.updateSettings({ appLanguage: lang });
-      setCaretakerLanguage(lang);
-      await applyAppLanguage(lang);
-    } catch {
-      Alert.alert(t('common.error'), t('caretaker.settings.saveError'));
-    } finally {
-      setSavingKey(null);
-    }
-  };
-
   const onPreview = async (soundId: NotificationSoundChoiceId) => {
     const key = `med-${soundId}`;
     setPreviewKey(key);
@@ -148,40 +126,6 @@ export default function DependentSettingsScreen() {
       setPreviewKey(null);
     }
   };
-
-  const renderLanguageRow = (
-    label: string,
-    subtitle: string,
-    value: AppLanguage,
-    onChange: (lang: AppLanguage) => void,
-    busy: boolean,
-  ) => (
-    <View style={styles.langBlock}>
-      <Text style={styles.rowTitle}>{label}</Text>
-      <Text style={styles.rowSub}>{subtitle}</Text>
-      <View style={styles.langRow}>
-        {(['pl', 'en'] as AppLanguage[]).map(lang => {
-          const selected = value === lang;
-          return (
-            <Pressable
-              key={lang}
-              disabled={busy}
-              onPress={() => void onChange(lang)}
-              style={[
-                styles.langChip,
-                selected && styles.langChipActive,
-                busy && { opacity: 0.6 },
-              ]}
-            >
-              <Text style={[styles.langChipText, selected && styles.langChipTextActive]}>
-                {t(`caretaker.settings.language.${lang}`)}
-              </Text>
-            </Pressable>
-          );
-        })}
-      </View>
-    </View>
-  );
 
   const renderSoundRow = (soundId: NotificationSoundChoiceId) => {
     const label = t(`sounds.${soundId}.label`);
@@ -284,22 +228,6 @@ export default function DependentSettingsScreen() {
                 trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
               />
             </View>
-
-            <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.languageSection')}</Text>
-            {renderLanguageRow(
-              t('caretaker.settings.seniorLanguage'),
-              t('caretaker.settings.seniorLanguageSub'),
-              settings.appLanguage,
-              lang => void patchDependent({ appLanguage: lang }, 'seniorLang'),
-              savingKey === 'seniorLang',
-            )}
-            {renderLanguageRow(
-              t('caretaker.settings.caretakerLanguage'),
-              t('caretaker.settings.caretakerLanguageSub'),
-              caretakerLanguage,
-              lang => void patchCaretakerLanguage(lang),
-              savingKey === 'caretakerLang',
-            )}
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('dependent.settings.reminderSound')}</Text>
             <Text style={styles.sectionHint}>{t('caretaker.settings.soundHint')}</Text>

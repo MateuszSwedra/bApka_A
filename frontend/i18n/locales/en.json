@@ -59,7 +59,7 @@
     "name": {
       "title": "What should we call you?",
       "subtitle": "Caretakers and dependents will see this name in the app.",
-      "placeholder": "e.g. Anna, Mrs. Smith, Dad…",
+      "placeholder": "e.g. Grandma Anna",
       "cta": "Continue",
       "saving": "Saving…",
       "errorEmpty": "Enter a name or nickname.",
@@ -406,7 +406,7 @@
       "seniorLanguageSub": "Interface on the dependent's phone.",
       "caretakerLanguage": "Your language (caretaker)",
       "caretakerLanguageSub": "Caretaker panel language on this device.",
-      "language": { "pl": "Polish", "en": "English" },
+      "language": { "system": "System", "pl": "Polish", "en": "English" },
       "soundHint": "Medication reminder sound on the senior's phone.",
       "loadError": "Could not load settings.",
       "saveError": "Could not save settings."

@@ -108,10 +108,16 @@ export default function OnboardingNameScreen() {
                 placeholder={t('onboarding.name.placeholder')}
                 value={name}
                 onChangeText={setName}
-                autoCapitalize="sentences"
-                autoCorrect
+                autoCapitalize="words"
+                autoCorrect={false}
+                spellCheck={false}
+                autoComplete="off"
+                textContentType="none"
+                importantForAutofill="no"
+                underlineColorAndroid="transparent"
+                selectionColor={OnboardingPalette.primaryDark}
                 maxLength={80}
-                placeholderTextColor={OnboardingPalette.textSecondary}
+                placeholderTextColor={OnboardingPalette.placeholder}
               />
             </View>
           </View>
@@ -210,7 +216,7 @@ const styles = StyleSheet.create({
   field: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: OnboardingPalette.background,
+    backgroundColor: OnboardingPalette.surface,
     borderRadius: Theme.borderRadius.medium,
     borderWidth: 1,
     borderColor: OnboardingPalette.border,

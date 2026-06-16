@@ -1,7 +1,8 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 
-const PREFIX = 'seniorTour_v2:';
+// SecureStore: tylko [a-zA-Z0-9._-] — bez dwukropka
+const PREFIX = 'seniorTour_v3_';
 const SKIPPED_KEY = `${PREFIX}skipped`;
 const COMPLETE_KEY = `${PREFIX}complete`;
 
@@ -39,11 +40,15 @@ export async function getSeniorTourStepSeen(stepId: SeniorTourStepId): Promise<b
 
 export async function setSeniorTourStepSeen(stepId: SeniorTourStepId): Promise<void> {
   const key = storageKey(stepId);
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, 'true');
-    return;
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, 'true');
+      return;
+    }
+    await SecureStore.setItemAsync(key, 'true');
+  } catch {
+    /* SecureStore odrzuca nieprawidłowy klucz — nie blokuj UI */
   }
-  await SecureStore.setItemAsync(key, 'true');
 }
 
 export const ALL_SENIOR_TOUR_STEP_IDS: SeniorTourStepId[] = [
@@ -75,11 +80,15 @@ async function readFlag(key: string): Promise<boolean> {
 }
 
 async function writeFlag(key: string, value: boolean): Promise<void> {
-  if (Platform.OS === 'web') {
-    localStorage.setItem(key, value ? 'true' : 'false');
-    return;
+  try {
+    if (Platform.OS === 'web') {
+      localStorage.setItem(key, value ? 'true' : 'false');
+      return;
+    }
+    await SecureStore.setItemAsync(key, value ? 'true' : 'false');
+  } catch {
+    /* SecureStore odrzuca nieprawidłowy klucz — nie blokuj UI */
   }
-  await SecureStore.setItemAsync(key, value ? 'true' : 'false');
 }
 
 async function deleteFlag(key: string): Promise<void> {

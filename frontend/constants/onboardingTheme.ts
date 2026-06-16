@@ -9,6 +9,8 @@ export const OnboardingPalette = {
   surface: '#FFFFFF',
   textPrimary: '#1B3C53',
   textSecondary: 'rgba(27, 60, 83, 0.65)',
+  /** Placeholder w polach tekstowych — stały hex (lepiej na Androidzie niż rgba). */
+  placeholder: '#8A9BA8',
   /** Średni ton marki (gradient + akcenty) */
   primary: '#456882',
   /** Ciemny ton marki */

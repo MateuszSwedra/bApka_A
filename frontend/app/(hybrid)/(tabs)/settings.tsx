@@ -22,8 +22,12 @@ import {
   resolveMedicationSoundAsset,
 } from '../../../constants/notificationSounds';
 import { previewNotificationAsset } from '../../../services/notificationSoundPreview';
-import { applyAppLanguage, normalizeAppLanguage } from '../../../services/appLanguage';
-import type { AppLanguage } from '../../../i18n/resolveLanguage';
+import {
+  applyAppLanguagePreference,
+  getStoredAppLanguagePreference,
+  normalizeAppLanguagePreference,
+  type AppLanguagePreference,
+} from '../../../services/appLanguage';
 import { applySeniorProfileSettings } from '../../../services/seniorProfileSync';
 import {
   CaretakerTourScrollProvider,
@@ -34,14 +38,14 @@ import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
 type SelfSettings = {
   highContrast: boolean;
   colorBlindFriendly: boolean;
-  appLanguage: AppLanguage;
+  appLanguage: AppLanguagePreference;
   medicationSoundChoice: NotificationSoundChoiceId;
 };
 
 const DEFAULT: SelfSettings = {
   highContrast: false,
   colorBlindFriendly: false,
-  appLanguage: 'pl',
+  appLanguage: 'system',
   medicationSoundChoice: 'default',
 };
 
@@ -57,11 +61,12 @@ export default function HybridSettingsScreen() {
     setLoading(true);
     try {
       const me = await usersAPI.getMe();
+      const storedPreference = await getStoredAppLanguagePreference();
       setDisplayName(me?.name?.trim() || me?.email || '');
       setSettings({
         highContrast: me?.highContrast ?? false,
         colorBlindFriendly: me?.colorBlindFriendly ?? false,
-        appLanguage: normalizeAppLanguage(me?.appLanguage),
+        appLanguage: storedPreference ?? normalizeAppLanguagePreference(me?.appLanguage),
         medicationSoundChoice: (me?.medicationSoundChoice ?? 'default') as NotificationSoundChoiceId,
       });
     } catch {
@@ -88,7 +93,10 @@ export default function HybridSettingsScreen() {
       const updated = await usersAPI.updateSettings(patchData);
       setSettings(prev => ({ ...prev, ...patchData }));
       await applySeniorProfileSettings(updated ?? patchData);
-      if (patchData.appLanguage) await applyAppLanguage(normalizeAppLanguage(patchData.appLanguage));
+      if (patchData.appLanguage) {
+        const resolved = await applyAppLanguagePreference(patchData.appLanguage);
+        await usersAPI.updateSettings({ appLanguage: resolved });
+      }
     } catch {
       Alert.alert(t('common.error'), t('caretaker.settings.saveError'));
       void load();
@@ -131,7 +139,7 @@ export default function HybridSettingsScreen() {
               <View style={styles.langBlock}>
                 <Text style={styles.rowTitle}>{t('hybrid.settings.language')}</Text>
                 <View style={styles.langRow}>
-                  {(['pl', 'en'] as AppLanguage[]).map(lang => (
+                  {(['system', 'pl', 'en'] as AppLanguagePreference[]).map(lang => (
                     <Pressable key={lang} disabled={savingKey === 'lang'} onPress={() => void patch({ appLanguage: lang }, 'lang')} style={[styles.langChip, settings.appLanguage === lang && styles.langChipActive]}>
                       <Text style={[styles.langChipText, settings.appLanguage === lang && styles.langChipTextActive]}>{t(`caretaker.settings.language.${lang}`)}</Text>
                     </Pressable>

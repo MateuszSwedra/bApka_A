@@ -34,6 +34,7 @@ import {
   delay,
   ensureCoachMarkTargetVisible,
   isCoachMarkHighlightVisible,
+  measureTargetStable,
 } from '../utils/ensureCoachMarkTargetVisible';
 import { getTabBarCoachMarkTarget } from '../utils/tabBarCoachMarkTarget';
 
@@ -49,6 +50,19 @@ const SeniorGuidedTourContext = createContext<SeniorGuidedTourContextValue | nul
 
 const MAX_REVEAL_ATTEMPTS = 10;
 const TAB_NAV_DELAY_MS = Platform.OS === 'web' ? 200 : 320;
+
+function hasMeaningfulTargetShift(
+  prev: CoachMarkTarget | null,
+  next: CoachMarkTarget,
+): boolean {
+  if (!prev) return true;
+  return (
+    Math.abs(prev.x - next.x) > 1 ||
+    Math.abs(prev.y - next.y) > 1 ||
+    Math.abs(prev.width - next.width) > 1 ||
+    Math.abs(prev.height - next.height) > 1
+  );
+}
 
 function navigateToHybridTab(tab: HybridTourTab): void {
   const base = '/(hybrid)/(tabs)' as const;
@@ -189,6 +203,34 @@ export function SeniorGuidedTourProvider({ children }: { children: React.ReactNo
 
     return () => clearTimeout(timerId);
   }, [active, currentStep, revealCurrentStep, stepIndex]);
+
+  useEffect(() => {
+    if (!active || !currentStep?.targetStepId || currentStep.tooltipLayoutMode === 'screenCenter') {
+      return;
+    }
+    if (currentStep.usesProgrammaticTabBar) {
+      return;
+    }
+
+    let cancelled = false;
+    const targetRef = targetsRef.current.get(currentStep.targetStepId);
+    if (!targetRef?.current) return;
+
+    const tick = () => {
+      void (async () => {
+        const measured = await measureTargetStable(targetRef, 4, undefined, insets.top);
+        if (!measured || cancelled) return;
+        setTarget(prev => (hasMeaningfulTargetShift(prev, measured) ? measured : prev));
+      })();
+    };
+
+    tick();
+    const intervalId = setInterval(tick, Platform.OS === 'web' ? 200 : 260);
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+    };
+  }, [active, currentStep, insets.top]);
 
   const finishTour = useCallback(async () => {
     const stepIds = steps.flatMap((s) => s.markSeenStepIds ?? []);

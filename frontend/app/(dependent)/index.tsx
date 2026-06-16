@@ -311,6 +311,13 @@ export default function DependentDashboard() {
         </View>
         <View style={styles.headerActions}>
           <Pressable
+            onPress={() => router.push('/(dependent)/settings' as any)}
+            style={[styles.iconBtn, { backgroundColor: colors.primaryLime }]}
+            accessibilityLabel={t('tabs.settings')}
+          >
+            <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
+          </Pressable>
+          <Pressable
             onPress={handleLogout}
             style={[styles.iconBtn, { backgroundColor: colors.surfaceSoftOrange }]}
             accessibilityLabel={t('auth.signIn.ctaLogin')}
