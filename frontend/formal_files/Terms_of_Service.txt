@@ -1,0 +1,27 @@
+Data wejścia w życie: 16.06.2026
+
+1. Postanowienia ogólne
+Niniejszy dokument określa zasady korzystania z aplikacji medycznej bApka. Rozpoczynając korzystanie z bApki, akceptujesz niniejszy Regulamin oraz naszą Politykę Prywatności. Jeśli nie zgadzasz się z ich postanowieniami, prosimy o niekorzystanie z aplikacji.
+
+2. Ważne zastrzeżenie medyczne
+Aplikacja bApka ma charakter wspomagający, informacyjny i analityczny. bApka nie jest urządzeniem medycznym sensu stricto, a zawarte w niej funkcje nie zastępują profesjonalnej porady lekarskiej, diagnozy ani leczenia. W przypadku jakichkolwiek problemów zdrowotnych lub pytań dotyczących stanu zdrowia, użytkownik powinien zawsze skonsultować się z wykwalifikowanym pracownikiem ochrony zdrowia.
+
+3. Zasady korzystania z aplikacji
+
+Użytkownik zobowiązuje się do korzystania z aplikacji zgodnie z jej przeznaczeniem, obowiązującym prawem oraz niniejszym Regulaminem.
+
+Zabronione jest wprowadzanie do aplikacji treści o charakterze bezprawnym, a także podejmowanie działań mogących zakłócić jej funkcjonowanie.
+
+Użytkownik ponosi odpowiedzialność za zachowanie poufności swoich danych logowania.
+
+4. Dostępność i aktualizacje
+Dokładamy wszelkich starań, aby aplikacja działała bez przerw, jednak ze względów technicznych nie możemy zagwarantować jej 100% niezawodności. Zastrzegamy sobie prawo do wprowadzania aktualizacji, zmian funkcji oraz czasowego zawieszenia działania bApki w celach konserwacyjnych.
+
+5. Ograniczenie odpowiedzialności
+Twórcy aplikacji bApka nie ponoszą odpowiedzialności za decyzje zdrowotne podejmowane przez użytkownika wyłącznie na podstawie danych wprowadzonych do aplikacji lub z niej uzyskanych.
+
+6. Użytkownicy międzynarodowi
+Aplikacja jest dystrybuowana globalnie (m.in. za pośrednictwem platformy Google Play). Niezależnie od miejsca zamieszkania użytkownika, w kwestiach nieuregulowanych niniejszym regulaminem zastosowanie mają przepisy prawa, z zastrzeżeniem bezwzględnie obowiązujących praw konsumenta w kraju zamieszkania użytkownika.
+
+7. Kontakt
+Wszelkie pytania, uwagi lub reklamacje dotyczące działania bApki prosimy kierować na adres: danpas@st.amu.edu.pl.

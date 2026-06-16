@@ -6,7 +6,6 @@ export type DoseLogLike = {
   scheduledAt?: string | Date | null;
 };
 
-/** Lokalny dzień kalendarzowy wpisu dawki (yyyy-MM-dd). */
 export function doseLogLocalYmd(log: { scheduledAt?: string | Date | null }): string | null {
   if (log.scheduledAt == null || log.scheduledAt === '') return null;
   const d =

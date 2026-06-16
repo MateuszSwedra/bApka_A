@@ -1,7 +1,7 @@
-# Dependency directories
+
 node_modules/
 
-# Build outputs
+
 dist/
 build/
 .expo/
@@ -9,40 +9,39 @@ web-build/
 ios/
 android/
 
-# Test coverage (nie commitujemy raportów)
+
 coverage/
 **/coverage/
 *.lcov
 
-# Environment variables (SECURITY!)
+
 .env
 .env.local
 .env*.local
 
-# Docker
+
 .docker/
 postgres_data/
 
-# Logs and databases
+
 *.log
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# OS files
 .DS_Store
 Thumbs.db
 
-# IDE / temp
+
 .idea/
 *.tsbuildinfo
 _tmp_*.tsx
 
-# Prisma generated (backend)
+
 backend/generated/
 
 
-# Firebase
+
 *-firebase-adminsdk*.json
 backend/firebase-service-account.json
 frontend/.json
