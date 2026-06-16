@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
 import { Theme } from '../../constants/theme';
+import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from 'expo-router';
 import { usersAPI, scheduleAPI } from '../../services/api';
@@ -20,6 +21,7 @@ type RangeKey = 'today' | 'week' | 'month';
 
 export default function HybridInsightsScreen() {
   const { t } = useTranslation();
+  const { colors } = useDependentDisplay();
   const selfUserId = useSelfUserId();
   const topInset = useDependentTabTopInset();
   const scrollBottomPadding = useTabScreenScrollBottomPadding();
@@ -83,23 +85,23 @@ export default function HybridInsightsScreen() {
 
   return (
     <CaretakerTourScrollProvider>
-    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
-      <CaretakerTourScrollView style={styles.container} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
-        <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <CaretakerTourScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
+        <Text style={[styles.title, { color: colors.textDark }]}>{t('caretaker.insights.title')}</Text>
         <SeniorTourTarget stepId="insights-range" wrapStyle={styles.rangeSwitcherWrap}>
-        <View style={styles.rangeSwitcher}>
+        <View style={[styles.rangeSwitcher, { backgroundColor: colors.surfaceGrey }]}>
           {(['today', 'week', 'month'] as RangeKey[]).map(key => (
-            <Pressable key={key} onPress={() => setRange(key)} style={[styles.rangeChip, key === range && styles.rangeChipActive]}>
-              <Text style={[styles.rangeChipLabel, key === range && styles.rangeChipLabelActive]}>{renderRangeLabel(key)}</Text>
+            <Pressable key={key} onPress={() => setRange(key)} style={[styles.rangeChip, key === range && { backgroundColor: colors.surfaceWhite }]}>
+              <Text style={[styles.rangeChipLabel, { color: colors.textLight }, key === range && { color: colors.textDark }]}>{renderRangeLabel(key)}</Text>
             </Pressable>
           ))}
         </View>
         </SeniorTourTarget>
-        {currentRangeLabel ? <Text style={styles.rangeHint}>{t('caretaker.insights.rangeLabel', { range: currentRangeLabel })}</Text> : null}
+        {currentRangeLabel ? <Text style={[styles.rangeHint, { color: colors.textLight }]}>{t('caretaker.insights.rangeLabel', { range: currentRangeLabel })}</Text> : null}
         {loading ? (
           <View style={styles.loadingBox}>
-            <ActivityIndicator color={Theme.colors.accentOrange} />
-            <Text style={styles.loadingText}>{t('caretaker.insights.loading')}</Text>
+            <ActivityIndicator color={colors.accentOrange} />
+            <Text style={[styles.loadingText, { color: colors.textLight }]}>{t('caretaker.insights.loading')}</Text>
           </View>
         ) : null}
         {error && !loading ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -126,17 +128,15 @@ export default function HybridInsightsScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Theme.colors.background },
+  container: { flex: 1 },
   content: { padding: Theme.spacing.l },
-  title: { fontSize: Theme.typography.title, fontWeight: 'bold', color: Theme.colors.textDark, marginBottom: Theme.spacing.m },
+  title: { fontSize: Theme.typography.title, fontWeight: 'bold', marginBottom: Theme.spacing.m },
   rangeSwitcherWrap: { width: '100%' },
-  rangeSwitcher: { flexDirection: 'row', backgroundColor: Theme.colors.surfaceGrey, borderRadius: 999, padding: 4, marginBottom: Theme.spacing.s },
+  rangeSwitcher: { flexDirection: 'row', borderRadius: 999, padding: 4, marginBottom: Theme.spacing.s },
   rangeChip: { flex: 1, paddingVertical: 8, borderRadius: 999, alignItems: 'center' },
-  rangeChipActive: { backgroundColor: Theme.colors.surfaceWhite },
-  rangeChipLabel: { fontSize: Theme.typography.small, fontWeight: '600', color: Theme.colors.textLight },
-  rangeChipLabelActive: { color: Theme.colors.textDark },
-  rangeHint: { fontSize: Theme.typography.caption, color: Theme.colors.textLight, marginBottom: Theme.spacing.m },
+  rangeChipLabel: { fontSize: Theme.typography.small, fontWeight: '600' },
+  rangeHint: { fontSize: Theme.typography.caption, marginBottom: Theme.spacing.m },
   loadingBox: { flexDirection: 'row', alignItems: 'center', paddingVertical: Theme.spacing.m },
-  loadingText: { marginLeft: Theme.spacing.s, color: Theme.colors.textLight },
+  loadingText: { marginLeft: Theme.spacing.s },
   errorText: { color: '#b00020', marginVertical: Theme.spacing.m },
 });

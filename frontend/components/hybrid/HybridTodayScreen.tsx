@@ -38,15 +38,15 @@ import {
   CaretakerTourScrollView,
 } from '../../context/CaretakerTourScrollContext';
 
-const AVATAR_PALETTE = [
-  { solid: Theme.colors.primaryLimeDark, soft: 'rgba(69, 104, 130, 0.14)' },
-  { solid: Theme.colors.accentOrange, soft: 'rgba(233, 164, 61, 0.2)' },
+const AVATAR_PALETTE_HC = [
+  { solid: '#003366', soft: 'rgba(0, 51, 102, 0.14)' },
+  { solid: '#994400', soft: 'rgba(153, 68, 0, 0.2)' },
 ] as const;
 
 export default function HybridTodayScreen() {
   const { t } = useTranslation();
   const scrollBottomPadding = useTabScreenScrollBottomPadding();
-  const { colors, reload } = useDependentDisplay();
+  const { colors, colorBlindFriendly, highContrast, reload } = useDependentDisplay();
   const selfUserId = useSelfUserId();
   const { schedules, treatments, depletionAlerts, refetchFromServer } = useMeds();
   const { now, todayStr } = useTickingNow({ tickMs: 60_000 });
@@ -110,7 +110,10 @@ export default function HybridTodayScreen() {
   );
 
   const displayName = profile?.name?.trim() || profile?.email || t('hybrid.nameFallback');
-  const accent = AVATAR_PALETTE[0];
+  const accent = (colorBlindFriendly || highContrast ? AVATAR_PALETTE_HC : [
+    { solid: colors.primaryLimeDark, soft: 'rgba(69, 104, 130, 0.14)' },
+    { solid: colors.accentOrange, soft: 'rgba(233, 164, 61, 0.2)' },
+  ])[0];
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
   const todaysSchedules = useMemo(
@@ -178,8 +181,8 @@ export default function HybridTodayScreen() {
 
   return (
     <CaretakerTourScrollProvider>
-    <View style={styles.screen}>
-      <LinearGradient colors={['#E3EEF5', Theme.colors.surfaceGrey, Theme.colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
+    <View style={[styles.screen, { backgroundColor: colors.background }]}>
+      <LinearGradient colors={[colors.surfaceGrey, colors.background, colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} showSettings />
       <CaretakerTourScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]} showsVerticalScrollIndicator={false}>
         <SeniorTourTarget
@@ -191,6 +194,9 @@ export default function HybridTodayScreen() {
             schedules={schedules}
             treatments={treatments}
             onPress={() => setMedConfirmVisible(true)}
+            colors={colors}
+            colorBlindFriendly={colorBlindFriendly}
+            highContrast={highContrast}
           />
         </SeniorTourTarget>
         <DependentTodayHeroCard
@@ -213,11 +219,11 @@ export default function HybridTodayScreen() {
         >
         <View>
         <View style={styles.sectionHead}>
-          <MaterialIcons name="view-agenda" size={20} color={Theme.colors.primaryLimeDark} />
-          <Text style={styles.sectionTitle}>{t('caretaker.today.plan')}</Text>
+          <MaterialIcons name="view-agenda" size={20} color={colors.primaryLimeDark} />
+          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('caretaker.today.plan')}</Text>
         </View>
         {todaysSchedules.length === 0 ? (
-          <Text style={styles.emptyText}>{t('caretaker.today.empty')}</Text>
+          <Text style={[styles.emptyText, { color: colors.textLight }]}>{t('caretaker.today.empty')}</Text>
         ) : (
           todaysSchedules.map(sch => {
             const log = findDoseLogForScheduleOnDate(logs, sch.id, todayStr);
@@ -225,12 +231,24 @@ export default function HybridTodayScreen() {
             const tid = getScheduleTreatmentId(sch);
             const tType = tid ? treatments.find(tr => tr.id === tid)?.type : undefined;
             const vis = tType ? TREATMENT_VISUAL[tType] : null;
+            const iconColor = colorBlindFriendly || highContrast ? colors.primaryLimeDark : (vis?.accent ?? colors.primaryLimeDark);
             return (
-              <View key={sch.id} style={[styles.planCard, nextSchedule?.id === sch.id && styles.planCardNext]}>
-                <Text style={styles.planTime}>{sch.time}</Text>
-                {vis ? <MaterialIcons name={vis.icon} size={22} color={vis.accent} /> : <MaterialIcons name="medication" size={22} color={Theme.colors.primaryLimeDark} />}
-                <Text style={styles.planLabel}>{labelFor(sch)}</Text>
-                <Text style={styles.planStatus}>{t(`schedule.status.${kind === 'taken' ? 'taken' : kind === 'late' ? 'late' : kind === 'missed' ? 'skipped' : kind === 'now' ? 'now' : 'planned'}`)}</Text>
+              <View
+                key={sch.id}
+                style={[
+                  styles.planCard,
+                  {
+                    backgroundColor: colors.surfaceWhite,
+                    borderColor: colors.border,
+                    borderWidth: nextSchedule?.id === sch.id ? 2 : 1,
+                  },
+                  nextSchedule?.id === sch.id && { borderColor: colors.primaryLimeDark },
+                ]}
+              >
+                <Text style={[styles.planTime, { color: colors.textDark }]}>{sch.time}</Text>
+                {vis ? <MaterialIcons name={vis.icon} size={22} color={iconColor} /> : <MaterialIcons name="medication" size={22} color={colors.primaryLimeDark} />}
+                <Text style={[styles.planLabel, { color: colors.textDark }]}>{labelFor(sch)}</Text>
+                <Text style={[styles.planStatus, { color: colors.textLight }]}>{t(`schedule.status.${kind === 'taken' ? 'taken' : kind === 'late' ? 'late' : kind === 'missed' ? 'skipped' : kind === 'now' ? 'now' : 'planned'}`)}</Text>
               </View>
             );
           })
@@ -238,14 +256,14 @@ export default function HybridTodayScreen() {
         </View>
         </SeniorTourTarget>
         {depletionAlerts.filter(a => a.date === todayStr).map((alert, idx) => (
-          <View key={idx} style={styles.alertCard}>
-            <MaterialIcons name="warning-amber" size={22} color={Theme.colors.accentOrange} />
-            <Text style={styles.alertText}>{t('caretaker.calendar.alertDepletionWithName', { name: alert.inventoryItemName })}</Text>
-            <Text style={styles.alertStockMargin}>{alert.pillsLeft}</Text>
+          <View key={idx} style={[styles.alertCard, { backgroundColor: colors.surfaceWhite, borderColor: colors.accentOrange }]}>
+            <MaterialIcons name="warning-amber" size={22} color={colors.accentOrange} />
+            <Text style={[styles.alertText, { color: colors.accentOrange }]}>{t('caretaker.calendar.alertDepletionWithName', { name: alert.inventoryItemName })}</Text>
+            <Text style={[styles.alertStockMargin, { color: colors.accentOrange }]}>{alert.pillsLeft}</Text>
           </View>
         ))}
       </CaretakerTourScrollView>
-      <SeniorConfirmModal visible={medConfirmVisible} title={t('dependent.home.confirmTitle')} message={medConfirmMessage} onConfirm={() => void confirmMed()} onCancel={() => setMedConfirmVisible(false)} confirmColor={Theme.colors.primaryLimeDark} />
+      <SeniorConfirmModal visible={medConfirmVisible} title={t('dependent.home.confirmTitle')} message={medConfirmMessage} onConfirm={() => void confirmMed()} onCancel={() => setMedConfirmVisible(false)} confirmColor={colors.primaryLimeDark} />
       <VitalsMetricModal visible={vitalsModalVisible} type={vitalsModalType} colors={colors} onClose={() => setVitalsModalVisible(false)} />
     </View>
     </CaretakerTourScrollProvider>
@@ -253,19 +271,18 @@ export default function HybridTodayScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Theme.colors.background },
+  screen: { flex: 1 },
   scroll: { flex: 1 },
   content: { paddingHorizontal: Theme.spacing.l, paddingTop: Theme.spacing.s },
   sectionHead: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, marginTop: Theme.spacing.l, marginBottom: Theme.spacing.m },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: Theme.colors.textDark },
-  planCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, padding: Theme.spacing.m, marginBottom: Theme.spacing.s, borderWidth: 1, borderColor: Theme.colors.border },
-  planCardNext: { borderColor: Theme.colors.primaryLimeDark, borderWidth: 2 },
-  planTime: { width: 52, fontWeight: '800', color: Theme.colors.textDark },
-  planLabel: { flex: 1, fontWeight: '700', color: Theme.colors.textDark },
-  planStatus: { fontSize: Theme.typography.small, fontWeight: '700', color: Theme.colors.textLight },
-  emptyText: { textAlign: 'center', color: Theme.colors.textLight, padding: Theme.spacing.l },
-  alertCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, padding: Theme.spacing.m, backgroundColor: Theme.colors.surfaceWhite, borderRadius: Theme.borderRadius.large, borderWidth: 1, borderColor: 'rgba(233,164,61,0.4)', marginTop: Theme.spacing.s },
-  alertText: { flex: 1, color: Theme.colors.accentOrange, fontWeight: '600' },
-  alertStockMargin: { fontSize: 20, fontWeight: '900', color: Theme.colors.accentOrange, minWidth: 32, textAlign: 'center' },
+  sectionTitle: { fontSize: 18, fontWeight: '800' },
+  planCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, borderRadius: Theme.borderRadius.large, padding: Theme.spacing.m, marginBottom: Theme.spacing.s },
+  planTime: { width: 52, fontWeight: '800' },
+  planLabel: { flex: 1, fontWeight: '700' },
+  planStatus: { fontSize: Theme.typography.small, fontWeight: '700' },
+  emptyText: { textAlign: 'center', padding: Theme.spacing.l },
+  alertCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, padding: Theme.spacing.m, borderRadius: Theme.borderRadius.large, borderWidth: 1, marginTop: Theme.spacing.s },
+  alertText: { flex: 1, fontWeight: '600' },
+  alertStockMargin: { fontSize: 20, fontWeight: '900', minWidth: 32, textAlign: 'center' },
   tourFullWidth: { width: '100%' },
 });

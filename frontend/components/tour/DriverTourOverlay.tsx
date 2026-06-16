@@ -35,6 +35,8 @@ export type DriverTourOverlayProps = {
   clearanceAboveHighlight?: number;
   tooltipHeightEstimate?: number;
   tooltipLayoutMode?: 'anchor' | 'screenCenter' | 'screenCenterWithTarget';
+  /** Gdy false — tylko przyciemnienie i okno z tekstem (bez wycięcia i obramowania elementu). */
+  showTargetHighlight?: boolean;
   showSkip?: boolean;
   showProgress?: boolean;
   progressKey?: string;
@@ -66,6 +68,7 @@ export function DriverTourOverlay({
   clearanceAboveHighlight,
   tooltipHeightEstimate,
   tooltipLayoutMode = 'anchor',
+  showTargetHighlight = false,
   showSkip = true,
   showProgress = true,
   progressKey = 'caretaker.tour.guided.progress',
@@ -82,8 +85,12 @@ export function DriverTourOverlay({
   const isFirst = stepIndex <= 0;
   const isLast = stepIndex >= totalSteps - 1;
   const screenCenter =
-    tooltipLayoutMode === 'screenCenter' || tooltipLayoutMode === 'screenCenterWithTarget' || !target;
-  const centerTooltipOnly = tooltipLayoutMode === 'screenCenterWithTarget' && target != null;
+    !showTargetHighlight ||
+    tooltipLayoutMode === 'screenCenter' ||
+    tooltipLayoutMode === 'screenCenterWithTarget' ||
+    !target;
+  const centerTooltipOnly =
+    showTargetHighlight && tooltipLayoutMode === 'screenCenterWithTarget' && target != null;
   const maxBodyHeight = Math.min(140, Math.max(72, windowHeight * 0.18));
 
   useEffect(() => {
@@ -188,6 +195,7 @@ export function DriverTourOverlay({
     measuredTooltipHeight,
     screenCenter,
     centerTooltipOnly,
+    showTargetHighlight,
   ]);
 
   if (!visible || !tooltipLayout) {

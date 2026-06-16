@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { usersAPI } from '../../services/api';
 import { applySeniorProfileSettings } from '../../services/seniorProfileSync';
+import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import {
   applyAppLanguagePreference,
   getStoredAppLanguagePreference,
@@ -21,6 +22,7 @@ type SelfSettings = {
 
 export default function DependentSettingsScreen() {
   const { t } = useTranslation();
+  const { colors, syncLocalPreferences } = useDependentDisplay();
   const [settings, setSettings] = useState<SelfSettings>({
     highContrast: false,
     colorBlindFriendly: false,
@@ -64,6 +66,7 @@ export default function DependentSettingsScreen() {
         const updated = await usersAPI.updateSettings(partial);
         setSettings(prev => ({ ...prev, ...patchData }));
         await applySeniorProfileSettings(updated ?? partial);
+        await syncLocalPreferences();
       } catch {
         Alert.alert(t('common.error'), t('caretaker.settings.saveError'));
         void load();
@@ -75,53 +78,53 @@ export default function DependentSettingsScreen() {
   );
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={styles.header}>
         <Pressable
           onPress={() => router.replace('/(dependent)' as any)}
-          style={({ pressed }) => [styles.backBtn, pressed && styles.backBtnPressed]}
+          style={({ pressed }) => [styles.backBtn, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }, pressed && styles.backBtnPressed]}
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
-          <MaterialIcons name="arrow-back" size={24} color={Theme.colors.primaryLimeDark} />
+          <MaterialIcons name="arrow-back" size={24} color={colors.primaryLimeDark} />
         </Pressable>
-        <Text style={styles.title}>{t('dependent.settings.title')}</Text>
+        <Text style={[styles.title, { color: colors.textDark }]}>{t('dependent.settings.title')}</Text>
         <View style={styles.backBtn} />
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 32 }} />
+        <ActivityIndicator size="large" color={colors.primaryLimeDark} style={{ marginTop: 32 }} />
       ) : (
         <>
-          <Text style={styles.sectionTitle}>{t('dependent.settings.accessibility')}</Text>
-          <View style={styles.rowCard}>
+          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('dependent.settings.accessibility')}</Text>
+          <View style={[styles.rowCard, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>{t('dependent.settings.colorBlind')}</Text>
-              <Text style={styles.rowSub}>{t('dependent.settings.colorBlindSub')}</Text>
+              <Text style={[styles.rowTitle, { color: colors.textDark }]}>{t('dependent.settings.colorBlind')}</Text>
+              <Text style={[styles.rowSub, { color: colors.textLight }]}>{t('dependent.settings.colorBlindSub')}</Text>
             </View>
             <Switch
               value={settings.colorBlindFriendly}
               disabled={savingKey === 'colorBlindFriendly'}
               onValueChange={v => void patch({ colorBlindFriendly: v }, 'colorBlindFriendly')}
-              trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+              trackColor={{ true: colors.primaryLimeDark, false: colors.border }}
             />
           </View>
-          <View style={styles.rowCard}>
+          <View style={[styles.rowCard, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
             <View style={styles.rowText}>
-              <Text style={styles.rowTitle}>{t('dependent.settings.highContrast')}</Text>
-              <Text style={styles.rowSub}>{t('dependent.settings.highContrastSub')}</Text>
+              <Text style={[styles.rowTitle, { color: colors.textDark }]}>{t('dependent.settings.highContrast')}</Text>
+              <Text style={[styles.rowSub, { color: colors.textLight }]}>{t('dependent.settings.highContrastSub')}</Text>
             </View>
             <Switch
               value={settings.highContrast}
               disabled={savingKey === 'highContrast'}
               onValueChange={v => void patch({ highContrast: v }, 'highContrast')}
-              trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+              trackColor={{ true: colors.primaryLimeDark, false: colors.border }}
             />
           </View>
 
-          <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.languageSection')}</Text>
-          <View style={styles.rowCardColumn}>
-            <Text style={styles.rowTitle}>{t('hybrid.settings.language')}</Text>
+          <Text style={[styles.sectionTitle, styles.sectionGap, { color: colors.textDark }]}>{t('caretaker.settings.languageSection')}</Text>
+          <View style={[styles.rowCardColumn, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
+            <Text style={[styles.rowTitle, { color: colors.textDark }]}>{t('hybrid.settings.language')}</Text>
             <View style={styles.langRow}>
               {(['system', 'pl', 'en'] as AppLanguagePreference[]).map(lang => {
                 const selected = settings.appLanguage === lang;
@@ -130,9 +133,9 @@ export default function DependentSettingsScreen() {
                     key={lang}
                     disabled={savingKey === 'lang'}
                     onPress={() => void patch({ appLanguage: lang }, 'lang')}
-                    style={[styles.langChip, selected && styles.langChipActive]}
+                    style={[styles.langChip, { borderColor: colors.border }, selected && { borderColor: colors.primaryLimeDark, backgroundColor: 'rgba(69, 104, 130, 0.12)' }]}
                   >
-                    <Text style={[styles.langChipText, selected && styles.langChipTextActive]}>
+                    <Text style={[styles.langChipText, { color: colors.textLight }, selected && { color: colors.primaryLimeDark }]}>
                       {t(`caretaker.settings.language.${lang}`)}
                     </Text>
                   </Pressable>

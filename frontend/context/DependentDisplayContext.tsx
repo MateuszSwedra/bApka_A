@@ -31,6 +31,8 @@ interface DependentDisplayContextValue {
   setColorBlindFriendly: (v: boolean) => Promise<void>;
   setHighContrastMode: (v: boolean) => Promise<void>;
   reload: () => Promise<void>;
+  /** Odświeża stan z lokalnego storage (po zapisie ustawień). */
+  syncLocalPreferences: () => Promise<void>;
 }
 
 const DependentDisplayContext = createContext<DependentDisplayContextValue | undefined>(undefined);
@@ -110,6 +112,12 @@ export function DependentDisplayProvider({ children }: { children: ReactNode }) 
   const [colorBlindFriendly, setCb] = useState(false);
   const [highContrast, setHc] = useState(false);
 
+  const syncLocalPreferences = useCallback(async () => {
+    const [cb, hc] = await Promise.all([getDaltonistFriendly(), getHighContrast()]);
+    setCb(cb);
+    setHc(hc);
+  }, []);
+
   const reload = useCallback(async () => {
     try {
       const me = await usersAPI.getMe();
@@ -119,10 +127,8 @@ export function DependentDisplayProvider({ children }: { children: ReactNode }) 
     } catch {
       /* offline lub brak sesji */
     }
-    const [cb, hc] = await Promise.all([getDaltonistFriendly(), getHighContrast()]);
-    setCb(cb);
-    setHc(hc);
-  }, []);
+    await syncLocalPreferences();
+  }, [syncLocalPreferences]);
 
   useEffect(() => {
     void reload();
@@ -151,8 +157,9 @@ export function DependentDisplayProvider({ children }: { children: ReactNode }) 
       setColorBlindFriendly,
       setHighContrastMode,
       reload,
+      syncLocalPreferences,
     }),
-    [colorBlindFriendly, highContrast, colors, setColorBlindFriendly, setHighContrastMode, reload],
+    [colorBlindFriendly, highContrast, colors, setColorBlindFriendly, setHighContrastMode, reload, syncLocalPreferences],
   );
 
   return (

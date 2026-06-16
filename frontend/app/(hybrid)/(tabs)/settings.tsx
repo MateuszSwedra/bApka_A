@@ -29,6 +29,7 @@ import {
   type AppLanguagePreference,
 } from '../../../services/appLanguage';
 import { applySeniorProfileSettings } from '../../../services/seniorProfileSync';
+import { useDependentDisplay } from '../../../context/DependentDisplayContext';
 import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
@@ -53,6 +54,7 @@ export default function HybridSettingsScreen() {
   const { t } = useTranslation();
   const scrollBottomPadding = useTabScreenScrollBottomPadding();
   const { logout } = useAuth();
+  const { colors, syncLocalPreferences } = useDependentDisplay();
   const [displayName, setDisplayName] = useState('');
   const [settings, setSettings] = useState<SelfSettings>(DEFAULT);
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,7 @@ export default function HybridSettingsScreen() {
       const updated = await usersAPI.updateSettings(patchData);
       setSettings(prev => ({ ...prev, ...patchData }));
       await applySeniorProfileSettings(updated ?? patchData);
+      await syncLocalPreferences();
       if (patchData.appLanguage) {
         const resolved = await applyAppLanguagePreference(patchData.appLanguage);
         await usersAPI.updateSettings({ appLanguage: resolved });
@@ -107,7 +110,7 @@ export default function HybridSettingsScreen() {
 
   return (
     <CaretakerTourScrollProvider>
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <HybridProfileHeader
         title={t('tabs.settings')}
         subtitle={displayName}
@@ -117,31 +120,31 @@ export default function HybridSettingsScreen() {
       />
       <CaretakerTourScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]}>
         {loading ? (
-          <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={{ marginTop: 32 }} />
+          <ActivityIndicator size="large" color={colors.primaryLimeDark} style={{ marginTop: 32 }} />
         ) : (
           <>
-            <Text style={styles.sectionTitle}>{t('hybrid.settings.section')}</Text>
-            <Text style={styles.sectionHint}>{t('hybrid.settings.sectionHint')}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('hybrid.settings.section')}</Text>
+            <Text style={[styles.sectionHint, { color: colors.textLight }]}>{t('hybrid.settings.sectionHint')}</Text>
 
-            <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.accessibility')}</Text>
+            <Text style={[styles.sectionTitle, styles.gap, { color: colors.textDark }]}>{t('caretaker.settings.accessibility')}</Text>
 
             <View style={styles.rowCardWrap}>
-              <RowSwitch label={t('dependent.settings.colorBlind')} sub={t('dependent.settings.colorBlindSub')} value={settings.colorBlindFriendly} busy={savingKey === 'colorBlindFriendly'} onChange={v => void patch({ colorBlindFriendly: v }, 'colorBlindFriendly')} />
+              <RowSwitch colors={colors} label={t('dependent.settings.colorBlind')} sub={t('dependent.settings.colorBlindSub')} value={settings.colorBlindFriendly} busy={savingKey === 'colorBlindFriendly'} onChange={v => void patch({ colorBlindFriendly: v }, 'colorBlindFriendly')} />
             </View>
 
             <View style={styles.rowCardWrap}>
-              <RowSwitch label={t('dependent.settings.highContrast')} sub={t('dependent.settings.highContrastSub')} value={settings.highContrast} busy={savingKey === 'highContrast'} onChange={v => void patch({ highContrast: v }, 'highContrast')} />
+              <RowSwitch colors={colors} label={t('dependent.settings.highContrast')} sub={t('dependent.settings.highContrastSub')} value={settings.highContrast} busy={savingKey === 'highContrast'} onChange={v => void patch({ highContrast: v }, 'highContrast')} />
             </View>
 
-            <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.languageSection')}</Text>
+            <Text style={[styles.sectionTitle, styles.gap, { color: colors.textDark }]}>{t('caretaker.settings.languageSection')}</Text>
 
             <View style={styles.rowCardWrap}>
-              <View style={styles.langBlock}>
-                <Text style={styles.rowTitle}>{t('hybrid.settings.language')}</Text>
+              <View style={[styles.langBlock, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
+                <Text style={[styles.rowTitle, { color: colors.textDark }]}>{t('hybrid.settings.language')}</Text>
                 <View style={styles.langRow}>
                   {(['system', 'pl', 'en'] as AppLanguagePreference[]).map(lang => (
-                    <Pressable key={lang} disabled={savingKey === 'lang'} onPress={() => void patch({ appLanguage: lang }, 'lang')} style={[styles.langChip, settings.appLanguage === lang && styles.langChipActive]}>
-                      <Text style={[styles.langChipText, settings.appLanguage === lang && styles.langChipTextActive]}>{t(`caretaker.settings.language.${lang}`)}</Text>
+                    <Pressable key={lang} disabled={savingKey === 'lang'} onPress={() => void patch({ appLanguage: lang }, 'lang')} style={[styles.langChip, { borderColor: colors.border }, settings.appLanguage === lang && { borderColor: colors.primaryLimeDark, backgroundColor: 'rgba(69, 104, 130, 0.12)' }]}>
+                      <Text style={[styles.langChipText, { color: colors.textLight }, settings.appLanguage === lang && { color: colors.primaryLimeDark }]}>{t(`caretaker.settings.language.${lang}`)}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -200,11 +203,25 @@ export default function HybridSettingsScreen() {
   );
 }
 
-function RowSwitch({ label, sub, value, busy, onChange }: { label: string; sub: string; value: boolean; busy: boolean; onChange: (v: boolean) => void }) {
+function RowSwitch({
+  colors,
+  label,
+  sub,
+  value,
+  busy,
+  onChange,
+}: {
+  colors: { primaryLimeDark: string; border: string; surfaceWhite: string; textDark: string; textLight: string };
+  label: string;
+  sub: string;
+  value: boolean;
+  busy: boolean;
+  onChange: (v: boolean) => void;
+}) {
   return (
-    <View style={styles.rowCard}>
-      <View style={{ flex: 1 }}><Text style={styles.rowTitle}>{label}</Text><Text style={styles.rowSub}>{sub}</Text></View>
-      <Switch value={value} disabled={busy} onValueChange={onChange} trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }} />
+    <View style={[styles.rowCard, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
+      <View style={{ flex: 1 }}><Text style={[styles.rowTitle, { color: colors.textDark }]}>{label}</Text><Text style={[styles.rowSub, { color: colors.textLight }]}>{sub}</Text></View>
+      <Switch value={value} disabled={busy} onValueChange={onChange} trackColor={{ true: colors.primaryLimeDark, false: colors.border }} />
     </View>
   );
 }

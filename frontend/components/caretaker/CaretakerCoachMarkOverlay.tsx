@@ -40,6 +40,8 @@ type Props = {
   tooltipHeightEstimate?: number;
   /** Tooltip na środku ekranu — podświetlenie zostaje przy elemencie docelowym. */
   tooltipLayoutMode?: 'anchor' | 'screenCenter';
+  /** Gdy false — tylko przyciemnienie i okno z tekstem (bez wycięcia i obramowania elementu). */
+  showTargetHighlight?: boolean;
 };
 
 const HIGHLIGHT_PAD = 8;
@@ -60,6 +62,7 @@ export function CaretakerCoachMarkOverlay({
   clearanceAboveHighlight,
   tooltipHeightEstimate,
   tooltipLayoutMode = 'anchor',
+  showTargetHighlight = false,
   onShow,
 }: Props) {
   const { t } = useTranslation();
@@ -73,9 +76,25 @@ export function CaretakerCoachMarkOverlay({
   }, [visible, target, title, body, windowWidth]);
 
   const tooltipLayout = useMemo(() => {
-    if (!target) return null;
-
     const tooltipMaxWidth = Math.min(windowWidth - 24, 340);
+    const tooltipHeight =
+      measuredTooltipHeight ?? tooltipHeightEstimate ?? TOOLTIP_EST_HEIGHT;
+    const topLimit = insets.top + 12;
+    const bottomLimit = overlayHeight - Math.max(insets.bottom, reserveBottom) - 12;
+
+    if (!showTargetHighlight || !target) {
+      const top = Math.max(
+        topLimit,
+        topLimit + (bottomLimit - topLimit - tooltipHeight) / 2,
+      );
+      return {
+        hole: null,
+        tooltipMaxWidth,
+        top,
+        left: Math.max(12, (windowWidth - tooltipMaxWidth) / 2),
+      };
+    }
+
     const hole = {
       x: Math.max(0, target.x - HIGHLIGHT_PAD),
       y: Math.max(0, target.y - HIGHLIGHT_PAD),
@@ -83,10 +102,6 @@ export function CaretakerCoachMarkOverlay({
       height: Math.min(overlayHeight, target.height + HIGHLIGHT_PAD * 2),
     };
 
-    const tooltipHeight =
-      measuredTooltipHeight ?? tooltipHeightEstimate ?? TOOLTIP_EST_HEIGHT;
-    const topLimit = insets.top + 12;
-    const bottomLimit = overlayHeight - Math.max(insets.bottom, reserveBottom) - 12;
     const holeTop = hole.y;
     const holeBottom = hole.y + hole.height;
 
@@ -174,9 +189,10 @@ export function CaretakerCoachMarkOverlay({
     measuredTooltipHeight,
     tooltipLayoutMode,
     overlayHeight,
+    showTargetHighlight,
   ]);
 
-  if (!visible || !target || !tooltipLayout) {
+  if (!visible || !tooltipLayout) {
     return null;
   }
 
@@ -192,55 +208,60 @@ export function CaretakerCoachMarkOverlay({
       onRequestClose={onDismiss}
     >
       <View style={styles.root} pointerEvents="box-none">
-        <Svg
-          width={windowWidth}
-          height={overlayHeight}
-          style={StyleSheet.absoluteFill}
-          pointerEvents="none"
-        >
-          <Defs>
-            <Mask id={maskId}>
-              <Rect x={0} y={0} width={windowWidth} height={overlayHeight} fill="white" />
+        {hole ? (
+          <>
+            <Svg
+              width={windowWidth}
+              height={overlayHeight}
+              style={StyleSheet.absoluteFill}
+              pointerEvents="none"
+            >
+              <Defs>
+                <Mask id={maskId}>
+                  <Rect x={0} y={0} width={windowWidth} height={overlayHeight} fill="white" />
+                  <Rect
+                    x={hole.x}
+                    y={hole.y}
+                    width={hole.width}
+                    height={hole.height}
+                    rx={12}
+                    ry={12}
+                    fill="black"
+                  />
+                </Mask>
+              </Defs>
               <Rect
-                x={hole.x}
-                y={hole.y}
-                width={hole.width}
-                height={hole.height}
-                rx={12}
-                ry={12}
-                fill="black"
+                x={0}
+                y={0}
+                width={windowWidth}
+                height={overlayHeight}
+                fill="rgba(27, 60, 83, 0.72)"
+                mask={`url(#${maskId})`}
               />
-            </Mask>
-          </Defs>
-          <Rect
-            x={0}
-            y={0}
-            width={windowWidth}
-            height={overlayHeight}
-            fill="rgba(27, 60, 83, 0.72)"
-            mask={`url(#${maskId})`}
-          />
-        </Svg>
+            </Svg>
+            <View
+              pointerEvents="none"
+              style={[
+                styles.highlightRing,
+                {
+                  left: hole.x,
+                  top: hole.y,
+                  width: hole.width,
+                  height: hole.height,
+                  zIndex: 2,
+                },
+              ]}
+            />
+          </>
+        ) : (
+          <View style={[StyleSheet.absoluteFill, styles.backdrop]} pointerEvents="none" />
+        )}
 
         <Pressable
           style={[StyleSheet.absoluteFill, { zIndex: 1 }]}
           onPress={onDismiss}
           accessibilityRole="button"
           accessibilityLabel={t('caretaker.tour.gotIt')}
-        />
-
-        <View
-          pointerEvents="none"
-          style={[
-            styles.highlightRing,
-            {
-              left: hole.x,
-              top: hole.y,
-              width: hole.width,
-              height: hole.height,
-              zIndex: 2,
-            },
-          ]}
         />
 
         <View
@@ -287,6 +308,9 @@ export function CaretakerCoachMarkOverlay({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  backdrop: {
+    backgroundColor: 'rgba(27, 60, 83, 0.72)',
   },
   highlightRing: {
     position: 'absolute',

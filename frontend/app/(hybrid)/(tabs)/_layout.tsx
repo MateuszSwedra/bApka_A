@@ -6,10 +6,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../../constants/theme';
 import { useSeniorGuidedTourOptional } from '../../../context/SeniorGuidedTourContext';
+import { useDependentDisplay } from '../../../context/DependentDisplayContext';
 
 export default function HybridTabsLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const { colors } = useDependentDisplay();
   const guidedTour = useSeniorGuidedTourOptional();
   const tabBarBottom =
     Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
@@ -24,19 +26,19 @@ export default function HybridTabsLayout() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: Theme.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       <Tabs
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: Theme.colors.accentOrange,
-          tabBarInactiveTintColor: Theme.colors.textLight,
+          tabBarActiveTintColor: colors.accentOrange,
+          tabBarInactiveTintColor: colors.textLight,
           tabBarStyle: {
             borderTopWidth: 1,
-            borderTopColor: Theme.colors.border,
+            borderTopColor: colors.border,
             height: 56 + tabBarBottom,
             paddingBottom: tabBarBottom,
             paddingTop: 8,
-            backgroundColor: Theme.colors.background,
+            backgroundColor: colors.background,
             elevation: 0,
           },
           tabBarLabelStyle: {

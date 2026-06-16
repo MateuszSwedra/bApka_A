@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
+import { useDependentDisplay } from '../../../context/DependentDisplayContext';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../constants/treatmentVisuals';
 import { useMeds, Treatment } from '../../../context/MedsContext';
 import { Card } from '../../../components/Card';
@@ -21,6 +22,7 @@ import {
 
 export default function HybridTreatmentsScreen() {
   const { t } = useTranslation();
+  const { colors } = useDependentDisplay();
   const selfUserId = useSelfUserId();
   const topInset = useDependentTabTopInset();
   const scrollBottomPadding = Theme.spacing.xl;
@@ -67,13 +69,13 @@ export default function HybridTreatmentsScreen() {
 
   return (
     <CaretakerTourScrollProvider>
-      <View style={styles.container}>
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         <CaretakerTourScrollView
-          style={styles.container}
+          style={[styles.container, { backgroundColor: colors.background }]}
           contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}
         >
-          <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
-          <Text style={styles.sectionSubtitle}>{t('hybrid.treatmentsSubtitle')}</Text>
+          <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('treatment.list.title')}</Text>
+          <Text style={[styles.sectionSubtitle, { color: colors.textLight }]}>{t('hybrid.treatmentsSubtitle')}</Text>
 
           <SeniorTourTarget stepId="treatments-add" wrapStyle={styles.addRowWrap}>
             <Pressable

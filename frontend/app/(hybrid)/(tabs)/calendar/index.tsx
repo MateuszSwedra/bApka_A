@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { View, StyleSheet, Pressable, Alert } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
+import { useDependentDisplay } from '../../../../context/DependentDisplayContext';
 import { format } from 'date-fns';
 import { router, useFocusEffect } from 'expo-router';
 import { useMeds } from '../../../../context/MedsContext';
@@ -17,6 +18,7 @@ import { SeniorTourTarget } from '../../../../components/senior/SeniorTourTarget
 
 export default function HybridCalendarMonthScreen() {
   const { t } = useTranslation();
+  const { colors } = useDependentDisplay();
   const selfUserId = useSelfUserId();
   const fabBottomOffset = useFabBottomOffset({ aboveTabBar: true });
   const topInset = useDependentTabTopInset();
@@ -48,7 +50,7 @@ export default function HybridCalendarMonthScreen() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.calendarCell ?? colors.background }]}>
       <View style={[styles.calendarWrap, { paddingTop: topInset }]}>
         <AndroidStyleMonthCalendar
           selectedDate={selectedDate}

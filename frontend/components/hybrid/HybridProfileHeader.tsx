@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
 import { SeniorTourTarget } from '../senior/SeniorTourTarget';
+import { useDependentDisplay } from '../../context/DependentDisplayContext';
 
 type HybridProfileHeaderProps = {
   title?: string;
@@ -23,6 +24,7 @@ export function HybridProfileHeader({
   onBack,
 }: HybridProfileHeaderProps) {
   const { t } = useTranslation();
+  const { colors } = useDependentDisplay();
   const insets = useSafeAreaInsets();
   const paddingTop = Math.max(insets.top, Platform.OS === 'web' ? 12 : 0) + Theme.spacing.m;
 
@@ -43,17 +45,17 @@ export function HybridProfileHeader({
           accessibilityRole="button"
           accessibilityLabel={t('common.back')}
         >
-          <MaterialIcons name="arrow-back" size={26} color={Theme.colors.textDark} />
+          <MaterialIcons name="arrow-back" size={26} color={colors.textDark} />
         </Pressable>
       ) : (
         <View style={styles.iconSpacer} />
       )}
       <View style={styles.titleWrap}>
-        <Text style={styles.title} numberOfLines={1}>
+        <Text style={[styles.title, { color: colors.textDark }]} numberOfLines={1}>
           {title?.trim() || t('hybrid.panelTitle')}
         </Text>
         {subtitle ? (
-          <Text style={styles.subtitle} numberOfLines={1}>
+          <Text style={[styles.subtitle, { color: colors.textLight }]} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
@@ -62,11 +64,18 @@ export function HybridProfileHeader({
         <SeniorTourTarget stepId="hybrid-settings">
           <Pressable
             onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
-            style={({ pressed }) => [styles.settingsBtn, pressed && styles.settingsBtnPressed]}
+            style={({ pressed }) => [
+              styles.settingsBtn,
+              {
+                backgroundColor: colors.surfaceWhite,
+                borderColor: colors.primaryLimeDark,
+              },
+              pressed && { opacity: 0.85, backgroundColor: colors.surfaceWarmHighlight ?? colors.surfaceGrey },
+            ]}
             accessibilityRole="button"
             accessibilityLabel={t('tabs.settings')}
           >
-            <MaterialIcons name="settings" size={28} color={Theme.colors.primaryLimeDark} />
+            <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
           </Pressable>
         </SeniorTourTarget>
       ) : (

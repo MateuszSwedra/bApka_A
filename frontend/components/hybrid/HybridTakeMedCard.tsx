@@ -7,12 +7,17 @@ import type { DependentMainScheduleState } from '../../utils/dependentScheduleUi
 import type { ScheduleItem, Treatment } from '../../context/MedsContext';
 import { seniorActionTileContent } from '../../utils/seniorActionTile';
 
+import type { SeniorSurfaceColors } from '../../context/DependentDisplayContext';
+
 type HybridTakeMedCardProps = {
   mainState: DependentMainScheduleState;
   schedules: ScheduleItem[];
   treatments: Treatment[];
   onPress: () => void;
   disabled?: boolean;
+  colors: SeniorSurfaceColors;
+  colorBlindFriendly: boolean;
+  highContrast: boolean;
 };
 
 export function HybridTakeMedCard({
@@ -21,6 +26,9 @@ export function HybridTakeMedCard({
   treatments,
   onPress,
   disabled,
+  colors,
+  colorBlindFriendly,
+  highContrast,
 }: HybridTakeMedCardProps) {
   const { t } = useTranslation();
 
@@ -50,14 +58,24 @@ export function HybridTakeMedCard({
           ? `${mainState.nextName} · ${mainState.dose}`
           : '';
 
+  const activeAccent =
+    colorBlindFriendly || highContrast ? colors.primaryLimeDark : actionTile.accent;
+
   return (
     <Pressable
       onPress={onPress}
       disabled={disabled || !active}
       style={({ pressed }) => [
         styles.card,
-        active ? styles.cardActive : styles.cardIdle,
-        active && { backgroundColor: actionTile.accent, borderColor: actionTile.accent },
+        {
+          borderWidth: colors.mainButtonBorderWidth ?? 2,
+          backgroundColor: active ? activeAccent : colors.surfaceWhite,
+          borderColor: active
+            ? colorBlindFriendly || highContrast
+              ? colors.border
+              : activeAccent
+            : colors.border,
+        },
         pressed && active && styles.pressed,
         (!active || disabled) && { opacity: active ? 1 : 0.92 },
       ]}
@@ -65,13 +83,13 @@ export function HybridTakeMedCard({
       <MaterialIcons
         name={actionTile.icon}
         size={40}
-        color={active ? Theme.colors.surfaceWhite : Theme.colors.textLight}
+        color={active ? colors.surfaceWhite : colors.textLight}
       />
-      <Text style={[styles.title, active && styles.titleActive]}>{title}</Text>
-      <Text style={[styles.line1, active && styles.line1Active]}>{line1}</Text>
+      <Text style={[styles.title, { color: colors.textDark }, active && styles.titleActive]}>{title}</Text>
+      <Text style={[styles.line1, { color: colors.textLight }, active && styles.line1Active]}>{line1}</Text>
       {line2 ? (
         <Text
-          style={[styles.line2, active && styles.line2Active]}
+          style={[styles.line2, { color: colors.textLight }, active && styles.line2Active]}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
@@ -79,8 +97,8 @@ export function HybridTakeMedCard({
         </Text>
       ) : null}
       {active ? (
-        <View style={styles.ctaPill}>
-          <Text style={styles.ctaText}>{t('hybrid.takeMedCta')}</Text>
+        <View style={[styles.ctaPill, { backgroundColor: colors.accentOrange }]}>
+          <Text style={[styles.ctaText, { color: colors.surfaceWhite }]}>{t('hybrid.takeMedCta')}</Text>
         </View>
       ) : null}
     </Pressable>
@@ -92,23 +110,13 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.xlarge,
     padding: Theme.spacing.l,
     alignItems: 'center',
-    borderWidth: 2,
     marginBottom: Theme.spacing.l,
-  },
-  cardActive: {
-    backgroundColor: Theme.colors.primaryLimeDark,
-    borderColor: '#1B3C53',
-  },
-  cardIdle: {
-    backgroundColor: Theme.colors.surfaceWhite,
-    borderColor: Theme.colors.border,
   },
   pressed: { transform: [{ scale: 0.98 }], opacity: 0.95 },
   title: {
     marginTop: Theme.spacing.s,
     fontSize: 22,
     fontWeight: '900',
-    color: Theme.colors.textDark,
     textAlign: 'center',
   },
   titleActive: { color: Theme.colors.surfaceWhite },
@@ -116,7 +124,6 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 17,
     fontWeight: '700',
-    color: Theme.colors.textLight,
     textAlign: 'center',
   },
   line1Active: { color: '#E3F2FD' },
@@ -124,19 +131,16 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontSize: 15,
     fontWeight: '600',
-    color: Theme.colors.textLight,
     textAlign: 'center',
   },
   line2Active: { color: '#E8F5E9' },
   ctaPill: {
     marginTop: Theme.spacing.m,
-    backgroundColor: Theme.colors.accentOrange,
     paddingHorizontal: Theme.spacing.l,
     paddingVertical: Theme.spacing.s,
     borderRadius: Theme.borderRadius.round,
   },
   ctaText: {
-    color: Theme.colors.surfaceWhite,
     fontWeight: '900',
     fontSize: Theme.typography.body,
     letterSpacing: 0.5,
