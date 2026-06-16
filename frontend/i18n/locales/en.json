@@ -791,6 +791,8 @@
       "description": "Description (optional)",
       "pillsInPack": "Pills per pack",
       "helper": "Helps predict when medication runs out.",
+      "vitalsPromptTitle": "Ask for result entry after completion",
+      "vitalsPromptSub": "After finishing this activity, the senior will enter the measurement value (sugar or blood pressure).",
       "errorSave": "Could not save activity."
     },
     "edit": {

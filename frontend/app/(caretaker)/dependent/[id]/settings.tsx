@@ -32,7 +32,6 @@ import { useTabScreenScrollBottomPadding } from '../../../../utils/safeAreaInset
 type DependentSettings = {
   moodEnabled: boolean;
   moodCheckTimes: string[];
-  vitalsEntryEnabled: boolean;
   highContrast: boolean;
   colorBlindFriendly: boolean;
   appLanguage: AppLanguage;
@@ -42,7 +41,6 @@ type DependentSettings = {
 const DEFAULT_SETTINGS: DependentSettings = {
   moodEnabled: true,
   moodCheckTimes: normalizeMoodCheckTimes(undefined),
-  vitalsEntryEnabled: false,
   highContrast: false,
   colorBlindFriendly: false,
   appLanguage: 'pl',
@@ -88,7 +86,6 @@ export default function DependentSettingsScreen() {
         setSettings({
           moodEnabled: dep.moodEnabled ?? true,
           moodCheckTimes: normalizeMoodCheckTimes(dep.moodCheckTimes),
-          vitalsEntryEnabled: dep.vitalsEntryEnabled ?? false,
           highContrast: dep.highContrast ?? false,
           colorBlindFriendly: dep.colorBlindFriendly ?? false,
           appLanguage: normalizeAppLanguage(dep.appLanguage),
@@ -258,19 +255,6 @@ export default function DependentSettingsScreen() {
                 onSave={time => void patchDependent({ moodCheckTimes: [time] }, 'moodCheckTimes')}
               />
             ) : null}
-
-            <View style={styles.rowCard}>
-              <View style={styles.rowText}>
-                <Text style={styles.rowTitle}>{t('caretaker.settings.vitals')}</Text>
-                <Text style={styles.rowSub}>{t('caretaker.settings.vitalsSub')}</Text>
-              </View>
-              <Switch
-                value={settings.vitalsEntryEnabled}
-                disabled={savingKey === 'vitalsEntryEnabled'}
-                onValueChange={v => void patchDependent({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')}
-                trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
-              />
-            </View>
 
             <Text style={[styles.sectionTitle, styles.sectionGap]}>{t('caretaker.settings.accessibility')}</Text>
             <Text style={styles.sectionHint}>{t('caretaker.settings.accessibilityHint')}</Text>

@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Switch,
 } from 'react-native';
 import { router, useGlobalSearchParams, useLocalSearchParams, useSegments } from 'expo-router';
 import { pickDependentUserId } from '../../../utils/resolveMedsTargetUserId';
@@ -21,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getScreenBottomPadding } from '../../../utils/safeAreaInsets';
 import { HugeButton } from '../../../components/HugeButton';
+import { usersAPI } from '../../../services/api';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -120,17 +122,21 @@ export default function AddTreatmentScreen() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [pillsStr, setPillsStr] = useState('');
+  const [vitalsPromptEnabled, setVitalsPromptEnabled] = useState(true);
 
   const currentOption = useMemo(
     () => typeOptions.find(o => o.type === selectedType) ?? null,
     [selectedType, typeOptions],
   );
+  const isVitalsType =
+    currentOption?.type === 'BLOOD_SUGAR' || currentOption?.type === 'BLOOD_PRESSURE';
 
   const handleSelectType = (option: TypeOption) => {
     setSelectedType(option.type);
     setName(option.defaultName);
     setDescription('');
     setPillsStr('');
+    setVitalsPromptEnabled(true);
   };
 
   const handleBackToTypes = () => {
@@ -138,6 +144,7 @@ export default function AddTreatmentScreen() {
     setName('');
     setDescription('');
     setPillsStr('');
+    setVitalsPromptEnabled(true);
   };
 
   const canSave = () => {
@@ -179,6 +186,14 @@ export default function AddTreatmentScreen() {
         },
         dependentUserId,
       );
+      if (isVitalsType) {
+        const settingsPatch = { vitalsEntryEnabled: vitalsPromptEnabled };
+        if ((segments as string[]).includes('(hybrid)')) {
+          await usersAPI.updateSettings(settingsPatch);
+        } else {
+          await usersAPI.updateDependentSettings(dependentUserId, settingsPatch);
+        }
+      }
       router.back();
     } catch (e) {
       const msg =
@@ -304,6 +319,20 @@ export default function AddTreatmentScreen() {
               textAlignVertical="top"
             />
             <Text style={styles.helper}>{t('treatment.add.helper')}</Text>
+
+            {isVitalsType ? (
+              <View style={styles.vitalsToggleCard}>
+                <View style={styles.rowText}>
+                  <Text style={styles.rowTitle}>{t('treatment.add.vitalsPromptTitle')}</Text>
+                  <Text style={styles.rowSub}>{t('treatment.add.vitalsPromptSub')}</Text>
+                </View>
+                <Switch
+                  value={vitalsPromptEnabled}
+                  onValueChange={setVitalsPromptEnabled}
+                  trackColor={{ true: Theme.colors.primaryLimeDark, false: Theme.colors.border }}
+                />
+              </View>
+            ) : null}
           </>
         )}
       </ScrollView>
@@ -446,4 +475,18 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
     lineHeight: 18,
   },
+  vitalsToggleCard: {
+    marginTop: Theme.spacing.l,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.m,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    padding: Theme.spacing.m,
+  },
+  rowText: { flex: 1 },
+  rowTitle: { fontSize: Theme.typography.body, fontWeight: '700', color: Theme.colors.textDark },
+  rowSub: { marginTop: 4, fontSize: Theme.typography.caption, color: Theme.colors.textLight, lineHeight: 20 },
 });

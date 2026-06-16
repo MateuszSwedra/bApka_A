@@ -795,6 +795,8 @@
       "description": "Opis (opcjonalny)",
       "pillsInPack": "Ilość tabletek w paczce",
       "helper": "Pomoże przewidzieć koniec zapasu leku.",
+      "vitalsPromptTitle": "Pytaj o wpisanie wyniku po wykonaniu",
+      "vitalsPromptSub": "Po zakończeniu aktywności senior wpisze wynik pomiaru (cukier lub ciśnienie).",
       "errorSave": "Nie udało się zapisać aktywności."
     },
     "edit": {

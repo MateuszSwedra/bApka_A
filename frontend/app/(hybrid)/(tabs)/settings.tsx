@@ -32,7 +32,6 @@ import {
 import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
 
 type SelfSettings = {
-  vitalsEntryEnabled: boolean;
   highContrast: boolean;
   colorBlindFriendly: boolean;
   appLanguage: AppLanguage;
@@ -40,7 +39,6 @@ type SelfSettings = {
 };
 
 const DEFAULT: SelfSettings = {
-  vitalsEntryEnabled: false,
   highContrast: false,
   colorBlindFriendly: false,
   appLanguage: 'pl',
@@ -61,7 +59,6 @@ export default function HybridSettingsScreen() {
       const me = await usersAPI.getMe();
       setDisplayName(me?.name?.trim() || me?.email || '');
       setSettings({
-        vitalsEntryEnabled: me?.vitalsEntryEnabled ?? false,
         highContrast: me?.highContrast ?? false,
         colorBlindFriendly: me?.colorBlindFriendly ?? false,
         appLanguage: normalizeAppLanguage(me?.appLanguage),
@@ -117,10 +114,6 @@ export default function HybridSettingsScreen() {
           <>
             <Text style={styles.sectionTitle}>{t('hybrid.settings.section')}</Text>
             <Text style={styles.sectionHint}>{t('hybrid.settings.sectionHint')}</Text>
-
-            <View style={styles.rowCardWrap}>
-              <RowSwitch label={t('caretaker.settings.vitals')} sub={t('caretaker.settings.vitalsSub')} value={settings.vitalsEntryEnabled} busy={savingKey === 'vitalsEntryEnabled'} onChange={v => void patch({ vitalsEntryEnabled: v }, 'vitalsEntryEnabled')} />
-            </View>
 
             <Text style={[styles.sectionTitle, styles.gap]}>{t('caretaker.settings.accessibility')}</Text>
 
