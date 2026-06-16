@@ -1,0 +1,21 @@
+1. Polityka Prywatności aplikacji bApka (Privacy Policy)
+Data wejścia w życie: 16.06.2026
+
+Ochrona Twojej prywatności jest dla nas priorytetem. Chronimy Twoje dane i wykorzystujemy je wyłącznie w celu zapewnienia prawidłowego działania aplikacji bApka oraz w przypadkach wymaganych przez prawo.
+
+Administratorem Twoich danych osobowych jest Daniel Pasternak, Dominika Wabich, Mateusz Swędra Aleksandra Nowak, kontakt: danpas@st.amu.edu.pl
+
+1. Jakie dane zbieramy i dlaczego?
+Z uwagi na to, że bApka jest aplikacją medyczną, podchodzimy do Twoich danych ze szczególną ostrożnością:
+
+Dane medyczne i wrażliwe: Zbieramy informacje dotyczące Twojego zdrowia wyłącznie na podstawie Twojej wyraźnej zgody (art. 9 ust. 2 lit. a RODO). Dane te są niezbędne do świadczenia głównych funkcji aplikacji bApka.
+
+Dane konta i profilu: Informacje podane podczas rejestracji (np. adres e-mail, nazwa użytkownika) wykorzystywane są do uwierzytelniania i obsługi Twojego konta.
+
+Anonimowe statystyki użycia: W celu poprawy Twoich doświadczeń możemy gromadzić anonimowe dane diagnostyczne (np. raporty o błędach, statystyki kliknięć). Pomaga nam to ulepszać funkcje aplikacji i dbać o jej stabilność.
+
+2. Jak chronimy Twoje dane?
+Wszystkie dane, w tym wrażliwe informacje medyczne, są przesyłane i przechowywane przy użyciu zaawansowanych metod szyfrowania. Nie sprzedajemy Twoich danych osobowych ani medycznych żadnym podmiotom trzecim.
+
+3. Gdzie przechowujemy dane?
+Ponieważ aplikacja jest dostępna na rynkach międzynarodowych (m.in. przez Google Play), Twoje dane mogą być przetwarzane na serwerach zlokalizowanych w Europejskim Obszarze Gospodarczym (EOG) lub poza nim. Zapewniamy, że wszelkie transfery międzynarodowe odbywają się z zachowaniem najwyższych standardów bezpieczeństwa, zgodnie z odpowiednimi klauzulami umownymi.

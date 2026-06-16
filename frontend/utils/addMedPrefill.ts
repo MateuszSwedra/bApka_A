@@ -8,7 +8,7 @@ export type AddMedPrefill = {
   prefillTime?: string;
 };
 
-/** 1 = poniedziałek … 7 = niedziela (zgodnie z WEEKDAY_IDS). */
+
 export function weekdayIdFromYmd(ymd: string): number {
   const day = new Date(`${ymd}T12:00:00`).getDay();
   return day === 0 ? 7 : day;

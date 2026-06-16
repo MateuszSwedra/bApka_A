@@ -1,9 +1,4 @@
-"""Usuwa jasne tło / siatkę z grafik welcome-*.png (PNG z alpha).
 
-Heurystyka: piksele bardzo jasne i mało nasycone (papier, siatka)
-oraz bliskie kremowemu #F9F3EF -> alpha 0. Lekkie rozmycie maski (3x3)
-żeby krawędzie nie były poszarpane.
-"""
 from __future__ import annotations
 
 import os
@@ -19,7 +14,7 @@ LUM_MIN = 175.0
 CHROMA_MAX = 52.0
 CREAM = np.array([249.0, 243.0, 239.0])
 CREAM_DIST = 42.0
-# Jednolite ciemne tło (np. czarne z generatora) - nie zjada kolorów marki (#1B3C53 ma lum ~56).
+
 LUM_DARK_MAX = 34.0
 CHROMA_DARK_MAX = 40.0
 

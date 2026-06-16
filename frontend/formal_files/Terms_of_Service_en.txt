@@ -1,0 +1,43 @@
+Effective Date: June 16, 2026
+
+1. General Provisions
+
+This document defines the rules for using the bApka medical application.
+
+By starting to use bApka, you accept these Terms of Service and our Privacy Policy.
+
+If you do not agree with their provisions, please do not use the application.
+
+2. Important Medical Disclaimer
+
+The bApka application has a supporting, informational, and analytical character.
+
+bApka is not a medical device sensu stricto, and the features it contains do not replace professional medical advice, diagnosis, or treatment.
+
+In case of any health problems or questions regarding your health, the user should always consult a qualified healthcare professional.
+
+3. Rules for Using the Application
+
+The user undertakes to use the application in accordance with its intended purpose, applicable law, and these Terms of Service.
+
+It is forbidden to enter illegal content into the application, as well as to take actions that could disrupt its functioning.
+
+The user is responsible for maintaining the confidentiality of their login details.
+
+4. Availability and Updates
+
+We make every effort to ensure the application works without interruption, however, for technical reasons, we cannot guarantee its 100% reliability.
+
+We reserve the right to introduce updates, change features, and temporarily suspend the operation of bApka for maintenance purposes.
+
+5. Limitation of Liability
+The creators of the bApka application are not responsible for health decisions made by the user solely on the basis of data entered into or obtained from the application.
+
+6. International Users
+
+The application is distributed globally (including via the Google Play platform).
+
+Regardless of the user's place of residence, in matters not covered by these terms, the provisions of law apply, subject to the mandatory consumer rights in the user's country of residence.
+
+7. Contact
+All questions, comments, or complaints regarding the operation of bApka should be directed to: danpas@st.amu.edu.pl.

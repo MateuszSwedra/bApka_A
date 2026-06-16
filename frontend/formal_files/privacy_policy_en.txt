@@ -1,0 +1,18 @@
+Effective Date: June 16, 2026
+
+Protecting your privacy is our priority. We protect your data and use it only to ensure the proper functioning of the bApka app and in cases required by law. The administrators of your personal data are Daniel Pasternak, Dominika Wabich, Mateusz Swędra, and Aleksandra Nowak, contact: danpas@st.amu.edu.pl.
+
+1. What data do we collect and why?
+Due to the fact that bApka is a medical application, we treat your data with special care:
+
+Medical and sensitive data: We collect information about your health solely based on your explicit consent (Art. 9 sec. 2 lit. a of the GDPR). This data is necessary to provide the main features of the bApka application.
+
+Account and profile data: Information provided during registration (e.g., e-mail address, username) is used for authentication and managing your account.
+
+Anonymous usage statistics: In order to improve your experience, we may collect anonymous diagnostic data (e.g., crash reports, click statistics). This helps us improve the app's features and maintain its stability.
+
+2. How do we protect your data?
+All data, including sensitive medical information, is transmitted and stored using advanced encryption methods. We do not sell your personal or medical data to any third parties.
+
+3. Where do we store data?
+Since the application is available in international markets (including via Google Play), your data may be processed on servers located within the European Economic Area (EEA) or outside of it. We ensure that all international transfers take place maintaining the highest security standards, in accordance with the appropriate contractual clauses.
