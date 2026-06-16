@@ -283,19 +283,29 @@ export default function DependentDashboard() {
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
         <View style={styles.headerCenter}>
           <Text style={[styles.seniorName, { color: colors.textDark }]}>{seniorName}</Text>
-          {lowMedWarning ? (
-            <Text style={[styles.lowMedWarning, { color: colors.accentOrange }]}>{lowMedWarning}</Text>
-          ) : null}
           {lowStockMeds.length > 0 ? (
-            <View style={styles.stockMarginRow}>
-              {lowStockMeds.map(med => (
-                <Text
-                  key={med.id}
-                  style={[styles.stockMarginBadge, { color: colors.accentOrange, borderColor: colors.accentOrange }]}
-                >
-                  {med.currentPills ?? med.totalPills ?? 0}
+            <View style={[styles.lowMedBox, { borderColor: colors.accentOrange }]}>
+              <View style={styles.lowMedTopRow}>
+                <MaterialIcons name="warning-amber" size={18} color={colors.accentOrange} />
+                <Text style={[styles.lowMedWarning, { color: colors.accentOrange }]} numberOfLines={2}>
+                  {lowMedWarning}
                 </Text>
-              ))}
+              </View>
+              <View style={styles.stockMarginRow}>
+                {lowStockMeds.map(med => (
+                  <View
+                    key={med.id}
+                    style={[styles.stockMarginBadge, { borderColor: colors.accentOrange }]}
+                  >
+                    <Text style={[styles.stockMarginCount, { color: colors.accentOrange }]}>
+                      {med.currentPills ?? med.totalPills ?? 0}
+                    </Text>
+                    <Text style={styles.stockMarginName} numberOfLines={1}>
+                      {med.name}
+                    </Text>
+                  </View>
+                ))}
+              </View>
             </View>
           ) : null}
         </View>
@@ -498,26 +508,51 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   lowMedWarning: {
-    fontSize: 15,
+    flex: 1,
+    fontSize: 14,
     fontWeight: '700',
-    marginTop: 4,
+    lineHeight: 18,
+  },
+  lowMedBox: {
+    marginTop: 8,
+    borderWidth: 1.5,
+    borderRadius: Theme.borderRadius.large,
+    backgroundColor: '#FFF7ED',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+  },
+  lowMedTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
   },
   stockMarginRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 6,
-    marginTop: 6,
-    justifyContent: 'flex-end',
+    gap: 8,
+    marginTop: 8,
+    justifyContent: 'flex-start',
   },
   stockMarginBadge: {
-    fontSize: 16,
-    fontWeight: '900',
-    borderWidth: 2,
+    minWidth: 62,
+    maxWidth: 110,
+    borderWidth: 1.5,
     borderRadius: 8,
     paddingHorizontal: 8,
-    paddingVertical: 2,
-    minWidth: 32,
-    textAlign: 'center',
+    paddingVertical: 6,
+    backgroundColor: Theme.colors.surfaceWhite,
+  },
+  stockMarginCount: {
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'left',
+    lineHeight: 18,
+  },
+  stockMarginName: {
+    marginTop: 2,
+    fontSize: 11,
+    color: Theme.colors.textLight,
+    lineHeight: 13,
   },
   headerActions: {
     flexDirection: 'row',

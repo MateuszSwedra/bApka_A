@@ -8,12 +8,13 @@ import {
   Alert,
   Pressable,
   useWindowDimensions,
+  ScrollView,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
+import { LinearGradient } from 'expo-linear-gradient';
 import { HugeButton } from '../../components/HugeButton';
-import { Card } from '../../components/Card';
 import { Theme } from '../../constants/theme';
 import { isAuthApiError, usersAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -81,55 +82,77 @@ export default function CaretakerPairingScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: bottomPadding }]}>
-      <MaterialIcons name="link" size={64} color={Theme.colors.primaryLimeDark} style={styles.icon} />
-      <Text style={styles.title}>{t('caretaker.pairing.title')}</Text>
+    <View style={styles.container}>
+      <LinearGradient
+        colors={['#E8F2F8', Theme.colors.surfaceGrey, Theme.colors.background]}
+        locations={[0, 0.45, 1]}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={[styles.decorOrb, styles.decorOrbPrimary]} />
+      <View style={[styles.decorOrb, styles.decorOrbAccent]} />
 
-      {isLoading ? (
-        <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
-      ) : (
-        <>
-          <Card style={styles.card}>
-            <Text style={styles.subtitle}>{t('caretaker.pairing.instructions')}</Text>
-            <View style={styles.pinRowWrap}>
-              <View style={styles.pinRow}>
-                <Text
-                  selectable
-                  numberOfLines={1}
-                  adjustsFontSizeToFit={Platform.OS === 'ios'}
-                  minimumFontScale={0.7}
-                  style={[
-                    styles.pin,
-                    { fontSize: pinFontSize, letterSpacing: pinLetterSpacing },
-                  ]}
-                  accessibilityLabel={t('caretaker.pairing.a11yCode', { code: pinCode ?? '' })}
-                >
-                  {pinCode ? formatPinDisplay(pinCode) : t('pairing.pinPlaceholder')}
-                </Text>
-                <Pressable
-                  onPress={() => void handleCopy()}
-                  style={({ pressed }) => [styles.copyBtn, pressed && { opacity: 0.75 }]}
-                  accessibilityRole="button"
-                  accessibilityLabel={t('caretaker.pairing.a11yCopy')}
-                  disabled={!pinCode}
-                >
-                  <MaterialIcons
-                    name={copied ? 'check' : 'content-copy'}
-                    size={26}
-                    color={Theme.colors.primaryLimeDark}
-                  />
-                </Pressable>
-              </View>
-            </View>
-            <Text style={styles.pinHint}>{t('caretaker.pairing.hint')}</Text>
-          </Card>
-
-          <View style={styles.actions}>
-            <HugeButton title={t('common.done')} onPress={handleDone} style={styles.button} />
-            <HugeButton title={t('common.cancel')} variant="outline" onPress={() => router.back()} style={styles.button} />
+      <ScrollView
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPadding }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={styles.hero}>
+          <View style={styles.badgePill}>
+            <MaterialIcons name="verified-user" size={14} color={Theme.colors.primaryLimeDark} />
+            <Text style={styles.badgeText}>{t('caretaker.dashboard.badge')}</Text>
           </View>
-        </>
-      )}
+          <Text style={styles.title}>{t('caretaker.pairing.title')}</Text>
+          <Text style={styles.subtitle}>{t('caretaker.pairing.instructions')}</Text>
+        </View>
+
+        {isLoading ? (
+          <ActivityIndicator size="large" color={Theme.colors.primaryLimeDark} style={styles.loader} />
+        ) : (
+          <>
+            <View style={styles.card}>
+              <View style={styles.cardAccent} />
+              <View style={styles.pinPanel}>
+                <Text style={styles.pinLabel}>{t('pairing.enterPin.title')}</Text>
+                <View style={styles.pinRowWrap}>
+                  <View style={styles.pinRow}>
+                    <Text
+                      selectable
+                      numberOfLines={1}
+                      adjustsFontSizeToFit={Platform.OS === 'ios'}
+                      minimumFontScale={0.7}
+                      style={[
+                        styles.pin,
+                        { fontSize: pinFontSize, letterSpacing: pinLetterSpacing },
+                      ]}
+                      accessibilityLabel={t('caretaker.pairing.a11yCode', { code: pinCode ?? '' })}
+                    >
+                      {pinCode ? formatPinDisplay(pinCode) : t('pairing.pinPlaceholder')}
+                    </Text>
+                    <Pressable
+                      onPress={() => void handleCopy()}
+                      style={({ pressed }) => [styles.copyBtn, pressed && styles.copyBtnPressed]}
+                      accessibilityRole="button"
+                      accessibilityLabel={t('caretaker.pairing.a11yCopy')}
+                      disabled={!pinCode}
+                    >
+                      <MaterialIcons
+                        name={copied ? 'check' : 'content-copy'}
+                        size={26}
+                        color={Theme.colors.primaryLimeDark}
+                      />
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+              <Text style={styles.pinHint}>{t('caretaker.pairing.hint')}</Text>
+            </View>
+
+            <View style={styles.actions}>
+              <HugeButton title={t('common.done')} onPress={handleDone} style={styles.button} />
+              <HugeButton title={t('common.cancel')} variant="outline" onPress={() => router.back()} style={styles.button} />
+            </View>
+          </>
+        )}
+      </ScrollView>
     </View>
   );
 }
@@ -137,31 +160,103 @@ export default function CaretakerPairingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: Theme.spacing.l,
     backgroundColor: Theme.colors.background,
-    justifyContent: 'center',
   },
-  icon: {
-    alignSelf: 'center',
+  decorOrb: {
+    position: 'absolute',
+    borderRadius: 999,
+    opacity: 0.55,
+  },
+  decorOrbPrimary: {
+    width: 220,
+    height: 220,
+    top: -40,
+    right: -60,
+    backgroundColor: Theme.colors.primaryLime,
+  },
+  decorOrbAccent: {
+    width: 140,
+    height: 140,
+    top: 130,
+    left: -55,
+    backgroundColor: 'rgba(233, 164, 61, 0.35)',
+  },
+  content: {
+    paddingHorizontal: Theme.spacing.l,
+    paddingTop: Theme.spacing.m,
+    gap: Theme.spacing.l,
+  },
+  hero: {
+    marginTop: Theme.spacing.s,
+  },
+  badgePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Theme.borderRadius.round,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.95)',
     marginBottom: Theme.spacing.m,
   },
+  badgeText: {
+    fontSize: Theme.typography.small,
+    fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
+    letterSpacing: 0.3,
+  },
   title: {
-    fontSize: Theme.typography.largeTitle,
-    fontWeight: 'bold',
-    textAlign: 'center',
+    fontSize: 34,
+    fontWeight: '800',
     color: Theme.colors.textDark,
-    marginBottom: Theme.spacing.xxl,
+    letterSpacing: -0.5,
+    lineHeight: 40,
   },
   card: {
-    alignItems: 'center',
-    padding: Theme.spacing.xxl,
-    marginBottom: Theme.spacing.xxl,
+    borderRadius: Theme.borderRadius.xlarge,
+    backgroundColor: Theme.colors.surfaceWhite,
+    padding: Theme.spacing.l,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
+    shadowColor: Theme.colors.shadowNeutral,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.12,
+    shadowRadius: 20,
+    elevation: 4,
+    overflow: 'hidden',
+  },
+  cardAccent: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 5,
+    backgroundColor: Theme.colors.primaryLimeDark,
   },
   subtitle: {
     fontSize: Theme.typography.body,
-    textAlign: 'center',
-    marginBottom: Theme.spacing.l,
     color: Theme.colors.textLight,
+    lineHeight: 22,
+    maxWidth: 320,
+    marginTop: Theme.spacing.s,
+  },
+  pinPanel: {
+    backgroundColor: 'rgba(200, 224, 240, 0.22)',
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    borderRadius: Theme.borderRadius.large,
+    padding: Theme.spacing.m,
+  },
+  pinLabel: {
+    fontSize: Theme.typography.caption,
+    color: Theme.colors.primaryLimeDark,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.7,
+    marginBottom: Theme.spacing.s,
   },
   pinRowWrap: {
     width: '100%',
@@ -182,24 +277,32 @@ const styles = StyleSheet.create({
   },
   copyBtn: {
     flexShrink: 0,
-    padding: Theme.spacing.s,
-    borderRadius: Theme.borderRadius.medium,
-    backgroundColor: Theme.colors.surfaceGrey,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.92)',
     borderWidth: 1,
     borderColor: Theme.colors.border,
+  },
+  copyBtnPressed: {
+    opacity: 0.75,
+    transform: [{ scale: 0.96 }],
   },
   pinHint: {
     marginTop: Theme.spacing.m,
     fontSize: Theme.typography.caption,
     color: Theme.colors.textLight,
-    textAlign: 'center',
     lineHeight: 18,
   },
   loader: {
-    marginVertical: Theme.spacing.xxl,
+    marginTop: Theme.spacing.xl,
+    marginBottom: Theme.spacing.xxl,
   },
   actions: {
     gap: Theme.spacing.m,
+    marginTop: Theme.spacing.m,
   },
   button: {
     width: '100%',

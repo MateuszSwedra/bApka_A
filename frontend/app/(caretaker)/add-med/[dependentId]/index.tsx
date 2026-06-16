@@ -92,7 +92,7 @@ export default function PickActivityScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        <ActivityPickerIllustration width={240} height={210} />
+        <ActivityPickerIllustration width={180} height={158} />
 
         <Text style={styles.lead}>{t('schedule.add.pickActivityLead')}</Text>
 

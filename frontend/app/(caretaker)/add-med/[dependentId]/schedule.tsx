@@ -41,6 +41,17 @@ function paramString(v?: string | string[]): string | undefined {
   return Array.isArray(v) ? v[0] : v;
 }
 
+function ymdTomorrow(baseYmd: string): string {
+  const base = new Date(`${baseYmd}T00:00:00`);
+  if (Number.isNaN(base.getTime())) {
+    const fallback = new Date();
+    fallback.setDate(fallback.getDate() + 1);
+    return format(fallback, 'yyyy-MM-dd');
+  }
+  base.setDate(base.getDate() + 1);
+  return format(base, 'yyyy-MM-dd');
+}
+
 export default function AddScheduleDetailsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
@@ -134,12 +145,15 @@ export default function AddScheduleDetailsScreen() {
     [treatments, treatmentId],
   );
   const isMedication = selectedTreatment?.type === 'MEDICATION';
-  const minTime = useMemo(() => getMinScheduleTimeForDate(startDate), [startDate]);
+  const minTime = useMemo(
+    () => (medType === 'REGULAR' ? undefined : getMinScheduleTimeForDate(startDate)),
+    [medType, startDate],
+  );
 
   const handleSave = async () => {
     if (!treatmentId || !dependentId || saving) return;
     const picked = timePickerRef.current?.getTime() ?? { hour, minute };
-    if (isScheduleDateTimeInPast(startDate, picked.hour, picked.minute)) {
+    if (medType !== 'REGULAR' && isScheduleDateTimeInPast(startDate, picked.hour, picked.minute)) {
       Alert.alert(t('common.error'), t('schedule.add.pastNotAllowed'));
       return;
     }
@@ -153,6 +167,11 @@ export default function AddScheduleDetailsScreen() {
       scheduleDays = [];
     } else if (medType === 'REGULAR') {
       scheduleEnd = undefined;
+      // Regularny dodany dziś na godzinę, która już minęła, powinien zacząć działać od jutra.
+      // Dzięki temu senior nie dostaje od razu wpisu jako "spóźniony".
+      if (isScheduleDateTimeInPast(startDate, picked.hour, picked.minute)) {
+        scheduleStart = ymdTomorrow(startDate);
+      }
     } else if (medType === 'TEMPORARY') {
       scheduleStart = startDate;
       scheduleEnd = endDate;
