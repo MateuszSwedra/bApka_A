@@ -323,6 +323,7 @@ export function SeniorGuidedTourProvider({ children }: { children: React.ReactNo
           body={t(currentStep.bodyKey)}
           placement={currentStep.placement}
           tooltipLayoutMode={currentStep.tooltipLayoutMode}
+          showTargetHighlight
           reserveBottom={reserveBottom}
           clearanceAboveHighlight={currentStep.clearanceAboveHighlight}
           tooltipHeightEstimate={currentStep.tooltipHeightEstimate}

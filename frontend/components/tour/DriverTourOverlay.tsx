@@ -50,6 +50,9 @@ const HIGHLIGHT_PAD = 8;
 const TOOLTIP_EST_HEIGHT = 200;
 const DEFAULT_TOOLTIP_GAP = 20;
 const MIN_HOLE_CLEARANCE = 8;
+/** Półprzezroczyste przebarwienie elementu opisywanego w samouczku (przykuwa uwagę, bez ramki). */
+const HIGHLIGHT_TINT_COLOR = 'rgba(255, 138, 31, 0.45)';
+const HIGHLIGHT_CORNER_RADIUS = 12;
 
 export function DriverTourOverlay({
   visible,
@@ -223,8 +226,8 @@ export function DriverTourOverlay({
                     y={hole.y}
                     width={hole.width}
                     height={hole.height}
-                    rx={12}
-                    ry={12}
+                    rx={HIGHLIGHT_CORNER_RADIUS}
+                    ry={HIGHLIGHT_CORNER_RADIUS}
                     fill="black"
                   />
                 </Mask>
@@ -247,7 +250,7 @@ export function DriverTourOverlay({
             <View
               pointerEvents="none"
               style={[
-                styles.highlightRing,
+                styles.highlightTint,
                 {
                   left: hole.x,
                   top: hole.y,
@@ -369,20 +372,10 @@ const styles = StyleSheet.create({
   touchBlocker: {
     zIndex: 1,
   },
-  highlightRing: {
+  highlightTint: {
     position: 'absolute',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: Theme.colors.accentOrange,
-    ...Platform.select({
-      web: { boxShadow: '0 0 0 4px rgba(233, 164, 61, 0.25)' },
-      default: {
-        shadowColor: Theme.colors.accentOrange,
-        shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.45,
-        shadowRadius: 8,
-      },
-    }),
+    borderRadius: HIGHLIGHT_CORNER_RADIUS,
+    backgroundColor: HIGHLIGHT_TINT_COLOR,
   },
   popover: {
     position: 'absolute',
