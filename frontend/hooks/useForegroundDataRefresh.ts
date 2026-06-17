@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 import { useFocusEffect } from 'expo-router';
+import { subscribeDataSync } from '../services/dataSyncBus';
 
 type Options = {
   onRefresh: () => void | Promise<void>;
@@ -36,4 +37,9 @@ export function useForegroundDataRefresh({
     });
     return () => sub.remove();
   }, [runRefresh]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    return subscribeDataSync(runRefresh);
+  }, [enabled, runRefresh]);
 }

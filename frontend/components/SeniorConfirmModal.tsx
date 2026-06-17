@@ -11,6 +11,7 @@ interface Props {
   confirmLabel?: string;
   cancelLabel?: string;
   confirmColor?: string;
+  showCancel?: boolean;
 }
 
 export function SeniorConfirmModal({
@@ -22,6 +23,7 @@ export function SeniorConfirmModal({
   confirmLabel = 'TAK',
   cancelLabel = 'NIE',
   confirmColor = Theme.colors.primaryLimeDark,
+  showCancel = true,
 }: Props) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
@@ -30,16 +32,19 @@ export function SeniorConfirmModal({
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.message}>{message}</Text>
           <View style={styles.row}>
-            <Pressable
-              onPress={onCancel}
-              style={({ pressed }) => [styles.btn, styles.btnCancel, pressed && styles.pressed]}
-            >
-              <Text style={styles.btnCancelText}>{cancelLabel}</Text>
-            </Pressable>
+            {showCancel ? (
+              <Pressable
+                onPress={onCancel}
+                style={({ pressed }) => [styles.btn, styles.btnCancel, pressed && styles.pressed]}
+              >
+                <Text style={styles.btnCancelText}>{cancelLabel}</Text>
+              </Pressable>
+            ) : null}
             <Pressable
               onPress={onConfirm}
               style={({ pressed }) => [
                 styles.btn,
+                !showCancel && styles.btnSingle,
                 { backgroundColor: confirmColor },
                 pressed && styles.pressed,
               ]}
@@ -95,6 +100,9 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.large,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  btnSingle: {
+    flexBasis: '100%',
   },
   btnCancel: {
     backgroundColor: Theme.colors.surfaceGrey,

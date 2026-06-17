@@ -535,6 +535,10 @@
       "confirmTitle": "Confirmation",
       "confirmMed": "Do you confirm taking {{name}} ({{dose}})?",
       "confirmMedGeneric": "Do you confirm taking the medicine?",
+      "upcomingInfoTitle": "Next activity",
+      "upcomingInfoNameLine": "{{name}}",
+      "upcomingInfoTimeLine": "Time: {{time}}",
+      "upcomingInfoAmountLine": "Amount: {{amount}}",
       "lowMedToday": "Running low: {{names}}",
       "lowMedSoon": "Soon running out: {{name}}",
       "moodSaveError": "Could not save mood."

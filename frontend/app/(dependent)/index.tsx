@@ -66,6 +66,7 @@ export default function DependentDashboard() {
   const [vitalsEntryEnabled, setVitalsEntryEnabled] = useState(false);
 
   const [medConfirmVisible, setMedConfirmVisible] = useState(false);
+  const [upcomingInfoVisible, setUpcomingInfoVisible] = useState(false);
   const [sosConfirmVisible, setSosConfirmVisible] = useState(false);
   const [moodPickerVisible, setMoodPickerVisible] = useState(false);
   const [vitalsModalVisible, setVitalsModalVisible] = useState(false);
@@ -173,8 +174,13 @@ export default function DependentDashboard() {
   };
 
   const onMedPress = () => {
-    if (mainState.kind !== 'due' && mainState.kind !== 'missed') return;
-    setMedConfirmVisible(true);
+    if (mainState.kind === 'due' || mainState.kind === 'missed') {
+      setMedConfirmVisible(true);
+      return;
+    }
+    if (mainState.kind === 'upcoming') {
+      setUpcomingInfoVisible(true);
+    }
   };
 
   const maybeShowVitalsForm = (scheduleId: string) => {
@@ -232,6 +238,7 @@ export default function DependentDashboard() {
   };
 
   const medActive = mainState.kind === 'due' || mainState.kind === 'missed';
+  const medPressEnabled = medActive || mainState.kind === 'upcoming';
   const moodActive = moodState.kind === 'active';
 
   const actionTile = useMemo(
@@ -278,6 +285,26 @@ export default function DependentDashboard() {
       ? t('dependent.home.confirmMed', { name: mainState.name, dose: mainState.dose })
       : t('dependent.home.confirmMedGeneric');
 
+  const upcomingAmountText = useMemo(() => {
+    if (mainState.kind !== 'upcoming') return null;
+    const activityType = treatmentTypeForSchedule(mainState.scheduleId, schedules, treatments);
+    if (activityType !== 'MEDICATION') return null;
+    const schedule = schedules.find(s => s.id === mainState.scheduleId);
+    const dosage = schedule?.dosage?.trim() || '1';
+    return `${dosage} szt.`;
+  }, [mainState, schedules, treatments]);
+
+  const upcomingInfoMessage =
+    mainState.kind === 'upcoming'
+      ? [
+          t('dependent.home.upcomingInfoNameLine', { name: mainState.nextName }),
+          t('dependent.home.upcomingInfoTimeLine', { time: mainState.nextTime }),
+          ...(upcomingAmountText
+            ? [t('dependent.home.upcomingInfoAmountLine', { amount: upcomingAmountText })]
+            : []),
+        ].join('\n')
+      : '';
+
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
@@ -311,13 +338,6 @@ export default function DependentDashboard() {
         </View>
         <View style={styles.headerActions}>
           <Pressable
-            onPress={() => router.push('/(dependent)/settings' as any)}
-            style={[styles.iconBtn, { backgroundColor: colors.primaryLime }]}
-            accessibilityLabel={t('tabs.settings')}
-          >
-            <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
-          </Pressable>
-          <Pressable
             onPress={handleLogout}
             style={[styles.iconBtn, { backgroundColor: colors.surfaceSoftOrange }]}
             accessibilityLabel={t('auth.signIn.ctaLogin')}
@@ -330,7 +350,7 @@ export default function DependentDashboard() {
       <View style={[styles.grid, { paddingBottom: bottomPadding }]}>
         <Pressable
           onPress={onMedPress}
-          disabled={!medActive}
+          disabled={!medPressEnabled}
           style={({ pressed }) => [
             styles.tile,
             !moodEnabled && styles.tileFullWidth,
@@ -344,7 +364,7 @@ export default function DependentDashboard() {
               borderWidth: colors.mainButtonBorderWidth ?? 3,
             },
             medActive && styles.tileActive,
-            pressed && medActive && styles.pressed,
+            pressed && medPressEnabled && styles.pressed,
           ]}
         >
           <MaterialIcons
@@ -466,6 +486,17 @@ export default function DependentDashboard() {
         onConfirm={() => void confirmMed()}
         onCancel={() => setMedConfirmVisible(false)}
         confirmColor={tileColors.medActive}
+      />
+
+      <SeniorConfirmModal
+        visible={upcomingInfoVisible}
+        title={t('dependent.home.upcomingInfoTitle')}
+        message={upcomingInfoMessage}
+        onConfirm={() => setUpcomingInfoVisible(false)}
+        onCancel={() => setUpcomingInfoVisible(false)}
+        confirmLabel={t('common.back')}
+        showCancel={false}
+        confirmColor={tileColors.schedule}
       />
 
       <SeniorConfirmModal

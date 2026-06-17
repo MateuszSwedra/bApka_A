@@ -211,7 +211,6 @@ export default function CaretakerDashboard() {
         style={StyleSheet.absoluteFill}
       />
 
-      <View style={[styles.decorOrb, styles.decorOrbPrimary]} />
       <View style={[styles.decorOrb, styles.decorOrbAccent]} />
 
       <View style={[styles.topBar, { paddingTop: headerTop }]}>
@@ -322,13 +321,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     borderRadius: 999,
     opacity: 0.55,
-  },
-  decorOrbPrimary: {
-    width: 220,
-    height: 220,
-    top: -40,
-    right: -60,
-    backgroundColor: Theme.colors.primaryLime,
   },
   decorOrbAccent: {
     width: 140,

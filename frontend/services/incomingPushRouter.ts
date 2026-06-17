@@ -1,6 +1,7 @@
 import { InteractionManager, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { getStoredRole } from './sessionStorage';
+import { emitDataSync } from './dataSyncBus';
 
 export type PushData = Record<string, unknown>;
 
@@ -14,12 +15,29 @@ function readString(data: PushData, key: string): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+function shouldEmitDataSync(type: string): boolean {
+  switch (type) {
+    case 'data_changed':
+    case 'med_reminder':
+    case 'dose_missed':
+    case 'dose_taken':
+    case 'inventory_low':
+    case 'inventory_empty':
+      return true;
+    default:
+      return false;
+  }
+}
+
 /** Nawigacja po kliknięciu / otrzymaniu pusha. */
 export async function routeIncomingPush(data: PushData | undefined): Promise<void> {
   if (Platform.OS === 'web' || !data) return;
 
   const type = readType(data);
   if (!type) return;
+  if (shouldEmitDataSync(type)) {
+    emitDataSync();
+  }
 
   const role = await getStoredRole();
   const seniorHome = role === 'HYBRID' ? '/(hybrid)/(tabs)' : '/(dependent)';

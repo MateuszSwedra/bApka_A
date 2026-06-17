@@ -522,7 +522,7 @@
         }
       },
       "medAt": "O {{time}}",
-      "medNoPlan": "Brak planu",
+      "medNoPlan": "To wszystko na dziś",
       "moodDue": "ZAZNACZ HUMOR",
       "moodIdle": "Humor",
       "moodTap": "Dotknij i wybierz buzię",
@@ -537,6 +537,10 @@
       "confirmTitle": "Potwierdzenie",
       "confirmMed": "Czy potwierdzasz wzięcie leku {{name}} ({{dose}})?",
       "confirmMedGeneric": "Czy potwierdzasz wzięcie leku?",
+      "upcomingInfoTitle": "Następna aktywność",
+      "upcomingInfoNameLine": "{{name}}",
+      "upcomingInfoTimeLine": "Godzina: {{time}}",
+      "upcomingInfoAmountLine": "Ilość: {{amount}}",
       "lowMedToday": "Kończy się lek: {{names}}",
       "lowMedSoon": "Wkrótce skończy się: {{name}}",
       "moodSaveError": "Nie udało się zapisać nastroju."

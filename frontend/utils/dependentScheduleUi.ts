@@ -9,7 +9,7 @@ import { seniorActivityNameForSchedule } from './seniorActivityLabel';
 export type DependentMainScheduleState =
   | { kind: 'empty' }
   | { kind: 'all_done' }
-  | { kind: 'upcoming'; nextTime: string; nextName: string; dose: string }
+  | { kind: 'upcoming'; scheduleId: string; nextTime: string; nextName: string; dose: string }
   | { kind: 'due'; scheduleId: string; name: string; dose: string; time: string }
   | { kind: 'missed'; scheduleId: string; name: string; dose: string; time: string };
 
@@ -103,6 +103,7 @@ export function computeDependentMainScheduleState(
   if (upcomingRow) {
     return {
       kind: 'upcoming',
+      scheduleId: upcomingRow.sch.id,
       nextTime: upcomingRow.sch.time,
       nextName: upcomingRow.name,
       dose: scheduleDose(upcomingRow.sch),
@@ -113,6 +114,7 @@ export function computeDependentMainScheduleState(
     const next = incomplete[0];
     return {
       kind: 'upcoming',
+      scheduleId: next.sch.id,
       nextTime: next.sch.time,
       nextName: next.name,
       dose: scheduleDose(next.sch),

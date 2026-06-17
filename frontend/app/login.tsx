@@ -551,7 +551,7 @@ const styles = StyleSheet.create({
   },
   formHeroImage: {
     width: Math.min(SCREEN_W - 48, 400),
-    height: Math.min(SCREEN_H * 0.24, 200),
+    height: Math.min(SCREEN_H * 0.18, 144),
     borderRadius: Theme.borderRadius.large,
     backgroundColor: 'transparent',
   },
