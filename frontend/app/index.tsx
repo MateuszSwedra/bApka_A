@@ -78,7 +78,10 @@ export default function IndexRouter() {
         }
 
         const storedRole = await getStoredRole();
-        const needsDisplayName = await readNeedsDisplayName();
+        const persistedNeedsDisplayName = await readNeedsDisplayName();
+        const missingDisplayNameFromProfile = !me?.name?.trim();
+        const needsDisplayName =
+          persistedNeedsDisplayName || missingDisplayNameFromProfile;
         const destination = await resolvePostAuthRoute(me, {
           needsDisplayName,
           storedRole,

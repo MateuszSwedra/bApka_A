@@ -147,7 +147,14 @@ export default function LoginScreen() {
         email: email.trim(),
         password,
       });
+      if (!response.user?.name?.trim()) {
+        await markNeedsDisplayName();
+      }
       await setUserSession(response.access_token, response.user.role);
+      if (!response.user?.name?.trim()) {
+        router.replace('/onboarding-name');
+        return;
+      }
     } catch (e) {
       const msg =
         e instanceof Error

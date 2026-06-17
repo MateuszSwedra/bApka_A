@@ -9,7 +9,6 @@ import { Theme } from '../../constants/theme';
 import {
   getGoogleAndroidClientId,
   getGoogleWebClientId,
-  getGoogleRedirectUri,
   isGoogleSignInConfigured,
 } from '../../constants/googleAuth';
 
@@ -26,27 +25,20 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
 
   const webClientId = getGoogleWebClientId();
   const androidClientId = getGoogleAndroidClientId();
-  const redirectUri = getGoogleRedirectUri();
 
   const googleConfig = useMemo(() => {
     if (Platform.OS === 'web') {
-      return { webClientId, redirectUri };
+      return { webClientId };
     }
     if (Platform.OS === 'android') {
-      return { webClientId, androidClientId, redirectUri };
+      return { webClientId, androidClientId };
     }
     return null;
-  }, [webClientId, androidClientId, redirectUri]);
+  }, [webClientId, androidClientId]);
 
   const [request, response, promptAsync] = Google.useAuthRequest(
     googleConfig ?? { webClientId: undefined },
   );
-
-  useEffect(() => {
-    if (__DEV__ && Platform.OS === 'web') {
-      console.info('[Google Auth] redirectUri for Google Cloud:', redirectUri);
-    }
-  }, [redirectUri]);
 
   useEffect(() => {
     if (response?.type !== 'success') return;
