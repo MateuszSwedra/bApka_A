@@ -246,12 +246,26 @@ export default function DependentDashboard() {
     [mainState, schedules, treatments, t],
   );
 
+  const currentScheduleId =
+    mainState.kind === 'due' || mainState.kind === 'missed' || mainState.kind === 'upcoming'
+      ? mainState.scheduleId
+      : null;
+  const currentActivityType = currentScheduleId
+    ? treatmentTypeForSchedule(currentScheduleId, schedules, treatments)
+    : null;
+  const showsDose = currentActivityType === 'MEDICATION';
+  const isCustomActivity = currentActivityType === 'CUSTOM';
+
   const medTitle = medActive ? actionTile.title : actionTile.idleTitle;
   const medLine1 =
     mainState.kind === 'due'
-      ? mainState.name
+      ? isCustomActivity
+        ? t('dependent.home.medAt', { time: mainState.time })
+        : mainState.name
       : mainState.kind === 'missed'
-        ? actionTile.lateLabel ?? mainState.name
+        ? isCustomActivity
+          ? actionTile.lateLabel ?? t('dependent.home.lateLabel')
+          : actionTile.lateLabel ?? mainState.name
         : mainState.kind === 'upcoming'
           ? t('dependent.home.medAt', { time: mainState.nextTime })
           : mainState.kind === 'all_done'
@@ -259,12 +273,25 @@ export default function DependentDashboard() {
             : t('dependent.home.medNoPlan');
   const medLine2 =
     mainState.kind === 'due'
-      ? mainState.dose
+      ? showsDose
+        ? mainState.dose
+        : ''
       : mainState.kind === 'missed'
-        ? `${mainState.name} · ${mainState.dose}`
+        ? showsDose
+          ? `${mainState.name} · ${mainState.dose}`
+          : ''
         : mainState.kind === 'upcoming'
-          ? `${mainState.nextName} · ${mainState.dose}`
+          ? showsDose
+            ? `${mainState.nextName} · ${mainState.dose}`
+            : mainState.nextName
           : '';
+
+  const medConfirmMessage =
+    mainState.kind === 'due' || mainState.kind === 'missed'
+      ? showsDose
+        ? t('dependent.home.confirmMed', { name: mainState.name, dose: mainState.dose })
+        : t('dependent.home.confirmMedGeneric')
+      : t('dependent.home.confirmMedGeneric');
 
   const moodCheckTime = moodCheckTimes[0] ?? '08:00';
 
@@ -279,11 +306,6 @@ export default function DependentDashboard() {
           : t('dependent.home.moodDisabled');
   const moodLine2 =
     moodEnabled && moodState.kind === 'active' ? moodCheckTime : null;
-
-  const medConfirmMessage =
-    mainState.kind === 'due' || mainState.kind === 'missed'
-      ? t('dependent.home.confirmMed', { name: mainState.name, dose: mainState.dose })
-      : t('dependent.home.confirmMedGeneric');
 
   const upcomingAmountText = useMemo(() => {
     if (mainState.kind !== 'upcoming') return null;
@@ -613,7 +635,7 @@ const styles = StyleSheet.create({
     width: '47%',
     minHeight: 200,
     borderRadius: Theme.borderRadius.xlarge,
-    padding: Theme.spacing.l,
+    padding: Theme.spacing.s,
     justifyContent: 'center',
     alignItems: 'center',
     gap: Theme.spacing.xs,

@@ -35,7 +35,10 @@ export function seniorActionTileContent(
   const typeKey = TYPE_KEY[activityType];
   const isLate = mainState.kind === 'missed';
 
-  const title = t(`dependent.home.action.${typeKey}.title`);
+  const title =
+    activityType === 'CUSTOM' && (mainState.kind === 'due' || mainState.kind === 'missed')
+      ? mainState.name
+      : t(`dependent.home.action.${typeKey}.title`);
   const lateLabel = isLate ? t('dependent.home.lateLabel') : undefined;
   const idleTitle = t(`dependent.home.action.${typeKey}.idle`);
 

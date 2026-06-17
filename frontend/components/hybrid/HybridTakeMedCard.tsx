@@ -6,6 +6,8 @@ import { Theme } from '../../constants/theme';
 import type { DependentMainScheduleState } from '../../utils/dependentScheduleUi';
 import type { ScheduleItem, Treatment } from '../../context/MedsContext';
 import { seniorActionTileContent } from '../../utils/seniorActionTile';
+import { treatmentTypeForSchedule } from '../../utils/scheduleTreatmentType';
+import { phoneIntactWordsTextProps } from '../../utils/phoneText';
 
 import type { SeniorSurfaceColors } from '../../context/DependentDisplayContext';
 
@@ -39,11 +41,24 @@ export function HybridTakeMedCard({
   );
 
   const title = active ? actionTile.title : t('hybrid.takeMedIdle');
+  const currentScheduleId =
+    mainState.kind === 'due' || mainState.kind === 'missed' || mainState.kind === 'upcoming'
+      ? mainState.scheduleId
+      : null;
+  const currentActivityType = currentScheduleId
+    ? treatmentTypeForSchedule(currentScheduleId, schedules, treatments)
+    : null;
+  const showsDose = currentActivityType === 'MEDICATION';
+  const isCustomActivity = currentActivityType === 'CUSTOM';
   const line1 =
     mainState.kind === 'due'
-      ? mainState.name
+      ? isCustomActivity
+        ? t('dependent.home.medAt', { time: mainState.time })
+        : mainState.name
       : mainState.kind === 'missed'
-        ? actionTile.lateLabel ?? mainState.name
+        ? isCustomActivity
+          ? actionTile.lateLabel ?? t('dependent.home.lateLabel')
+          : actionTile.lateLabel ?? mainState.name
         : mainState.kind === 'upcoming'
           ? t('dependent.home.medAt', { time: mainState.nextTime })
           : mainState.kind === 'all_done'
@@ -51,11 +66,17 @@ export function HybridTakeMedCard({
             : t('dependent.home.medNoPlan');
   const line2 =
     mainState.kind === 'due'
-      ? mainState.dose
+      ? showsDose
+        ? mainState.dose
+        : ''
       : mainState.kind === 'missed'
-        ? `${mainState.name} · ${mainState.dose}`
+        ? showsDose
+          ? `${mainState.name} · ${mainState.dose}`
+          : ''
         : mainState.kind === 'upcoming'
-          ? `${mainState.nextName} · ${mainState.dose}`
+          ? showsDose
+            ? `${mainState.nextName} · ${mainState.dose}`
+            : mainState.nextName
           : '';
 
   const activeAccent =
@@ -85,11 +106,22 @@ export function HybridTakeMedCard({
         size={40}
         color={active ? colors.surfaceWhite : colors.textLight}
       />
-      <Text style={[styles.title, { color: colors.textDark }, active && styles.titleActive]}>{title}</Text>
-      <Text style={[styles.line1, { color: colors.textLight }, active && styles.line1Active]}>{line1}</Text>
+      <Text
+        style={[styles.title, { color: colors.textDark }, active && styles.titleActive]}
+        {...phoneIntactWordsTextProps()}
+      >
+        {title}
+      </Text>
+      <Text
+        style={[styles.line1, { color: colors.textLight }, active && styles.line1Active]}
+        {...phoneIntactWordsTextProps()}
+      >
+        {line1}
+      </Text>
       {line2 ? (
         <Text
           style={[styles.line2, { color: colors.textLight }, active && styles.line2Active]}
+          {...phoneIntactWordsTextProps()}
           numberOfLines={1}
           ellipsizeMode="tail"
         >
