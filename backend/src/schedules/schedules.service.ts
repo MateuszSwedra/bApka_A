@@ -18,6 +18,22 @@ export class SchedulesService {
     private notifications: NotificationsService,
   ) {}
 
+  private async notifyDataChanged(
+    dependentId: string,
+    action: 'created' | 'updated' | 'deleted',
+    entityId?: string,
+  ): Promise<void> {
+    try {
+      await this.notifications.notifyDependentDataChanged(dependentId, {
+        entity: 'schedule',
+        action,
+        entityId,
+      });
+    } catch (error) {
+      console.warn('Nie udało się wysłać data_changed (schedule)', error);
+    }
+  }
+
   private scheduledAtToday(time: string | null | undefined): Date {
     if (time && /^\d{2}:\d{2}$/.test(time)) {
       return scheduledAtOnLocalDay(time);
@@ -26,7 +42,7 @@ export class SchedulesService {
   }
 
   async create(userId: string, data: any) {
-    return this.prisma.schedule.create({
+    const created = await this.prisma.schedule.create({
       data: {
         userId,
         createdById: data.createdById || null,
@@ -40,6 +56,8 @@ export class SchedulesService {
         daysOfWeek: data.daysOfWeek || [],
       },
     });
+    await this.notifyDataChanged(userId, 'created', created.id);
+    return created;
   }
 
   async findAll(userId: string) {
@@ -55,17 +73,27 @@ export class SchedulesService {
   }
 
   async update(id: string, data: any) {
-    return this.prisma.schedule.update({
+    const updated = await this.prisma.schedule.update({
       where: { id },
       data,
     });
+    await this.notifyDataChanged(updated.userId, 'updated', updated.id);
+    return updated;
   }
 
   async remove(id: string) {
+    const schedule = await this.prisma.schedule.findUnique({
+      where: { id },
+      select: { userId: true },
+    });
     await this.prisma.doseLog.deleteMany({ where: { scheduleId: id } });
-    return this.prisma.schedule.delete({
+    const deleted = await this.prisma.schedule.delete({
       where: { id },
     });
+    if (schedule?.userId) {
+      await this.notifyDataChanged(schedule.userId, 'deleted', id);
+    }
+    return deleted;
   }
 
   /** Zakres [początek dnia, początek następnego) dla yyyy-MM-dd z klienta (strefa APP_TIMEZONE). */

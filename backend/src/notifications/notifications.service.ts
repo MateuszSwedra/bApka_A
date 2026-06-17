@@ -388,6 +388,45 @@ export class NotificationsService {
     }
   }
 
+  /**
+   * Informuje seniora/hybrydę o zmianie danych (np. lek dodany przez opiekuna),
+   * aby aplikacja mogła natychmiast odświeżyć widoki.
+   */
+  async notifyDependentDataChanged(
+    dependentId: string,
+    payload?: {
+      entity?: 'inventory' | 'schedule';
+      action?: 'created' | 'updated' | 'deleted';
+      entityId?: string;
+    },
+  ): Promise<void> {
+    const dependent = await this.prisma.user.findUnique({
+      where: { id: dependentId },
+      select: { fcmToken: true, email: true },
+    });
+    const token = dependent?.fcmToken;
+    if (!token || !Expo.isExpoPushToken(token)) return;
+
+    await this.sendToTokens([token], {
+      title: 'Zaktualizowano plan aktywności',
+      body: 'Wykryto zmiany. Odświeżamy dane.',
+      sound: null,
+      priority: 'high',
+      channelId: EXPO_ANDROID_CHANNELS.MEDICATION,
+      data: {
+        type: 'data_changed',
+        dependentId,
+        entity: payload?.entity ?? '',
+        action: payload?.action ?? '',
+        entityId: payload?.entityId ?? '',
+      },
+    });
+
+    if (dependent?.email) {
+      this.logger.log(`Wysłano data_changed do ${dependent.email}`);
+    }
+  }
+
   private moodLabelPl(mood: string): string {    switch (mood) {
       case 'happy':
         return 'dobrze';

@@ -1,13 +1,33 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { calculateInventoryDepletion } from './inventory-depletion';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
+
+  private async notifyDataChanged(
+    dependentId: string,
+    action: 'created' | 'updated' | 'deleted',
+    entityId?: string,
+  ): Promise<void> {
+    try {
+      await this.notifications.notifyDependentDataChanged(dependentId, {
+        entity: 'inventory',
+        action,
+        entityId,
+      });
+    } catch (error) {
+      console.warn('Nie udało się wysłać data_changed (inventory)', error);
+    }
+  }
 
   async create(userId: string, data: any) {
-    return this.prisma.inventory.create({
+    const created = await this.prisma.inventory.create({
       data: {
         userId,
         name: data.name,
@@ -18,6 +38,8 @@ export class InventoryService {
         pillsPerDose: data.pillsPerDose ?? 1,
       },
     });
+    await this.notifyDataChanged(userId, 'created', created.id);
+    return created;
   }
 
   async findAll(userId: string) {
@@ -50,21 +72,24 @@ export class InventoryService {
         if (daysLeft > 7) reset.lowStockAlertSent = false;
         if (pillsLeft > 0) reset.emptyAlertSent = false;
         if (Object.keys(reset).length > 0) {
-          return this.prisma.inventory.update({
+          const resetUpdated = await this.prisma.inventory.update({
             where: { id },
             data: reset,
           });
+          await this.notifyDataChanged(resetUpdated.userId, 'updated', resetUpdated.id);
+          return resetUpdated;
         }
       }
     }
 
+    await this.notifyDataChanged(updated.userId, 'updated', updated.id);
     return updated;
   }
 
   async remove(id: string) {
     const item = await this.prisma.inventory.findUnique({
       where: { id },
-      select: { name: true },
+      select: { name: true, userId: true },
     });
     if (!item) {
       return this.prisma.inventory.delete({ where: { id } });
@@ -88,9 +113,11 @@ export class InventoryService {
         where: { id: { in: scheduleIds } },
       });
     }
-    return this.prisma.inventory.delete({
+    const deleted = await this.prisma.inventory.delete({
       where: { id },
     });
+    await this.notifyDataChanged(item.userId, 'deleted', id);
+    return deleted;
   }
   
   async calculateDepletion(id: string) {
