@@ -18,6 +18,9 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e:live:up": "docker compose -f ../docker-compose.e2e.yml up -d --wait",
+    "test:e2e:live:migrate": "node ./scripts/e2e-migrate.cjs",
+    "test:e2e:live": "npm run test:e2e:live:up && npm run test:e2e:live:migrate && jest --config ./test/e2e/jest-e2e-live.json --runInBand",
     "test:all": "npm run test && npm run test:e2e"
   },
   "dependencies": {

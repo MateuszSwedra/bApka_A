@@ -144,7 +144,7 @@ bApka_A/
 │   │   ├── cron/
 │   │   ├── iot/             # stub — integracja urządzeń w przygotowaniu
 │   │   └── common/          # timezone, access-control, …
-│   └── test/                # integration + e2e
+│   └── test/                # integration (mock) + e2e/ (live Postgres)
 ├── frontend/                # Expo app
 │   ├── app/
 │   │   ├── (caretaker)/
@@ -154,7 +154,8 @@ bApka_A/
 │   ├── context/
 │   ├── services/
 │   └── formal_files/        # regulamin / prywatność
-├── docker-compose.yml
+├── docker-compose.yml       # API + DB deweloperskie
+├── docker-compose.e2e.yml   # sam Postgres pod API e2e (:5434)
 ├── brandGuidelines.md       # UX / WCAG / Material
 └── README.md                # ten plik
 ```
@@ -292,15 +293,44 @@ Wszystkie wrażliwe endpointy wymagają JWT. Tworzenie/odczyt po `userId` — ty
 Z katalogu głównego:
 
 ```bash
-npm test                 # backend unit + frontend unit + backend e2e/integration
-npm run test:backend
+npm test                 # unit (backend + frontend) + mock HTTP integration
+npm run test:backend     # backend unit + mock e2e
 npm run test:frontend
+npm run test:e2e:live    # prawdziwe API e2e na Postgres — wymaga Dockera
 ```
 
-| Pakiet | Co pokrywa |
-|--------|------------|
-| `backend` | Serwisy, kontrolery, access-control, cron, integration HTTP (401/403) |
-| `frontend` | Helpery (PIN, kalendarz, i18n, insights, …) |
+| Warstwa | Skrypt | Opis |
+|---------|--------|------|
+| Unit backend | `cd backend && npm test` | Serwisy, kontrolery, access-control, cron (`src/**/*.spec.ts`) |
+| Unit frontend | `cd frontend && npm test` | Helpery (PIN, kalendarz, i18n, insights) — bez UI |
+| Integration (mock) | `cd backend && npm run test:e2e` | HTTP + Nest, **Prisma zmockowana** — bez Dockera, szybki smoke |
+| **E2E API (live)** | `npm run test:e2e:live` | Pełny `AppModule`, **prawdziwy JWT + Postgres** |
+
+Live e2e **nie** jest w domyślnym `npm test` (żeby lokalny przebieg nie wymagał Dockera).
+
+### API e2e na żywej bazie
+
+Izolowany Postgres (`docker-compose.e2e.yml`, kontener `bapka_db_e2e`, port **5434**), migracje Prisma, potem Jest (`backend/test/e2e/`).
+
+```bash
+npm run test:e2e:live
+# = docker compose up → migrate deploy → jest --config test/e2e/jest-e2e-live.json
+```
+
+| Plik | Rola |
+|------|------|
+| `backend/test/e2e/domain.e2e-spec.ts` | Scenariusz opieki end-to-end |
+| `backend/test/e2e/security.e2e-spec.ts` | Auth / IDOR / walidacja |
+| `backend/test/e2e/helpers/` | Boot aplikacji, reset DB (`TRUNCATE`), rejestracja JWT |
+
+**Scenariusz domenowy (`domain`):**  
+rejestracja CARETAKER + DEPENDENT → PIN pairing → dodanie leku i harmonogramu → lista schedule → oznaczenie dawki `TAKEN` → stats → usunięcie z apteczki (cascade) → SOS.
+
+**Scenariusze bezpieczeństwa (`security`):**  
+request bez tokena → 401/403; niesparowany opiekun nie tworzy schedule cudzego dependent → 403; usunięcie cudzego inventory → 403; złe `time` → 400.
+
+Cron i push (Expo/Firebase) są **stubowane** w teście — weryfikujemy kontrakt HTTP i zapis w bazie, nie dostarczanie powiadomień.  
+Szczegóły: [`backend/README.md`](backend/README.md).
 
 ---
 
@@ -335,7 +365,7 @@ Profile: `frontend/eas.json`. Package Android: `com.bapka.app`.
 **MVP — świadome ograniczenia**
 - Cron skanuje harmonogramy co minutę (OK na skalę studencką; przy wzroście — indeksy / selektywne zapytania)
 - Brak refresh-tokenów (krótki TTL JWT przez env)
-- Testy frontu to głównie unit helperów (bez pełnego E2E UI)
+- Testy frontu to unit helperów; e2e pokrywa **API** (live Postgres), nie UI mobilne (Maestro/Detox poza zakresem)
 
 **W przygotowaniu**
 - Moduł **IoT** (`backend/src/iot`) — integracja urządzeń; prace wkrótce

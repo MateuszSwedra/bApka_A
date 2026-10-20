@@ -76,16 +76,39 @@ Authorization: Bearer <access_token>
 - Odczyt/zapis po `userId` / id zasobu — **właściciel** albo **sparowany caretaker**  
 - Brak tokena → 401/403; cudzy zasób → **403**
 
-## Skrypty npm
+## Testy
 
-| Skrypt | Opis |
-|--------|------|
-| `npm run start:dev` | Watch + `prisma generate` |
-| `npm run build` / `start:prod` | Build produkcyjny |
-| `npm test` | Unit (`src/**/*.spec.ts`) |
-| `npm run test:e2e` | Integration + e2e (`test/`) |
-| `npm run test:all` | Unit + e2e |
-| `npm run lint` | ESLint |
+| Skrypt | Co robi | Wymaga Dockera? |
+|--------|---------|-----------------|
+| `npm test` | Unit (`src/**/*.spec.ts`) | nie |
+| `npm run test:e2e` | Integration HTTP, Prisma **mock** (`test/integration/`, `test/app.e2e-spec.ts`) | nie |
+| `npm run test:e2e:live` | API e2e na **prawdziwym** Postgresie | **tak** |
+| `npm run test:all` | Unit + mock e2e | nie |
+| `npm run lint` | ESLint | nie |
+
+### Live e2e (API + Postgres)
+
+Suite w `test/e2e/` startuje pełny Nest `AppModule` (prawdziwy JWT, bez nadpisywania `JwtAuthGuard`), łączy się z izolowaną bazą i czyści tabele przed każdym testem (`TRUNCATE … CASCADE`).
+
+```bash
+npm run test:e2e:live
+# kroki: test:e2e:live:up → test:e2e:live:migrate → Jest (runInBand)
+```
+
+| Element | Wartość |
+|---------|---------|
+| Compose | `../docker-compose.e2e.yml` → `bapka_db_e2e` |
+| Port / DB | `localhost:5434` / `bapka_e2e` |
+| Config Jest | `test/e2e/jest-e2e-live.json` |
+| Specs | `domain.e2e-spec.ts`, `security.e2e-spec.ts` |
+
+**`domain.e2e-spec.ts`** — jeden przepływ opieki: register (opiekun + podopieczny) → `generate-pin` / `pair-with-pin` → `POST inventory` + `POST schedules` → `GET schedules` → `PATCH …/mark` (TAKEN) → stats → `DELETE inventory` → `POST /users/me/sos` (+ lista SOS dla opiekuna).
+
+**`security.e2e-spec.ts`** — brak `Authorization`; niesparowany caretaker → 403 na schedule; cudze inventory → 403; niepoprawne `time` → 400.
+
+Powiadomienia (`NotificationsService` / Firebase) i `CronService` są **nadpisane stubami**, żeby test nie zależał od FCM ani od crona co minutę.
+
+Pozostałe skrypty: `start:dev`, `build`, `start:prod` — jak wcześniej.
 
 ## Statusy dawek
 
