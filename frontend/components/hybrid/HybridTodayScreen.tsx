@@ -73,7 +73,6 @@ export default function HybridTodayScreen() {
       setLogs(todayLogs);
       mergeDoseLogsIntoCompletionSets(todayLogs, todayStr, completed, missed);
     } catch {
-      /* ignore */
     }
     setCompletedIds(completed);
   }, [selfUserId, todayStr]);
@@ -85,7 +84,6 @@ export default function HybridTodayScreen() {
       setProfile(me);
       void applySeniorProfileSettings(me ?? {});
     } catch {
-      /* ignore */
     }
   }, [selfUserId]);
 

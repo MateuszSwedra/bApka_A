@@ -244,7 +244,12 @@ function scrollNativeTargetIntoView(
       );
     };
 
-    scrollView.measureInWindow((_x, _y, _w, scrollViewportHeight) => {
+    const measurable = scrollView as unknown as {
+      measureInWindow: (
+        callback: (x: number, y: number, w: number, h: number) => void,
+      ) => void;
+    };
+    measurable.measureInWindow((_x, _y, _w, scrollViewportHeight) => {
       runScroll(scrollViewportHeight);
     });
   });

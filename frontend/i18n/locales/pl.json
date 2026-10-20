@@ -822,7 +822,8 @@
     },
     "delete": {
       "title": "Usunąć aktywność?",
-      "message": "„{{name}}” zostanie usunięte wraz z powiązanym harmonogramem. Tej operacji nie można cofnąć."
+      "message": "„{{name}}” zostanie usunięte wraz z powiązanym harmonogramem. Tej operacji nie można cofnąć.",
+      "error": "Nie udało się usunąć pozycji z apteczki."
     },
     "type": {
       "medication": { "label": "Lek", "hint": "Tabletki, kapsułki itp.", "defaultName": "Lek" },

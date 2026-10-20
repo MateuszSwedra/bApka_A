@@ -12,6 +12,7 @@ export type PrismaMock = {
     deleteMany: jest.Mock;
     create: jest.Mock;
     findUnique: jest.Mock;
+    findFirst: jest.Mock;
     findMany: jest.Mock;
     update: jest.Mock;
   };

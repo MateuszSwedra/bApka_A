@@ -52,7 +52,6 @@ export function SimpleLineChart({ data, height = 200, strokeColor }: Props) {
   return (
     <View style={styles.wrap}>
       <Svg width={CHART_WIDTH} height={height}>
-        {/* x-axis */}
         <Line
           x1={PADDING_LEFT}
           y1={PADDING_TOP + plotHeight}
@@ -61,7 +60,6 @@ export function SimpleLineChart({ data, height = 200, strokeColor }: Props) {
           stroke={Theme.colors.border}
           strokeWidth={1}
         />
-        {/* y-axis ticks (0, 0.5, 1) */}
         {[0, 0.5, 1].map((v) => {
           const y = PADDING_TOP + (1 - v) * plotHeight;
           return (

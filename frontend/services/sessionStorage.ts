@@ -46,7 +46,6 @@ export async function clearSessionStorage(): Promise<void> {
     try {
       await SecureStore.deleteItemAsync(key);
     } catch {
-      /* ignore */
     }
   }
 }

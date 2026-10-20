@@ -24,15 +24,29 @@ describe('SchedulesController', () => {
     controller = module.get<SchedulesController>(SchedulesController);
   });
 
-  it('create passes userId from route', async () => {
+  it('create passes actor and userId from route', async () => {
     schedulesService.create.mockResolvedValue({ id: 's1' });
-    await controller.create('user-1', { time: '08:00' });
-    expect(schedulesService.create).toHaveBeenCalledWith('user-1', { time: '08:00' });
+    await controller.create(
+      { user: { userId: 'actor-1', email: 'a@b.pl', role: 'CARETAKER' } },
+      'user-1',
+      { time: '08:00' } as any,
+    );
+    expect(schedulesService.create).toHaveBeenCalledWith('actor-1', 'user-1', {
+      time: '08:00',
+    });
   });
 
-  it('markDose passes status', async () => {
+  it('markDose passes actor and status', async () => {
     schedulesService.markDose.mockResolvedValue({ status: 'TAKEN' });
-    await controller.markDose('sched-1', 'TAKEN');
-    expect(schedulesService.markDose).toHaveBeenCalledWith('sched-1', 'TAKEN');
+    await controller.markDose(
+      { user: { userId: 'actor-1', email: 'a@b.pl', role: 'DEPENDENT' } },
+      'sched-1',
+      { status: 'TAKEN' },
+    );
+    expect(schedulesService.markDose).toHaveBeenCalledWith(
+      'actor-1',
+      'sched-1',
+      'TAKEN',
+    );
   });
 });

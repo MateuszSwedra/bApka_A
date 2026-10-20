@@ -1,12 +1,12 @@
 import React, { useEffect, useRef } from 'react';
-import { View, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { useCaretakerGuidedTourOptional } from '../../context/CaretakerGuidedTourContext';
 import type { CaretakerTourStepId } from '../../services/caretakerTourState';
 
 type Props = {
   stepId: CaretakerTourStepId;
   children: React.ReactNode;
-  wrapStyle?: ViewStyle;
+  wrapStyle?: StyleProp<ViewStyle>;
 };
 
 /** Rejestruje element jako cel podświetlenia w guided tour (bez własnego overlay). */

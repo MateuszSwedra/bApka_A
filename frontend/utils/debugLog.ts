@@ -4,6 +4,4 @@ export function debugLog(
   _message: string,
   _data: Record<string, unknown>,
   _hypothesisId: string,
-): void {
-  // no-op
-}
+): void {}

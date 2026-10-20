@@ -34,7 +34,6 @@ const styles = StyleSheet.create({
     borderRadius: Theme.borderRadius.large,
     padding: Theme.spacing.l,
     marginVertical: Theme.spacing.s,
-    // Usunięto cienie na rzecz płaskiego wyglądu z obrazka
   },
   bordered: {
     borderWidth: 1,

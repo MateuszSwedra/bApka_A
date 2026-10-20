@@ -37,8 +37,6 @@ export function ScheduleFrequencyIllustration({ width = 240, height = 220 }: Pro
           strokeWidth={1.5}
           strokeDasharray="6 5"
         />
-
-        {/* Środek: rozgałęzienie harmonogramu (nie znak zapytania). */}
         <Circle cx={cx} cy={cy} r={34} fill={orange} />
         <Path
           d={`M${cx} ${cy - 14} V${cy + 6} M${cx - 12} ${cy + 6} H${cx + 12} M${cx - 12} ${cy + 6} V${cy + 14} M${cx + 12} ${cy + 6} V${cy + 14}`}
@@ -48,12 +46,8 @@ export function ScheduleFrequencyIllustration({ width = 240, height = 220 }: Pro
           strokeLinejoin="round"
           fill="none"
         />
-
-        {/* Jednorazowo - góra: pojedyncza kropka w pierścieniu */}
         <Circle cx={cx} cy={cy - orbitRy} r={22} fill={mint} opacity={0.95} />
         <Circle cx={cx} cy={cy - orbitRy} r={7} fill={navy} />
-
-        {/* Regularnie - prawo: strzałki cyklu */}
         <Circle cx={cx + orbitRx} cy={cy} r={22} fill={navy} opacity={0.92} />
         <Path
           d={`M${cx + orbitRx - 10} ${cy - 2} a10 10 0 1 1 8 -6`}
@@ -70,8 +64,6 @@ export function ScheduleFrequencyIllustration({ width = 240, height = 220 }: Pro
           strokeLinecap="round"
           strokeLinejoin="round"
         />
-
-        {/* Okres - lewy dół: pasek dat */}
         <Circle cx={cx - orbitRx * 0.78} cy={cy + orbitRy * 0.72} r={22} fill={orange} opacity={0.9} />
         <Rect
           x={cx - orbitRx * 0.78 - 11}

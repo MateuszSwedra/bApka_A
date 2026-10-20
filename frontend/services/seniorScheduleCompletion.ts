@@ -23,14 +23,12 @@ async function storageSet(key: string, value: string): Promise<void> {
     try {
       if (typeof localStorage !== 'undefined') localStorage.setItem(key, value);
     } catch {
-      /* ignore */
     }
     return;
   }
   try {
     await SecureStore.setItemAsync(key, value);
   } catch {
-    /* ignore */
   }
 }
 

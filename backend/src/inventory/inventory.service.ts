@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { calculateInventoryDepletion } from './inventory-depletion';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessControlService } from '../common/access-control.service';
+import { CreateInventoryDto } from './dto/create-inventory.dto';
+import { UpdateInventoryDto } from './dto/update-inventory.dto';
 
 @Injectable()
 export class InventoryService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private access: AccessControlService,
   ) {}
 
   private async notifyDataChanged(
@@ -26,7 +30,8 @@ export class InventoryService {
     }
   }
 
-  async create(userId: string, data: any) {
+  async create(actorId: string, userId: string, data: CreateInventoryDto) {
+    await this.access.assertCanAccessUser(actorId, userId);
     const created = await this.prisma.inventory.create({
       data: {
         userId,
@@ -42,19 +47,22 @@ export class InventoryService {
     return created;
   }
 
-  async findAll(userId: string) {
+  async findAll(actorId: string, userId: string) {
+    await this.access.assertCanAccessUser(actorId, userId);
     return this.prisma.inventory.findMany({
       where: { userId },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(actorId: string, id: string) {
+    await this.access.assertCanAccessInventory(actorId, id);
     return this.prisma.inventory.findUnique({
       where: { id },
     });
   }
 
-  async update(id: string, data: any) {
+  async update(actorId: string, id: string, data: UpdateInventoryDto) {
+    await this.access.assertCanAccessInventory(actorId, id);
     const updated = await this.prisma.inventory.update({
       where: { id },
       data,
@@ -86,13 +94,14 @@ export class InventoryService {
     return updated;
   }
 
-  async remove(id: string) {
+  async remove(actorId: string, id: string) {
+    await this.access.assertCanAccessInventory(actorId, id);
     const item = await this.prisma.inventory.findUnique({
       where: { id },
       select: { name: true, userId: true },
     });
     if (!item) {
-      return this.prisma.inventory.delete({ where: { id } });
+      throw new NotFoundException('Pozycja magazynu nie istnieje');
     }
 
     const schedules = await this.prisma.schedule.findMany({
@@ -120,7 +129,8 @@ export class InventoryService {
     return deleted;
   }
   
-  async calculateDepletion(id: string) {
+  async calculateDepletion(actorId: string, id: string) {
+    await this.access.assertCanAccessInventory(actorId, id);
     const inventory = await this.prisma.inventory.findUnique({
       where: { id },
       include: { schedules: true },

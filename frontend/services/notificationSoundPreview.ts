@@ -9,7 +9,6 @@ async function unloadPreview() {
     try {
       await previewSound.unloadAsync();
     } catch {
-      /* ignore */
     }
     previewSound = null;
   }
@@ -43,7 +42,6 @@ export async function previewNotificationAsset(asset: number | null): Promise<vo
     try {
       await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     } catch {
-      /* ignore */
     }
     return;
   }
@@ -67,7 +65,6 @@ export async function previewNotificationAsset(asset: number | null): Promise<vo
     try {
       await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     } catch {
-      /* ignore */
     }
     await unloadPreview();
   }

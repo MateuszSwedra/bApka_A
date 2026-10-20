@@ -180,6 +180,7 @@ describe('CronService', () => {
         'Jan',
         'Aspirin',
         'sched-1',
+        undefined,
       );
       expect(notifications.sendDoseMissedReminder).toHaveBeenCalledWith(
         'ExponentPushToken[xxxxxxxxxxxxxxxxxxxxxx]',

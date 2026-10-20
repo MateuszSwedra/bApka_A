@@ -15,6 +15,7 @@ export type PostAuthRoute =
   | '/onboarding-name'
   | '/enter-pin'
   | '/notification'
+  | '/notification?focus=fsi'
   | '/(caretaker)'
   | '/(dependent)'
   | '/(hybrid)/(tabs)'

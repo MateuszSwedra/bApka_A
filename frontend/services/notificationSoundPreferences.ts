@@ -26,14 +26,12 @@ async function storageSet(key: string, value: string): Promise<void> {
     try {
       localStorage.setItem(key, value);
     } catch {
-      /* ignore */
     }
     return;
   }
   try {
     await SecureStore.setItemAsync(key, value);
   } catch {
-    /* ignore */
   }
 }
 

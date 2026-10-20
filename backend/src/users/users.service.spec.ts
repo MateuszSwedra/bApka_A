@@ -3,6 +3,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessControlService } from '../common/access-control.service';
 import { createPrismaMock } from '../../test/helpers/prisma.mock';
 
 describe('UsersService', () => {
@@ -13,14 +14,21 @@ describe('UsersService', () => {
     notifySos: jest.fn(),
     notifyMood: jest.fn(),
   };
+  const access = {
+    assertCanAccessUser: jest.fn().mockResolvedValue(undefined),
+    assertCanAccessSchedule: jest.fn(),
+    assertCanAccessInventory: jest.fn(),
+  };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    access.assertCanAccessUser.mockResolvedValue(undefined);
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         UsersService,
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: notifications },
+        { provide: AccessControlService, useValue: access },
       ],
     }).compile();
     service = module.get<UsersService>(UsersService);

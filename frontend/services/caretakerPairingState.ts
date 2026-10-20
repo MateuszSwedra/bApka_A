@@ -15,7 +15,6 @@ export async function setRequiresCaretakerPairing(required: boolean): Promise<vo
     try {
       await SecureStore.deleteItemAsync(KEY);
     } catch {
-      /* ignore */
     }
   }
 }

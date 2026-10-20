@@ -1,50 +1,104 @@
-# Welcome to your Expo app 👋
+# bApka — frontend
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Aplikacja mobilna **Expo ~54 / React Native** (Expo Router). Perspektywy UI odpowiadają rolom backendu. Przegląd całego projektu: [../README.md](../README.md).
 
-## Get started
+## Perspektywy (`app/`)
 
-1. Install dependencies
+| Grupa tras | Rola | Charakter UI |
+|------------|------|----------------|
+| `(caretaker)/` | Opiekun | Dashboard, pairing, profil podopiecznego, terapie, insights |
+| `(dependent)/` | Podopieczny | Minimalizm seniora, duży przycisk dawki, SOS |
+| `(hybrid)/` | Senior samodzielny | Przycisk dawki + zarządzanie własnymi terapiami |
 
-   ```bash
-   npm install
-   ```
+Wspólne: onboarding, login, zgody, ustawienia powiadomień / dźwięków, `sos-alarm`.
 
-2. Start the app
+Wytyczne wizualne i a11y: [../brandGuidelines.md](../brandGuidelines.md).
 
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Setup
 
 ```bash
-npm run reset-project
+cp .env.example .env
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Dev client (natywny push / SOS / Notifee):
 
-## Learn more
+```bash
+npm run start:dev
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### Połączenie z API
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+| Środowisko | Przykładowe `EXPO_PUBLIC_API_URL` |
+|------------|----------------------------------|
+| Emulator Android | `http://10.0.2.2:3000` |
+| Telefon (LAN) | `http://192.168.x.x:3000` |
+| Web / ten sam host | `http://localhost:3000` |
 
-## Join the community
+Backend musi być uruchomiony (Docker lub `npm run start:dev` w `backend/`).
 
-Join our community of developers creating universal apps.
+### Google Sign-In (opcjonalnie)
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm run google:setup
+```
+
+Uzupełnij w `.env`:
+
+- `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`
+- `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` (APK)
+
+Te same Client ID po stronie backendu: `GOOGLE_CLIENT_ID`.
+
+## Zmienne środowiskowe
+
+| Zmienna | Opis |
+|---------|------|
+| `EXPO_PUBLIC_API_URL` | Bazowy URL Nest API |
+| `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` | OAuth web |
+| `EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID` | OAuth Android |
+| `EXPO_PUBLIC_EAS_PROJECT_ID` | Projekt EAS |
+| `EXPO_PUBLIC_DEV_SENIOR_PREVIEW` | Dev: podgląd UI seniora bez pełnego backendu |
+
+Szablon: `.env.example`.
+
+## Architektura frontu (skrót)
+
+```text
+app/           # Expo Router (file-based routes)
+components/    # UI: caretaker / senior / hybrid / insights
+context/       # Auth, Meds, toury, preferencje wyświetlania
+services/      # API client, session, push, SOS, i18n helpers
+locales/       # pl.json, en.json
+```
+
+Klient HTTP dołącza `Authorization: Bearer <token>` (sesja z Secure Store).
+
+## Build (EAS)
+
+Package Android: **`com.bapka.app`** (nie zmieniać po publikacji w Play).
+
+```bash
+npm run build:dev:android        # APK + development client
+npm run build:preview:android    # APK wewnętrzny
+npm run build:prod:android       # AAB produkcyjny
+npm run submit:android           # upload do Play (internal track)
+npm run credentials:android
+```
+
+Profile: [`eas.json`](eas.json). Wymagane: konto Expo, `google-services.json` (FCM) dla buildów z push/SOS.
+
+## Testy i jakość
+
+```bash
+npm test
+npm run test:cov
+npm run lint
+```
+
+Pokrycie: helpery (PIN, kalendarz, mood/insights charts, i18n parity, toury) — nie pełne E2E ekranów.
+
+## Prawne / formalne
+
+Teksty regulaminu i prywatności: `formal_files/` (PL + EN), ekrany `legal-terms` / `legal-privacy` w aplikacji.

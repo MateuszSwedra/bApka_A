@@ -1,8 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessControlService } from '../common/access-control.service';
 import { createPrismaMock } from '../../test/helpers/prisma.mock';
 
 describe('SchedulesService', () => {
@@ -13,15 +14,25 @@ describe('SchedulesService', () => {
     formatMedName: jest.fn().mockReturnValue('Aspirin'),
     notifyDoseTaken: jest.fn(),
     notifyDoseMissed: jest.fn(),
+    notifyDependentDataChanged: jest.fn(),
+    processInventoryAlerts: jest.fn(),
+  };
+  const access = {
+    assertCanAccessUser: jest.fn().mockResolvedValue(undefined),
+    assertCanAccessSchedule: jest.fn().mockResolvedValue({ userId: 'user-1' }),
+    assertCanAccessInventory: jest.fn().mockResolvedValue({ userId: 'user-1' }),
   };
 
   beforeEach(async () => {
     jest.clearAllMocks();
+    access.assertCanAccessUser.mockResolvedValue(undefined);
+    access.assertCanAccessSchedule.mockResolvedValue({ userId: 'user-1' });
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchedulesService,
         { provide: PrismaService, useValue: prisma },
         { provide: NotificationsService, useValue: notifications },
+        { provide: AccessControlService, useValue: access },
       ],
     }).compile();
     service = module.get<SchedulesService>(SchedulesService);
@@ -29,7 +40,11 @@ describe('SchedulesService', () => {
 
   it('create passes userId and defaults', async () => {
     prisma.schedule.create.mockResolvedValue({ id: 's1' });
-    await service.create('user-1', { time: '08:00', medication: 'Aspirin' });
+    await service.create('user-1', 'user-1', {
+      time: '08:00',
+      medication: 'Aspirin',
+    });
+    expect(access.assertCanAccessUser).toHaveBeenCalledWith('user-1', 'user-1');
     expect(prisma.schedule.create).toHaveBeenCalledWith({
       data: expect.objectContaining({
         userId: 'user-1',
@@ -42,10 +57,20 @@ describe('SchedulesService', () => {
     });
   });
 
+  it('create rejects when access denied', async () => {
+    access.assertCanAccessUser.mockRejectedValue(new ForbiddenException());
+    await expect(
+      service.create('stranger', 'user-1', { time: '08:00' }),
+    ).rejects.toThrow(ForbiddenException);
+    expect(prisma.schedule.create).not.toHaveBeenCalled();
+  });
+
   it('findAll filters by userId', async () => {
     prisma.schedule.findMany.mockResolvedValue([]);
-    await service.findAll('user-1');
-    expect(prisma.schedule.findMany).toHaveBeenCalledWith({ where: { userId: 'user-1' } });
+    await service.findAll('user-1', 'user-1');
+    expect(prisma.schedule.findMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1' },
+    });
   });
 
   describe('markDose', () => {
@@ -58,6 +83,7 @@ describe('SchedulesService', () => {
       scheduled.setSeconds(0, 0);
 
       prisma.doseLog.findFirst.mockResolvedValue({ id: 'log-1', scheduledAt: scheduled, status: 'PENDING' });
+      access.assertCanAccessSchedule.mockResolvedValue({ userId: 'dep-1' });
       prisma.schedule.findUnique.mockResolvedValue({
         id: 'sched-1',
         time,
@@ -66,7 +92,7 @@ describe('SchedulesService', () => {
       });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'TAKEN' });
 
-      await service.markDose('sched-1', 'TAKEN');
+      await service.markDose('dep-1', 'sched-1', 'TAKEN');
       expect(prisma.doseLog.update).toHaveBeenCalledWith({
         where: { id: 'log-1' },
         data: expect.objectContaining({
@@ -80,6 +106,7 @@ describe('SchedulesService', () => {
         'Aspirin',
         false,
         'sched-1',
+        undefined,
       );
     });
 
@@ -93,7 +120,7 @@ describe('SchedulesService', () => {
       });
       prisma.doseLog.create.mockResolvedValue({ id: 'log-new' });
 
-      await service.markDose('sched-1', 'MISSED');
+      await service.markDose('dep-1', 'sched-1', 'MISSED');
       expect(prisma.doseLog.create).toHaveBeenCalledWith({
         data: expect.objectContaining({
           scheduleId: 'sched-1',
@@ -106,6 +133,7 @@ describe('SchedulesService', () => {
         'Jan',
         'Aspirin',
         'sched-1',
+        undefined,
       );
     });
 
@@ -130,7 +158,7 @@ describe('SchedulesService', () => {
       });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-early', status: 'TAKEN' });
 
-      await service.markDose('sched-1', 'TAKEN');
+      await service.markDose('dep-1', 'sched-1', 'TAKEN');
       expect(prisma.doseLog.update).toHaveBeenCalledWith({
         where: { id: 'log-early' },
         data: expect.objectContaining({ status: 'TAKEN' }),
@@ -160,7 +188,7 @@ describe('SchedulesService', () => {
       });
       prisma.doseLog.update.mockResolvedValue({ id: 'log-1', status: 'LATE' });
 
-      await service.markDose('sched-1', 'TAKEN');
+      await service.markDose('dep-1', 'sched-1', 'TAKEN');
       expect(prisma.doseLog.update).toHaveBeenCalledWith({
         where: { id: 'log-1' },
         data: expect.objectContaining({ status: 'LATE' }),
@@ -172,7 +200,7 @@ describe('SchedulesService', () => {
 
   it('getTodayDoseLogs queries logs since midnight', async () => {
     prisma.doseLog.findMany.mockResolvedValue([]);
-    await service.getTodayDoseLogs('user-1');
+    await service.getTodayDoseLogs('user-1', 'user-1');
     expect(prisma.doseLog.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
@@ -183,9 +211,10 @@ describe('SchedulesService', () => {
   });
 
   it('remove deletes dose logs before schedule', async () => {
+    access.assertCanAccessSchedule.mockResolvedValue({ userId: 'user-1' });
     prisma.doseLog.deleteMany.mockResolvedValue({ count: 2 });
     prisma.schedule.delete.mockResolvedValue({ id: 's1' });
-    await service.remove('s1');
+    await service.remove('user-1', 's1');
     expect(prisma.doseLog.deleteMany).toHaveBeenCalledWith({
       where: { scheduleId: 's1' },
     });

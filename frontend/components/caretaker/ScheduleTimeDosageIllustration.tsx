@@ -21,7 +21,6 @@ export function ScheduleTimeDosageIllustration({ width = 240, height = 200 }: Pr
   return (
     <View style={styles.wrap} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={width} height={height} viewBox="0 0 240 200">
-        {/* Tarcza zegara */}
         <Circle cx={cx} cy={cy} r={52} fill="none" stroke={stroke} strokeWidth={2} />
         <Circle cx={cx} cy={cy} r={44} fill={mint} opacity={0.35} />
 
@@ -47,8 +46,6 @@ export function ScheduleTimeDosageIllustration({ width = 240, height = 200 }: Pr
             />
           );
         })}
-
-        {/* Wskazówki */}
         <Line
           x1={cx}
           y1={cy}
@@ -68,16 +65,12 @@ export function ScheduleTimeDosageIllustration({ width = 240, height = 200 }: Pr
           strokeLinecap="round"
         />
         <Circle cx={cx} cy={cy} r={5} fill={navy} />
-
-        {/* Kapsułka - dawka (tylko dekor) */}
         <Path
           d="M178 128 h34 a12 12 0 0 1 12 12 v4 a12 12 0 0 1 -12 12 h-34 a12 12 0 0 1 -12 -12 v-4 a12 12 0 0 1 12 -12 z"
           fill={orange}
           opacity={0.85}
         />
         <Line x1={192} y1={138} x2={204} y2={150} stroke="#FFFFFF" strokeWidth={2} strokeLinecap="round" />
-
-        {/* „08:30” stylizowane */}
         <Rect x={36} y={36} width={56} height={28} rx={8} fill={navy} opacity={0.12} />
         <Line x1={44} y1={52} x2={58} y2={52} stroke={navy} strokeWidth={2.5} strokeLinecap="round" />
         <Line x1={66} y1={48} x2={66} y2={56} stroke={orange} strokeWidth={2.5} strokeLinecap="round" />

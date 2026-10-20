@@ -818,7 +818,8 @@
     },
     "delete": {
       "title": "Remove activity?",
-      "message": "“{{name}}” will be removed along with its schedule. This cannot be undone."
+      "message": "“{{name}}” will be removed along with its schedule. This cannot be undone.",
+      "error": "Could not remove the item from the medicine cabinet."
     },
     "type": {
       "medication": { "label": "Medication", "hint": "Tablets, capsules, etc.", "defaultName": "Medication" },

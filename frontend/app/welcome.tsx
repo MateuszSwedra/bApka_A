@@ -323,7 +323,6 @@ export default function WelcomeScreen() {
         await SecureStore.setItemAsync('hasSeenWelcome', 'true');
       }
     } catch (e) {
-      // ignore
     }
     router.replace('/consents');
   };
@@ -368,7 +367,6 @@ export default function WelcomeScreen() {
           />
           <HexagonBorder size={HEX_SIZE} color={slide.accentColor} />
         </Animated.View>
-        {/* Delikatna „podstawka” tylko pod spodem heksa - nie nachodzi na wnetrze */}
         <View
           pointerEvents="none"
           style={[

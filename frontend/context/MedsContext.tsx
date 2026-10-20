@@ -72,7 +72,6 @@ export function normalizeScheduleType(raw?: string | null): MedScheduleType {
   return 'REGULAR';
 }
 
-// Wynik obliczeń algorytmu
 export interface DepletionAlert {
   date: string;
   inventoryItemName: string;

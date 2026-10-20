@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../../constants/theme';
 import { TREATMENT_TYPE_ORDER, TREATMENT_VISUAL } from '../../../../constants/treatmentVisuals';
@@ -19,6 +19,7 @@ import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
 import { CaretakerTourTarget } from '../../../../components/caretaker/CaretakerTourTarget';
 import { RestockMedicationSheet } from '../../../../components/caretaker/RestockMedicationSheet';
+import { confirmAction, showErrorAlert } from '../../../../utils/confirmAction';
 
 export default function DependentTreatmentsScreen() {
   const { t } = useTranslation();
@@ -52,18 +53,19 @@ export default function DependentTreatmentsScreen() {
   };
 
   const confirmRemoveTreatment = (item: Treatment) => {
-    Alert.alert(
-      t('treatment.delete.title'),
-      t('treatment.delete.message', { name: item.name }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => void removeTreatment(item.id, dependentId ?? undefined),
-        },
-      ],
-    );
+    confirmAction({
+      title: t('treatment.delete.title'),
+      message: t('treatment.delete.message', { name: item.name }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      onConfirm: async () => {
+        try {
+          await removeTreatment(item.id, dependentId ?? undefined);
+        } catch {
+          showErrorAlert(t('common.error'), t('treatment.delete.error'));
+        }
+      },
+    });
   };
 
   const grouped = TREATMENT_TYPE_ORDER.map(type => ({

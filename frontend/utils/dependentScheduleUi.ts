@@ -32,7 +32,6 @@ function labelForSchedule(sch: ScheduleItem, treatments: Treatment[]): string {
   return seniorActivityNameForSchedule(sch, treatments);
 }
 
-/** Today’s calendar entries sorted by time. */
 export function schedulesForDateSorted(
   schedules: ScheduleItem[],
   treatments: Treatment[],

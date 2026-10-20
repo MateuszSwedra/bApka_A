@@ -17,8 +17,9 @@ export function phoneIntactWordsTextProps(): Pick<
 /** Style pomocnicze dla etykiet na telefonie (np. kafelki seniora). */
 export function phoneIntactWordsStyle(): TextStyle {
   if (Platform.OS === 'web') return {};
+  // textBreakStrategy / lineBreakStrategyIOS are Text props; spreading into styles works at runtime.
   if (Platform.OS === 'android') {
-    return { textBreakStrategy: 'simple' };
+    return { textBreakStrategy: 'simple' } as TextStyle;
   }
-  return { lineBreakStrategyIOS: 'standard' };
+  return { lineBreakStrategyIOS: 'standard' } as TextStyle;
 }

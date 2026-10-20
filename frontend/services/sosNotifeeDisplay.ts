@@ -1,4 +1,4 @@
-import type { Notification } from 'expo-notifications';
+import type { Notification, NotificationContentInput } from 'expo-notifications';
 
 import { Platform } from 'react-native';
 
@@ -211,7 +211,8 @@ async function displaySosExpoFallback(params: SosDisplayParams): Promise<boolean
         body: params.body,
         sound: 'sos_alert',
         priority: Notifications.AndroidNotificationPriority.MAX,
-        channelId: SOS_ALARM_CHANNEL_ID,
+        // channelId is used at runtime on Android; types omit it from NotificationContentInput.
+        ...(Platform.OS === 'android' ? { channelId: SOS_ALARM_CHANNEL_ID } : {}),
         data: {
           type: 'sos',
           title: params.title,
@@ -220,7 +221,7 @@ async function displaySosExpoFallback(params: SosDisplayParams): Promise<boolean
           dependentName: params.dependentName ?? '',
           screen: 'sos-alarm',
         },
-      },
+      } as NotificationContentInput,
       trigger: null,
     });
     return true;

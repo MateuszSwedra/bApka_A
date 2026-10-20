@@ -50,7 +50,6 @@ export default function SosAlarmScreen() {
         await soundRef.current.stopAsync();
         await soundRef.current.unloadAsync();
       } catch {
-        /* ignore */
       }
       soundRef.current = null;
     }

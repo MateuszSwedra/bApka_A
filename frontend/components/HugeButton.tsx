@@ -24,7 +24,7 @@ export function HugeButton({ title, onPress, variant = 'primary', size = 'normal
   const getTextColor = () => {
     if (disabled) return Theme.colors.textLight;
     if (variant === 'outline') return Theme.colors.primaryLimeDark;
-    if (variant === 'success') return Theme.colors.textDark; // Ciemny napis na limonkowym tle
+    if (variant === 'success') return Theme.colors.textDark;
     return Theme.colors.surfaceWhite;
   };
 

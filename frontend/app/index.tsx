@@ -50,7 +50,6 @@ function routeToGuestOnboarding(hasSeenWelcome: boolean, hasSeenConsents: boolea
   }
 }
 
-// Punkt wejścia — sesja z tokenem ma pierwszeństwo przed ekranem powitalnym.
 export default function IndexRouter() {
   const { isReady } = useAuth();
 

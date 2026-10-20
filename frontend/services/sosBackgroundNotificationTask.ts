@@ -44,7 +44,6 @@ TaskManager.defineTask(SOS_BACKGROUND_NOTIFICATION_TASK, async ({ data, error })
       try {
         await Notifications.dismissNotificationAsync(notifId);
       } catch {
-        /* ignore */
       }
     }
   } catch (e) {

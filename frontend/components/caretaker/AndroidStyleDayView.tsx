@@ -302,7 +302,6 @@ export function AndroidStyleDayView({
             style={[styles.timeline, { height: timelineHeight }]}
             onLayout={onTimelineLayout}
           >
-            {/* Siatka godzin — tylko wizualna */}
             {Array.from({ length: HOURS }, (_, hour) => (
               <View
                 key={`grid-${hour}`}
@@ -313,8 +312,6 @@ export function AndroidStyleDayView({
                 <View style={styles.hourLine} />
               </View>
             ))}
-
-            {/* Strefy dotyku — dodawanie w pustym slocie */}
             {onSlotPress
               ? Array.from({ length: HOURS }, (_, hour) => {
                   const hourRowStyle: ViewStyle = {
@@ -352,7 +349,7 @@ export function AndroidStyleDayView({
                     </Pressable>
                   );
 
-                  if (isTourSlot) {
+                  if (isTourSlot && wrapTourTarget) {
                     return (
                       <React.Fragment key={`tour-hour-${hour}`}>
                         {wrapTourTarget(slotNode, {
@@ -368,8 +365,6 @@ export function AndroidStyleDayView({
                   return <React.Fragment key={`slot-${hour}`}>{slotNode}</React.Fragment>;
                 })
               : null}
-
-            {/* Wskaźnik „teraz” */}
             {nowLineTop != null ? (
               <View
                 pointerEvents="none"
@@ -379,8 +374,6 @@ export function AndroidStyleDayView({
                 <View style={styles.nowBar} />
               </View>
             ) : null}
-
-            {/* Wydarzenia na osi czasu */}
             <View
               style={[styles.eventsLayer, { height: timelineHeight }]}
               pointerEvents="box-none"
@@ -419,7 +412,7 @@ export function AndroidStyleDayView({
                   </Pressable>
                 );
 
-                if (isTourTarget) {
+                if (isTourTarget && wrapTourTarget) {
                   return (
                     <React.Fragment key={sch.id}>
                       {wrapTourTarget(eventNode, {

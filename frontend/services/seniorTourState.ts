@@ -99,7 +99,6 @@ async function deleteFlag(key: string): Promise<void> {
       await SecureStore.deleteItemAsync(key);
     }
   } catch {
-    /* ignore */
   }
 }
 
@@ -139,7 +138,6 @@ export async function resetSeniorTourState(): Promise<void> {
           await SecureStore.deleteItemAsync(key);
         }
       } catch {
-        /* ignore */
       }
     }),
   ]);

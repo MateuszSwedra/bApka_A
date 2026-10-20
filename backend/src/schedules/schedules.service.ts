@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessControlService } from '../common/access-control.service';
 import {
   formatLocalYmd,
   getLocalDayRange,
@@ -10,12 +11,15 @@ import { buildDoseStatsPayload } from './dose-stats.build';
 
 import { DOSE_CONFIRMATION_WINDOW_MINUTES } from '../common/dose-windows';
 import { isMedicationInventory } from '../inventory/inventory-depletion';
+import { CreateScheduleDto } from './dto/create-schedule.dto';
+import { UpdateScheduleDto } from './dto/update-schedule.dto';
 
 @Injectable()
 export class SchedulesService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private access: AccessControlService,
   ) {}
 
   private async notifyDataChanged(
@@ -41,16 +45,17 @@ export class SchedulesService {
     return scheduledAtOnLocalDay('00:00');
   }
 
-  async create(userId: string, data: any) {
+  async create(actorId: string, userId: string, data: CreateScheduleDto) {
+    await this.access.assertCanAccessUser(actorId, userId);
     const created = await this.prisma.schedule.create({
       data: {
         userId,
-        createdById: data.createdById || null,
+        createdById: data.createdById || actorId,
         inventoryId: data.inventoryId || null,
         medication: data.medication || null,
-        dosage: data.dosage || "1",
+        dosage: data.dosage || '1',
         time: data.time,
-        type: data.type || "DAILY",
+        type: data.type || 'DAILY',
         startDate: data.startDate || null,
         endDate: data.endDate || null,
         daysOfWeek: data.daysOfWeek || [],
@@ -60,19 +65,22 @@ export class SchedulesService {
     return created;
   }
 
-  async findAll(userId: string) {
+  async findAll(actorId: string, userId: string) {
+    await this.access.assertCanAccessUser(actorId, userId);
     return this.prisma.schedule.findMany({
       where: { userId },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(actorId: string, id: string) {
+    await this.access.assertCanAccessSchedule(actorId, id);
     return this.prisma.schedule.findUnique({
       where: { id },
     });
   }
 
-  async update(id: string, data: any) {
+  async update(actorId: string, id: string, data: UpdateScheduleDto) {
+    await this.access.assertCanAccessSchedule(actorId, id);
     const updated = await this.prisma.schedule.update({
       where: { id },
       data,
@@ -81,18 +89,13 @@ export class SchedulesService {
     return updated;
   }
 
-  async remove(id: string) {
-    const schedule = await this.prisma.schedule.findUnique({
-      where: { id },
-      select: { userId: true },
-    });
+  async remove(actorId: string, id: string) {
+    const schedule = await this.access.assertCanAccessSchedule(actorId, id);
     await this.prisma.doseLog.deleteMany({ where: { scheduleId: id } });
     const deleted = await this.prisma.schedule.delete({
       where: { id },
     });
-    if (schedule?.userId) {
-      await this.notifyDataChanged(schedule.userId, 'deleted', id);
-    }
+    await this.notifyDataChanged(schedule.userId, 'deleted', id);
     return deleted;
   }
 
@@ -101,7 +104,8 @@ export class SchedulesService {
     return getLocalDayRange(dateYmd);
   }
 
-  async getTodayDoseLogs(userId: string, dateYmd?: string) {
+  async getTodayDoseLogs(actorId: string, userId: string, dateYmd?: string) {
+    await this.access.assertCanAccessUser(actorId, userId);
     const { start, end } = this.calendarDayRange(dateYmd);
 
     return this.prisma.doseLog.findMany({
@@ -117,7 +121,8 @@ export class SchedulesService {
     });
   }
 
-  async getDoseStats(userId: string, from: Date, to: Date) {
+  async getDoseStats(actorId: string, userId: string, from: Date, to: Date) {
+    await this.access.assertCanAccessUser(actorId, userId);
     const [schedules, logs] = await Promise.all([
       this.prisma.schedule.findMany({
         where: { userId },
@@ -147,7 +152,9 @@ export class SchedulesService {
     };
   }
 
-  async markDose(scheduleId: string, status: 'TAKEN' | 'MISSED') {
+  async markDose(actorId: string, scheduleId: string, status: 'TAKEN' | 'MISSED') {
+    await this.access.assertCanAccessSchedule(actorId, scheduleId);
+
     const now = new Date();
     const todayYmd = formatLocalYmd(now);
     const { start, end } = this.calendarDayRange(todayYmd);
@@ -159,7 +166,10 @@ export class SchedulesService {
         inventory: { select: { name: true, type: true } },
       },
     });
-    const planned = this.scheduledAtToday(schedule?.time ?? undefined);
+    if (!schedule) {
+      throw new NotFoundException('Harmonogram nie istnieje');
+    }
+    const planned = this.scheduledAtToday(schedule.time ?? undefined);
 
     const existingLog = await this.prisma.doseLog.findFirst({
       where: {

@@ -93,6 +93,7 @@ export class UsersController {
   @Get(':id/moods')
   @ApiOperation({ summary: 'Get mood history for a user in given range' })
   getMoodHistory(
+    @Request() req: any,
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -102,11 +103,10 @@ export class UsersController {
     const start = from ? new Date(from) : new Date(end.getTime());
 
     if (!from) {
-      // domyślnie ostatnie 30 dni
       start.setDate(start.getDate() - 30);
     }
 
-    return this.usersService.getMoodHistory(id, start, end);
+    return this.usersService.getMoodHistory(req.user.userId, id, start, end);
   }
 
   @Post('me/sos')
@@ -119,6 +119,7 @@ export class UsersController {
   @Get(':id/sos')
   @ApiOperation({ summary: 'List SOS events in range' })
   listSos(
+    @Request() req: any,
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -127,7 +128,7 @@ export class UsersController {
     const end = to ? new Date(to) : now;
     const start = from ? new Date(from) : new Date(end.getTime());
     if (!from) start.setDate(start.getDate() - 30);
-    return this.usersService.listSosLogs(id, start, end);
+    return this.usersService.listSosLogs(req.user.userId, id, start, end);
   }
 
   @Post('me/metrics')
@@ -140,6 +141,7 @@ export class UsersController {
   @Get(':id/metrics')
   @ApiOperation({ summary: 'List health metrics in range' })
   listMetrics(
+    @Request() req: any,
     @Param('id') id: string,
     @Query('from') from?: string,
     @Query('to') to?: string,
@@ -149,7 +151,7 @@ export class UsersController {
     const end = to ? new Date(to) : now;
     const start = from ? new Date(from) : new Date(end.getTime());
     if (!from) start.setDate(start.getDate() - 30);
-    return this.usersService.listHealthMetricLogs(id, start, end, type);
+    return this.usersService.listHealthMetricLogs(req.user.userId, id, start, end, type);
   }
 
   /** POST na tę samą ścieżkę co PATCH - niektóre wdrożenia / cache miały tylko PATCH. */

@@ -10,18 +10,20 @@ import { IotModule } from './iot/iot.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { CronModule } from './cron/cron.module';
+import { AccessControlModule } from './common/access-control.module';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    PrismaModule, 
-    AuthModule, 
-    UsersModule, 
-    SchedulesModule, 
-    NotificationsModule, 
+    PrismaModule,
+    AccessControlModule,
+    AuthModule,
+    UsersModule,
+    SchedulesModule,
+    NotificationsModule,
     IotModule,
     InventoryModule,
-    CronModule
+    CronModule,
   ],
   controllers: [AppController],
   providers: [AppService],

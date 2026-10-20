@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable, Alert } from 'react-native';
+import { View, Text, StyleSheet, Pressable } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { useDependentDisplay } from '../../../context/DependentDisplayContext';
@@ -19,6 +19,7 @@ import {
   CaretakerTourScrollProvider,
   CaretakerTourScrollView,
 } from '../../../context/CaretakerTourScrollContext';
+import { confirmAction, showErrorAlert } from '../../../utils/confirmAction';
 
 export default function HybridTreatmentsScreen() {
   const { t } = useTranslation();
@@ -53,18 +54,19 @@ export default function HybridTreatmentsScreen() {
   };
 
   const confirmRemoveTreatment = (item: Treatment) => {
-    Alert.alert(
-      t('treatment.delete.title'),
-      t('treatment.delete.message', { name: item.name }),
-      [
-        { text: t('common.cancel'), style: 'cancel' },
-        {
-          text: t('common.delete'),
-          style: 'destructive',
-          onPress: () => void removeTreatment(item.id, selfUserId ?? undefined),
-        },
-      ],
-    );
+    confirmAction({
+      title: t('treatment.delete.title'),
+      message: t('treatment.delete.message', { name: item.name }),
+      confirmLabel: t('common.delete'),
+      cancelLabel: t('common.cancel'),
+      onConfirm: async () => {
+        try {
+          await removeTreatment(item.id, selfUserId ?? undefined);
+        } catch {
+          showErrorAlert(t('common.error'), t('treatment.delete.error'));
+        }
+      },
+    });
   };
 
   return (

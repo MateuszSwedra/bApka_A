@@ -19,7 +19,6 @@ export function ScheduleTimingIllustration({ width = 240, height = 200 }: Props)
   return (
     <View style={styles.wrap} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
       <Svg width={width} height={height} viewBox="0 0 240 200">
-        {/* Kalendarzyk */}
         <Rect x={32} y={42} width={108} height={118} rx={14} fill="none" stroke={stroke} strokeWidth={2} />
         <Rect x={32} y={42} width={108} height={28} rx={14} fill={navy} />
         <Rect x={32} y={58} width={108} height={12} fill={navy} />
@@ -29,8 +28,6 @@ export function ScheduleTimingIllustration({ width = 240, height = 200 }: Props)
         ))}
         <Circle cx={108} cy={114} r={9} fill={orange} />
         <Circle cx={108} cy={114} r={4} fill="#FFFFFF" />
-
-        {/* Pigułka (kapsułka) */}
         <Path
           d="M158 78 h44 a16 16 0 0 1 16 16 v8 a16 16 0 0 1 -16 16 h-44 a16 16 0 0 1 -16 -16 v-8 a16 16 0 0 1 16 -16 z"
           fill={mint}
@@ -38,8 +35,6 @@ export function ScheduleTimingIllustration({ width = 240, height = 200 }: Props)
           strokeWidth={2}
         />
         <Line x1={178} y1={94} x2={198} y2={110} stroke="#FFFFFF" strokeWidth={2.5} strokeLinecap="round" />
-
-        {/* Łącznik */}
         <Path
           d="M142 108 Q158 98 168 102"
           stroke={orange}
@@ -48,8 +43,6 @@ export function ScheduleTimingIllustration({ width = 240, height = 200 }: Props)
           strokeLinecap="round"
           strokeDasharray="4 3"
         />
-
-        {/* Zegar - subtelny akcent */}
         <Circle cx={188} cy={152} r={16} fill="none" stroke={navy} strokeWidth={1.5} />
         <Line x1={188} y1={152} x2={188} y2={142} stroke={navy} strokeWidth={2} strokeLinecap="round" />
         <Line x1={188} y1={152} x2={196} y2={156} stroke={orange} strokeWidth={2} strokeLinecap="round" />

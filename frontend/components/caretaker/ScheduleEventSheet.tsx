@@ -50,6 +50,8 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
   const [minute, setMinute] = useState(0);
   const [dosage, setDosage] = useState('1');
   const [saving, setSaving] = useState(false);
+  /** Inline confirm — Alert.alert z przyciskami nie działa na webie (i bywa zablokowany pod Modal). */
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   const treatmentType = useMemo(() => {
     if (!schedule) return null;
@@ -71,7 +73,12 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
     setHour(h);
     setMinute(m);
     setDosage(schedule.dosage ?? '1');
+    setConfirmDelete(false);
   }, [schedule]);
+
+  useEffect(() => {
+    if (!visible) setConfirmDelete(false);
+  }, [visible]);
 
   const handleSave = useCallback(async () => {
     if (!schedule) return;
@@ -95,29 +102,39 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
     }
   }, [schedule, hour, minute, dosage, showsDosage, updateSchedule, onClose, t, scheduleDateYmd]);
 
-  const handleDelete = useCallback(() => {
+  const showError = useCallback(
+    (message: string) => {
+      if (Platform.OS === 'web') {
+        window.alert(`${t('common.error')}: ${message}`);
+      } else {
+        Alert.alert(t('common.error'), message);
+      }
+    },
+    [t],
+  );
+
+  const performDelete = useCallback(async () => {
     if (!schedule) return;
-    Alert.alert(t('calendar.deleteConfirmTitle'), t('calendar.deleteConfirmMessage'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: () => {
-          void (async () => {
-            setSaving(true);
-            try {
-              await removeSchedule(schedule.id);
-              onClose();
-            } catch {
-              Alert.alert(t('common.error'), t('calendar.errorDelete'));
-            } finally {
-              setSaving(false);
-            }
-          })();
-        },
-      },
-    ]);
-  }, [schedule, removeSchedule, onClose, t]);
+    setSaving(true);
+    try {
+      await removeSchedule(schedule.id);
+      setConfirmDelete(false);
+      onClose();
+    } catch {
+      showError(t('calendar.errorDelete'));
+    } finally {
+      setSaving(false);
+    }
+  }, [schedule, removeSchedule, onClose, showError, t]);
+
+  const handleDeletePress = useCallback(() => {
+    if (!schedule || saving) return;
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      return;
+    }
+    void performDelete();
+  }, [schedule, saving, confirmDelete, performDelete]);
 
   if (!schedule) return null;
 
@@ -172,21 +189,60 @@ export function ScheduleEventSheet({ schedule, label, visible, onClose }: Props)
         </ScrollView>
 
         <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, Theme.spacing.m) }]}>
+          {confirmDelete ? (
+            <Text style={styles.confirmHint}>{t('calendar.deleteConfirmMessage')}</Text>
+          ) : null}
           <Pressable
-            style={[styles.btn, styles.btnPrimary]}
+            style={[styles.btn, styles.btnPrimary, confirmDelete && styles.btnMuted]}
             onPress={() => void handleSave()}
-            disabled={saving}
+            disabled={saving || confirmDelete}
           >
-            {saving ? (
+            {saving && !confirmDelete ? (
               <ActivityIndicator color={Theme.colors.surfaceWhite} />
             ) : (
               <Text style={styles.btnPrimaryText}>{t('common.save')}</Text>
             )}
           </Pressable>
-          <Pressable style={[styles.btn, styles.btnDanger]} onPress={handleDelete} disabled={saving}>
-            <MaterialIcons name="delete-outline" size={22} color="#B91C1C" />
-            <Text style={styles.btnDangerText}>{t('common.delete')}</Text>
-          </Pressable>
+          {confirmDelete ? (
+            <View style={styles.confirmRow}>
+              <Pressable
+                style={[styles.btn, styles.btnSecondary, styles.confirmBtn]}
+                onPress={() => setConfirmDelete(false)}
+                disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.cancel')}
+              >
+                <Text style={styles.btnSecondaryText}>{t('common.cancel')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.btn, styles.btnDangerSolid, styles.confirmBtn]}
+                onPress={handleDeletePress}
+                disabled={saving}
+                accessibilityRole="button"
+                accessibilityLabel={t('common.delete')}
+              >
+                {saving ? (
+                  <ActivityIndicator color={Theme.colors.surfaceWhite} />
+                ) : (
+                  <>
+                    <MaterialIcons name="delete-outline" size={22} color={Theme.colors.surfaceWhite} />
+                    <Text style={styles.btnDangerSolidText}>{t('common.delete')}</Text>
+                  </>
+                )}
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable
+              style={[styles.btn, styles.btnDanger]}
+              onPress={handleDeletePress}
+              disabled={saving}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.delete')}
+            >
+              <MaterialIcons name="delete-outline" size={22} color="#B91C1C" />
+              <Text style={styles.btnDangerText}>{t('common.delete')}</Text>
+            </Pressable>
+          )}
         </View>
       </KeyboardAvoidingView>
     </Modal>
@@ -263,6 +319,40 @@ const styles = StyleSheet.create({
   },
   btnDangerText: {
     color: '#B91C1C',
+    fontWeight: '700',
+  },
+  btnMuted: {
+    opacity: 0.45,
+  },
+  confirmHint: {
+    textAlign: 'center',
+    color: Theme.colors.textLight,
+    fontSize: Theme.typography.caption,
+    marginBottom: Theme.spacing.xs,
+    paddingHorizontal: Theme.spacing.s,
+  },
+  confirmRow: {
+    flexDirection: 'row',
+    gap: Theme.spacing.s,
+  },
+  confirmBtn: {
+    flex: 1,
+  },
+  btnSecondary: {
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+  },
+  btnSecondaryText: {
+    color: Theme.colors.textDark,
+    fontWeight: '700',
+    fontSize: Theme.typography.body,
+  },
+  btnDangerSolid: {
+    backgroundColor: '#B91C1C',
+  },
+  btnDangerSolidText: {
+    color: Theme.colors.surfaceWhite,
     fontWeight: '700',
   },
 });

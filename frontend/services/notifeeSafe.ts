@@ -31,6 +31,5 @@ export async function cancelAllNotifeeNotifications(): Promise<void> {
   try {
     await mod.default.cancelAllNotifications();
   } catch {
-    /* ignore */
   }
 }

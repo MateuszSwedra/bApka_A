@@ -62,7 +62,7 @@ export async function openFullScreenIntentSettings(): Promise<void> {
   try {
     await Linking.openSettings();
   } catch {
-    /* ignore */
+    
   }
 }
 

@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     color: Theme.colors.textLight,
   },
   errorText: {
-    color: Theme.colors.error || '#b00020',
+    color: '#b00020',
     marginVertical: Theme.spacing.m,
   },
   card: {

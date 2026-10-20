@@ -7,12 +7,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { Role } from '@prisma/client';
 import { NotificationsService } from '../notifications/notifications.service';
+import { AccessControlService } from '../common/access-control.service';
 
 @Injectable()
 export class UsersService {
   constructor(
     private prisma: PrismaService,
     private notifications: NotificationsService,
+    private access: AccessControlService,
   ) {}
 
   async createSosLog(userId: string, note?: string) {
@@ -41,7 +43,8 @@ export class UsersService {
     return log;
   }
 
-  async listSosLogs(userId: string, from: Date, to: Date) {
+  async listSosLogs(actorId: string, userId: string, from: Date, to: Date) {
+    await this.access.assertCanAccessUser(actorId, userId);
     return this.prisma.sosLog.findMany({
       where: {
         userId,
@@ -90,11 +93,13 @@ export class UsersService {
   }
 
   async listHealthMetricLogs(
+    actorId: string,
     userId: string,
     from: Date,
     to: Date,
     type?: string,
   ) {
+    await this.access.assertCanAccessUser(actorId, userId);
     const where: any = {
       userId,
       measuredAt: { gte: from, lt: to },
@@ -187,7 +192,6 @@ export class UsersService {
   }
 
   async generatePin(caretakerId: string) {
-    // Usunięcie starych, niesparowanych połączeń dla tego opiekuna
     await this.prisma.connection.deleteMany({
       where: {
         caretakerId,
@@ -195,7 +199,6 @@ export class UsersService {
       }
     });
 
-    // Generowanie 6-cyfrowego kodu
     const pin = Math.floor(100000 + Math.random() * 900000).toString();
 
     const connection = await this.prisma.connection.create({
@@ -231,7 +234,7 @@ export class UsersService {
       data: {
         dependentId: dependent.id,
         isPaired: true,
-        pin: null // Clear the pin after successful pairing
+        pin: null
       }
     });
   }
@@ -407,7 +410,8 @@ export class UsersService {
     return this.updateSettings(dependentId, body);
   }
 
-  async getMoodHistory(userId: string, from: Date, to: Date) {
+  async getMoodHistory(actorId: string, userId: string, from: Date, to: Date) {
+    await this.access.assertCanAccessUser(actorId, userId);
     const logs = await this.prisma.moodLog.findMany({
       where: {
         userId,
