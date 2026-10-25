@@ -352,10 +352,11 @@ Profile: `frontend/eas.json`. Package Android: `com.bapka.app`.
 
 | Plik | Treść |
 |------|--------|
+| [`PLAY_HANDOFF.md`](PLAY_HANDOFF.md) | **Oddanie koledze / Internal testing — checklista** |
+| [`store/`](store/) | Listing, Data safety, grafiki, HTML legal (do hostingu) |
 | [`brandGuidelines.md`](brandGuidelines.md) | UX seniora, WCAG, Material Design 3 |
 | [`backend/README.md`](backend/README.md) | API, migracje, env backendu |
 | [`frontend/README.md`](frontend/README.md) | Expo, EAS, env frontendu |
-| `frontend/formal_files/` | Regulamin i polityka prywatności (PL/EN) |
 | `Notka_prawna.txt` | Porozumienie współautorów |
 
 ---

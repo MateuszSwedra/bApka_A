@@ -101,4 +101,6 @@ Pokrycie: helpery (PIN, kalendarz, mood/insights charts, i18n parity, toury) —
 
 ## Prawne / formalne
 
-Teksty regulaminu i prywatności: `formal_files/` (PL + EN), ekrany `legal-terms` / `legal-privacy` w aplikacji.
+- W aplikacji: ekrany `legal-terms` / `legal-privacy` + `app/consents.tsx`
+- Do hostingu (Play Console URL): [`../store/legal/`](../store/legal/)
+- Handoff Internal testing: [`../PLAY_HANDOFF.md`](../PLAY_HANDOFF.md)
