@@ -46,6 +46,7 @@ describe('UsersService', () => {
         email: 'a@b.com',
         name: 'Jan',
         role: 'DEPENDENT',
+        roleSelected: true,
         moodEnabled: true,
         fcmToken: null,
       });

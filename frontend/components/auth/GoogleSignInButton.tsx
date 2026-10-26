@@ -2,7 +2,7 @@ import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { Pressable, Text, StyleSheet, Platform, ActivityIndicator, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
-import { ResponseType, type AuthSessionResult } from 'expo-auth-session';
+import { type AuthSessionResult } from 'expo-auth-session';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { OnboardingPalette } from '../../constants/onboardingTheme';
@@ -38,8 +38,8 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
 
   const googleConfig = useMemo(() => {
     const base = {
-      responseType: ResponseType.IdToken,
       scopes: ['openid', 'profile', 'email'],
+      selectAccount: true,
     };
     if (Platform.OS === 'web') {
       return { ...base, webClientId };
@@ -50,7 +50,8 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
     return null;
   }, [webClientId, androidClientId]);
 
-  const [request, response, promptAsync] = Google.useAuthRequest(
+  // useIdTokenAuthRequest — dedykowany flow pod id_token (Firebase/backend verify).
+  const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     googleConfig ?? { webClientId: undefined },
   );
 
@@ -63,8 +64,18 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
 
   const handlePress = useCallback(() => {
     handledRef.current = null;
-    void promptAsync({ showInRecents: true });
-  }, [promptAsync]);
+    // Na web unikamy zbędnego pollingu window.closed (COOP warning) — pełny redirect.
+    void promptAsync(
+      Platform.OS === 'web'
+        ? { showInRecents: false, windowName: '_self' }
+        : { showInRecents: true },
+    ).then((result) => {
+      const idToken = extractIdToken(result);
+      if (!idToken || handledRef.current === idToken) return;
+      handledRef.current = idToken;
+      void onIdToken(idToken);
+    });
+  }, [promptAsync, onIdToken]);
 
   if (!isGoogleSignInConfigured() || !googleConfig) {
     return null;

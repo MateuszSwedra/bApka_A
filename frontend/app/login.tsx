@@ -103,50 +103,18 @@ export default function LoginScreen() {
     setPasswordRepeat('');
   }, []);
 
-  const markNeedsDisplayName = async () => {
-    if (Platform.OS === 'web') {
-      localStorage.setItem('needsDisplayName', 'true');
-    } else {
-      await SecureStore.setItemAsync('needsDisplayName', 'true');
-    }
-  };
-
   const handleGoogleIdToken = useCallback(
     async (idToken: string) => {
       setLoading('login');
       try {
         const response = await authAPI.loginGoogle(idToken);
-        const isNewUser = response.isNewUser === true;
-        const needsName = !response.user?.name?.trim();
-
-        // Nowe konto Google = jak register: bez roli w sesji → onboarding / wybór roli (nie PIN seniora).
-        if (isNewUser) {
-          const { resetCaretakerTourState } = await import('../services/caretakerTourState');
-          const { resetSeniorTourState } = await import('../services/seniorTourState');
-          await resetCaretakerTourState();
-          await resetSeniorTourState();
-          if (Platform.OS === 'web') {
-            localStorage.setItem('userToken', response.access_token);
-            localStorage.removeItem('userRole');
-            if (needsName) localStorage.setItem('needsDisplayName', 'true');
-            else localStorage.removeItem('needsDisplayName');
-          } else {
-            await SecureStore.setItemAsync('userToken', response.access_token);
-            await SecureStore.deleteItemAsync('userRole');
-            if (needsName) await SecureStore.setItemAsync('needsDisplayName', 'true');
-            else await SecureStore.deleteItemAsync('needsDisplayName');
-          }
-          router.replace(needsName ? '/onboarding-name' : '/role-selection');
-          return;
-        }
-
-        if (needsName) {
-          await markNeedsDisplayName();
-        }
-        await setUserSession(response.access_token, response.user.role);
-        if (needsName) {
-          router.replace('/onboarding-name');
-        }
+        const { finishAuthSession } = await import('../services/finishAuthSession');
+        await finishAuthSession({
+          accessToken: response.access_token,
+          user: response.user ?? {},
+          setUserSession,
+          resetTours: response.isNewUser === true || response.user?.roleSelected === false,
+        });
       } catch (e) {
         const msg =
           e instanceof Error ? e.message : t('auth.google.errorFallback');
@@ -170,14 +138,13 @@ export default function LoginScreen() {
         email: email.trim(),
         password,
       });
-      if (!response.user?.name?.trim()) {
-        await markNeedsDisplayName();
-      }
-      await setUserSession(response.access_token, response.user.role);
-      if (!response.user?.name?.trim()) {
-        router.replace('/onboarding-name');
-        return;
-      }
+      const { finishAuthSession } = await import('../services/finishAuthSession');
+      await finishAuthSession({
+        accessToken: response.access_token,
+        user: response.user ?? {},
+        setUserSession,
+        resetTours: response.user?.roleSelected === false,
+      });
     } catch (e) {
       const msg =
         e instanceof Error
@@ -207,20 +174,13 @@ export default function LoginScreen() {
     setLoading('register');
     try {
       const response = await authAPI.register({ email: em, password });
-      const { resetCaretakerTourState } = await import('../services/caretakerTourState');
-      const { resetSeniorTourState } = await import('../services/seniorTourState');
-      await resetCaretakerTourState();
-      await resetSeniorTourState();
-      if (Platform.OS === 'web') {
-        localStorage.setItem('userToken', response.access_token);
-        localStorage.removeItem('userRole');
-        localStorage.setItem('needsDisplayName', 'true');
-      } else {
-        await SecureStore.setItemAsync('userToken', response.access_token);
-        await SecureStore.deleteItemAsync('userRole');
-        await SecureStore.setItemAsync('needsDisplayName', 'true');
-      }
-      router.replace('/onboarding-name');
+      const { finishAuthSession } = await import('../services/finishAuthSession');
+      await finishAuthSession({
+        accessToken: response.access_token,
+        user: { ...(response.user ?? {}), roleSelected: false },
+        setUserSession,
+        resetTours: true,
+      });
     } catch (e) {
       const msg =
         e instanceof Error

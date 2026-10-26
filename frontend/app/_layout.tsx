@@ -23,6 +23,7 @@ import * as SystemUI from 'expo-system-ui';
 import { Theme } from '../constants/theme';
 import { ANDROID_NAV_BAR_COLOR } from '../utils/safeAreaInsets';
 
+if (Platform.OS !== 'web') {
 Notifications.setNotificationHandler({
   handleNotification: async (notification) => {
     const data = notification.request.content.data as Record<string, unknown> | undefined;
@@ -58,6 +59,7 @@ Notifications.setNotificationHandler({
     };
   },
 });
+}
 
 function SosAlarmBootstrap() {
   useEffect(() => {

@@ -30,10 +30,19 @@ export async function persistSession(token: string, role?: string | null): Promi
   if (Platform.OS === 'web') {
     localStorage.setItem(TOKEN_KEY, token);
     if (role) localStorage.setItem(ROLE_KEY, role);
+    else localStorage.removeItem(ROLE_KEY);
     return;
   }
   await SecureStore.setItemAsync(TOKEN_KEY, token);
-  if (role) await SecureStore.setItemAsync(ROLE_KEY, role);
+  if (role) {
+    await SecureStore.setItemAsync(ROLE_KEY, role);
+  } else {
+    try {
+      await SecureStore.deleteItemAsync(ROLE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
 }
 
 export async function clearSessionStorage(): Promise<void> {

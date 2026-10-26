@@ -149,6 +149,7 @@ export class UsersService {
         email: true,
         name: true,
         role: true,
+        roleSelected: true,
         fcmToken: true,
         ...this.settingsSelect,
       },
@@ -186,8 +187,8 @@ export class UsersService {
   async updateRole(userId: string, role: Role) {
     return this.prisma.user.update({
       where: { id: userId },
-      data: { role },
-      select: { id: true, email: true, role: true }
+      data: { role, roleSelected: true },
+      select: { id: true, email: true, role: true, roleSelected: true },
     });
   }
 

@@ -63,7 +63,9 @@ export default function IndexRouter() {
         let me: MeProfile | null = null;
         try {
           me = (await usersAPI.getMe()) as MeProfile;
-          if (me?.role) {
+          if (me?.roleSelected === false) {
+            await persistSession(sessionToken, null);
+          } else if (me?.role) {
             await persistSession(sessionToken, me.role);
           }
         } catch (e) {

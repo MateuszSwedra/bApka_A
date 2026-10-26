@@ -37,11 +37,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
           const me = await usersAPI.getMe();
-          const role = (me?.role as Role) ?? (storedRole as Role) ?? null;
-          if (role) {
-            await persistSession(token, role);
-            setUserRole(role);
-            void syncPushTokenWithBackend();
+          // roleSelected === false → placeholder po rejestracji/Google, bez wyboru roli.
+          if (me?.roleSelected === false) {
+            await persistSession(token, null);
+            setUserRole(null);
+          } else {
+            const role = (me?.role as Role) ?? (storedRole as Role) ?? null;
+            if (role) {
+              await persistSession(token, role);
+              setUserRole(role);
+              void syncPushTokenWithBackend();
+            }
           }
         } catch (e) {
           if (isAuthApiError(e)) {

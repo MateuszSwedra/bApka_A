@@ -45,8 +45,9 @@ export class AuthService {
         id: user.id,
         email: user.email,
         role: user.role,
-        name: user.name
-      }
+        name: user.name,
+        roleSelected: user.roleSelected === true,
+      },
     };
   }
 
@@ -80,6 +81,7 @@ export class AuthService {
           email,
           password: hashedPassword,
           role,
+          roleSelected: false,
         },
       });
       return this.login(user);
@@ -164,13 +166,14 @@ export class AuthService {
       }
     } else {
       isNewUser = true;
-      // Placeholder role — klient czyści sesję roli i prowadzi przez role-selection (jak register).
+      // Placeholder role — wybór roli kończy się dopiero w PATCH /users/me/role (roleSelected=true).
       user = await this.prisma.user.create({
         data: {
           email,
           googleId,
           name: typeof payload.name === 'string' ? payload.name.trim() || null : null,
           role: Role.DEPENDENT,
+          roleSelected: false,
         },
       });
     }

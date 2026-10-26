@@ -31,6 +31,8 @@ model User {
   password  String?
   googleId  String?  @unique
   role      Role
+  /** false = rejestracja/Google bez ukończonego wyboru roli (opiekun/senior). */
+  roleSelected Boolean @default(false)
   fcmToken  String?
   /** Natywny token FCM/APNs (do alarmu SOS przez Notifee / FCM). */
   nativePushToken String?

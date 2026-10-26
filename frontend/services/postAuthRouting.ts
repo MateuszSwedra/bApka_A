@@ -7,6 +7,8 @@ export type UserRole = 'CARETAKER' | 'DEPENDENT' | 'HYBRID';
 export type MeProfile = {
   role?: string | null;
   name?: string | null;
+  /** false / brak = nie ukończono wyboru opiekun/senior → role-selection */
+  roleSelected?: boolean | null;
   isPairedWithCaretaker?: boolean;
   hasPushToken?: boolean;
 };
@@ -55,11 +57,20 @@ export async function needsNotificationPrompt(
   }
 }
 
+export function hasCompletedRoleSelection(me: MeProfile | null): boolean {
+  // Jawne false = nie ukończono. true = OK. brak pola (stary API) = traktuj jak ukończone, jeśli jest rola.
+  if (me?.roleSelected === false) return false;
+  if (me?.roleSelected === true) return true;
+  return normalizeRole(me, null) != null;
+}
+
 export async function resolvePostAuthRoute(
   me: MeProfile | null,
   options: PostAuthRouteOptions = {},
 ): Promise<PostAuthRoute> {
   if (options.needsDisplayName) return '/onboarding-name';
+
+  if (!hasCompletedRoleSelection(me)) return '/role-selection';
 
   const role = normalizeRole(me, options.storedRole);
   if (!role) return '/role-selection';
