@@ -58,10 +58,13 @@ export async function needsNotificationPrompt(
 }
 
 export function hasCompletedRoleSelection(me: MeProfile | null): boolean {
-  // Jawne false = nie ukończono. true = OK. brak pola (stary API) = traktuj jak ukończone, jeśli jest rola.
-  if (me?.roleSelected === false) return false;
-  if (me?.roleSelected === true) return true;
-  return normalizeRole(me, null) != null;
+  if (!me) return false;
+  // Nowe API zawsze zwraca boolean roleSelected — tylko true = wybór roli ukończony.
+  if (typeof me.roleSelected === 'boolean') {
+    return me.roleSelected === true;
+  }
+  // Stary API bez pola: nie zgaduj „ukończone” przy samym DEPENDENT (placeholder Google).
+  return false;
 }
 
 export async function resolvePostAuthRoute(

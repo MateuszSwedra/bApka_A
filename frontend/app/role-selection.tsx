@@ -20,8 +20,11 @@ export default function RoleSelectionScreen() {
   const updateAndNavigate = async (role: 'CARETAKER' | 'DEPENDENT') => {
     setIsLoading(true);
     try {
-      await usersAPI.updateRole(role);
-      
+      const updated = await usersAPI.updateRole(role);
+      if (updated && updated.roleSelected === false) {
+        throw new Error(t('role.errorUpdate'));
+      }
+
       let token = null;
       if (Platform.OS === 'web') {
         token = localStorage.getItem('userToken');
@@ -41,10 +44,11 @@ export default function RoleSelectionScreen() {
         router.replace('/profile-ready');
       }
     } catch (e) {
+      const detail = e instanceof Error && e.message ? e.message : t('role.errorUpdate');
       if (Platform.OS === 'web') {
-        window.alert(`${t('common.error')}: ${t('role.errorUpdate')}`);
+        window.alert(`${t('common.error')}: ${detail}`);
       } else {
-        Alert.alert(t('common.error'), t('role.errorUpdate'));
+        Alert.alert(t('common.error'), detail);
       }
     } finally {
       setIsLoading(false);

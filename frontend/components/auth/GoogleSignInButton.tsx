@@ -32,6 +32,14 @@ function extractIdToken(response: AuthSessionResult | null): string | null {
 export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
   const { t } = useTranslation();
   const handledRef = useRef<string | null>(null);
+  const onIdTokenRef = useRef(onIdToken);
+  onIdTokenRef.current = onIdToken;
+
+  const deliver = useCallback((idToken: string) => {
+    if (!idToken || handledRef.current === idToken) return;
+    handledRef.current = idToken;
+    void onIdTokenRef.current(idToken);
+  }, []);
 
   const webClientId = getGoogleWebClientId();
   const androidClientId = getGoogleAndroidClientId();
@@ -50,32 +58,33 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
     return null;
   }, [webClientId, androidClientId]);
 
-  // useIdTokenAuthRequest — dedykowany flow pod id_token (Firebase/backend verify).
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest(
     googleConfig ?? { webClientId: undefined },
   );
 
+  // Na web id_token z URL obsługuje wyłącznie GoogleWebRedirectHandler (root).
+  // Tu tylko wynik promptAsync (native / ewentualny popup bez full reload).
   useEffect(() => {
+    if (Platform.OS === 'web') return;
     const idToken = extractIdToken(response);
-    if (!idToken || handledRef.current === idToken) return;
-    handledRef.current = idToken;
-    void onIdToken(idToken);
-  }, [response, onIdToken]);
+    if (idToken) deliver(idToken);
+  }, [response, deliver]);
 
   const handlePress = useCallback(() => {
     handledRef.current = null;
-    // Na web unikamy zbędnego pollingu window.closed (COOP warning) — pełny redirect.
     void promptAsync(
       Platform.OS === 'web'
-        ? { showInRecents: false, windowName: '_self' }
+        ? { windowName: '_self' }
         : { showInRecents: true },
     ).then((result) => {
+      // Przy _self strona się przeładuje — wynik zwykle nie wraca tutaj.
+      if (Platform.OS === 'web') return;
       const idToken = extractIdToken(result);
-      if (!idToken || handledRef.current === idToken) return;
-      handledRef.current = idToken;
-      void onIdToken(idToken);
+      if (idToken) deliver(idToken);
+    }).catch(() => {
+      /* anulowano */
     });
-  }, [promptAsync, onIdToken]);
+  }, [promptAsync, deliver]);
 
   if (!isGoogleSignInConfigured() || !googleConfig) {
     return null;

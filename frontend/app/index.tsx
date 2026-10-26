@@ -57,6 +57,15 @@ export default function IndexRouter() {
     if (!isReady) return;
 
     const route = async () => {
+      // Google OAuth wraca na / z #id_token=… — nie przejmuj routingu, obsłuży GoogleWebRedirectHandler.
+      if (
+        Platform.OS === 'web' &&
+        typeof window !== 'undefined' &&
+        (window.location.href.includes('id_token') || window.location.href.includes('access_token'))
+      ) {
+        return;
+      }
+
       const sessionToken = await getStoredToken();
 
       if (sessionToken) {

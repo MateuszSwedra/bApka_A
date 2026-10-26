@@ -1,11 +1,13 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
+import { usersAPI } from './api';
 import {
   hasCompletedRoleSelection,
   resolvePostAuthRoute,
   type MeProfile,
 } from './postAuthRouting';
+import { clearGoogleIdTokenLock } from '../utils/googleWebRedirect';
 
 type AuthUser = {
   role?: string | null;
@@ -23,7 +25,6 @@ async function setNeedsDisplayName(needed: boolean) {
   else await SecureStore.deleteItemAsync('needsDisplayName');
 }
 
-/** Token bez roli w storage — użytkownik musi przejść role-selection. */
 async function persistTokenWithoutRole(token: string) {
   if (Platform.OS === 'web') {
     localStorage.setItem('userToken', token);
@@ -38,59 +39,74 @@ async function persistTokenWithoutRole(token: string) {
   }
 }
 
+async function loadAuthoritativeProfile(fallback: AuthUser): Promise<MeProfile> {
+  const base: MeProfile = {
+    role: fallback.role,
+    name: fallback.name,
+    // Nie rzutuj undefined → false (to psuło „stary” payload i świeży getMe).
+    roleSelected: fallback.roleSelected,
+  };
+
+  try {
+    const me = (await usersAPI.getMe()) as MeProfile;
+    return {
+      role: me.role ?? base.role,
+      name: me.name ?? base.name,
+      roleSelected: me.roleSelected,
+      isPairedWithCaretaker: me.isPairedWithCaretaker,
+      hasPushToken: me.hasPushToken,
+    };
+  } catch {
+    return base;
+  }
+}
+
 /**
- * Po login / Google / register: kieruj wg roleSelected (nie zakładaj DEPENDENT).
- * setUserSession — tylko gdy rola została już wybrana.
+ * Po login / Google / register: kieruj wg roleSelected z getMe (źródło prawdy).
  */
 export async function finishAuthSession(options: {
   accessToken: string;
   user: AuthUser;
   setUserSession: (token: string, role: 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null) => Promise<void>;
-  /** Po rejestracji / nowym Google wyczyść flagi tourów wcześniej. */
   resetTours?: boolean;
 }): Promise<void> {
   const { accessToken, user, setUserSession } = options;
-  const needsName = !user?.name?.trim();
-  const me: MeProfile = {
-    role: user?.role,
-    name: user?.name,
-    roleSelected: user?.roleSelected === true,
-  };
 
+  // Token najpierw — getMe wymaga Authorization.
+  await persistTokenWithoutRole(accessToken);
+
+  const profile = await loadAuthoritativeProfile(user);
+  const needsName = !profile.name?.trim();
   await setNeedsDisplayName(needsName);
 
-  if (!hasCompletedRoleSelection(me)) {
-    await persistTokenWithoutRole(accessToken);
-    if (options.resetTours) {
-      const { resetCaretakerTourState } = await import('./caretakerTourState');
-      const { resetSeniorTourState } = await import('./seniorTourState');
-      await resetCaretakerTourState();
-      await resetSeniorTourState();
+  try {
+    if (!hasCompletedRoleSelection(profile)) {
+      if (options.resetTours) {
+        const { resetCaretakerTourState } = await import('./caretakerTourState');
+        const { resetSeniorTourState } = await import('./seniorTourState');
+        await resetCaretakerTourState();
+        await resetSeniorTourState();
+      }
+      router.replace(needsName ? '/onboarding-name' : '/role-selection');
+      return;
     }
-    router.replace(needsName ? '/onboarding-name' : '/role-selection');
-    return;
+
+    const role = profile.role;
+    if (role === 'CARETAKER' || role === 'DEPENDENT' || role === 'HYBRID') {
+      await setUserSession(accessToken, role);
+    }
+
+    if (needsName) {
+      router.replace('/onboarding-name');
+      return;
+    }
+
+    const destination = await resolvePostAuthRoute(profile, {
+      needsDisplayName: false,
+      storedRole: role ?? null,
+    });
+    router.replace(destination as Parameters<typeof router.replace>[0]);
+  } finally {
+    clearGoogleIdTokenLock();
   }
-
-  const role = user.role;
-  if (role === 'CARETAKER' || role === 'DEPENDENT' || role === 'HYBRID') {
-    await setUserSession(accessToken, role);
-  } else {
-    await persistTokenWithoutRole(accessToken);
-  }
-
-  if (needsName) {
-    router.replace('/onboarding-name');
-    return;
-  }
-
-  const destination = await resolvePostAuthRoute(me, {
-    needsDisplayName: false,
-    storedRole: role ?? null,
-  });
-  router.replace(destination as Parameters<typeof router.replace>[0]);
-}
-
-export async function persistRegisterLikeSession(accessToken: string) {
-  await persistTokenWithoutRole(accessToken);
-  await setNeedsDisplayName(true);
 }

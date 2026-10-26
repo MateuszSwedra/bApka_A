@@ -2,12 +2,17 @@ import '../i18n';
 import '../services/sosBootstrap';
 import { Stack, usePathname } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import * as WebBrowser from 'expo-web-browser';
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
+
+// Google OAuth popup (web) — zamknięcie okna po powrocie na redirect URI.
+WebBrowser.maybeCompleteAuthSession();
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
 import { MedsProvider } from '../context/MedsContext';
+import { GoogleWebRedirectHandler } from '../components/auth/GoogleWebRedirectHandler';
 import {
   ensureSosAlarmChannel,
   openSosAlarmFromColdStart,
@@ -129,6 +134,7 @@ export default function RootLayout() {
     >
       <AuthProvider>
       <MedsProvider>
+      <GoogleWebRedirectHandler />
       <PushPermissionGuard />
       <SosAlarmBootstrap />
       <Stack screenOptions={{ headerShown: false }}>
