@@ -5,9 +5,6 @@ import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
 import { useEffect } from 'react';
 import { AppState, Platform } from 'react-native';
-
-// Google OAuth popup (web) — zamknięcie okna po powrocie na redirect URI.
-WebBrowser.maybeCompleteAuthSession();
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../context/AuthContext';
@@ -27,6 +24,12 @@ import { routeIncomingPush } from '../services/incomingPushRouter';
 import * as SystemUI from 'expo-system-ui';
 import { Theme } from '../constants/theme';
 import { ANDROID_NAV_BAR_COLOR } from '../utils/safeAreaInsets';
+import { captureGoogleRedirectSync } from '../utils/googleWebRedirect';
+
+// Google OAuth (web): zamknięcie popupu + natychmiastowe przejęcie id_token z URL
+// (zanim Index odesłałby usera na /welcome bez sesji).
+WebBrowser.maybeCompleteAuthSession();
+captureGoogleRedirectSync();
 
 if (Platform.OS !== 'web') {
 Notifications.setNotificationHandler({

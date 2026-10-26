@@ -7,6 +7,7 @@ import {
   clearSessionStorage,
 } from '../services/sessionStorage';
 import { syncPushTokenWithBackend, clearPushTokenFromBackend } from '../services/registerPushToken';
+import { isGoogleAuthPending } from '../utils/googleWebRedirect';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
@@ -50,7 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } catch (e) {
-          if (isAuthApiError(e)) {
+          // Nie czyść sesji w trakcie finalizacji Google (wyścig z zapisem nowego JWT).
+          if (isAuthApiError(e) && !isGoogleAuthPending()) {
             await clearSessionStorage();
             setUserRole(null);
           }
@@ -66,10 +68,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserSession = async (token: string, role: Role) => {
     try {
-      await clearPushTokenFromBackend();
-      const effectiveRole = role ?? ((await getStoredRole()) as Role);
-      await persistSession(token, role ?? effectiveRole);
-      setUserRole(role ?? effectiveRole ?? null);
+      // Najpierw zapisz JWT — clearPush nie może działać na starym/brakującym tokenie.
+      await persistSession(token, role);
+      setUserRole(role);
+      try {
+        await clearPushTokenFromBackend();
+      } catch {
+        /* ignore */
+      }
       void syncPushTokenWithBackend();
     } catch (e) {
       console.warn('Could not store session', e);

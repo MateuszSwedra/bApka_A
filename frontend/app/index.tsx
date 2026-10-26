@@ -7,6 +7,7 @@ import { OnboardingPalette } from '../constants/onboardingTheme';
 import { isAuthApiError, usersAPI } from '../services/api';
 import { getStoredRole, getStoredToken, clearSessionStorage, persistSession } from '../services/sessionStorage';
 import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
+import { isGoogleAuthPending } from '../utils/googleWebRedirect';
 
 async function readNeedsDisplayName(): Promise<boolean> {
   try {
@@ -57,12 +58,8 @@ export default function IndexRouter() {
     if (!isReady) return;
 
     const route = async () => {
-      // Google OAuth wraca na / z #id_token=… — nie przejmuj routingu, obsłuży GoogleWebRedirectHandler.
-      if (
-        Platform.OS === 'web' &&
-        typeof window !== 'undefined' &&
-        (window.location.href.includes('id_token') || window.location.href.includes('access_token'))
-      ) {
+      // Google OAuth w toku (token w sessionStorage / pending) — czeka GoogleWebRedirectHandler.
+      if (Platform.OS === 'web' && isGoogleAuthPending()) {
         return;
       }
 

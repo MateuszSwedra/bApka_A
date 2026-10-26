@@ -7,7 +7,7 @@ import {
   resolvePostAuthRoute,
   type MeProfile,
 } from './postAuthRouting';
-import { clearGoogleIdTokenLock } from '../utils/googleWebRedirect';
+import { clearGoogleAuthPending } from '../utils/googleWebRedirect';
 
 type AuthUser = {
   role?: string | null;
@@ -39,30 +39,10 @@ async function persistTokenWithoutRole(token: string) {
   }
 }
 
-async function loadAuthoritativeProfile(fallback: AuthUser): Promise<MeProfile> {
-  const base: MeProfile = {
-    role: fallback.role,
-    name: fallback.name,
-    // Nie rzutuj undefined → false (to psuło „stary” payload i świeży getMe).
-    roleSelected: fallback.roleSelected,
-  };
-
-  try {
-    const me = (await usersAPI.getMe()) as MeProfile;
-    return {
-      role: me.role ?? base.role,
-      name: me.name ?? base.name,
-      roleSelected: me.roleSelected,
-      isPairedWithCaretaker: me.isPairedWithCaretaker,
-      hasPushToken: me.hasPushToken,
-    };
-  } catch {
-    return base;
-  }
-}
-
 /**
- * Po login / Google / register: kieruj wg roleSelected z getMe (źródło prawdy).
+ * Po login / Google / register.
+ * Dla nowego konta (roleSelected !== true) NIE wołamy getMe wcześniej niż trzeba —
+ * wystarczy payload z /auth/* (unikamy wyścigu z AuthContext czyszczącym sesję).
  */
 export async function finishAuthSession(options: {
   accessToken: string;
@@ -72,15 +52,19 @@ export async function finishAuthSession(options: {
 }): Promise<void> {
   const { accessToken, user, setUserSession } = options;
 
-  // Token najpierw — getMe wymaga Authorization.
   await persistTokenWithoutRole(accessToken);
 
-  const profile = await loadAuthoritativeProfile(user);
-  const needsName = !profile.name?.trim();
+  const needsName = !user?.name?.trim();
   await setNeedsDisplayName(needsName);
 
+  const fromLogin: MeProfile = {
+    role: user?.role,
+    name: user?.name,
+    roleSelected: user?.roleSelected,
+  };
+
   try {
-    if (!hasCompletedRoleSelection(profile)) {
+    if (!hasCompletedRoleSelection(fromLogin)) {
       if (options.resetTours) {
         const { resetCaretakerTourState } = await import('./caretakerTourState');
         const { resetSeniorTourState } = await import('./seniorTourState');
@@ -91,12 +75,28 @@ export async function finishAuthSession(options: {
       return;
     }
 
+    // Ukończona rola — dociągnij parowanie itd.
+    let profile = fromLogin;
+    try {
+      const me = (await usersAPI.getMe()) as MeProfile;
+      profile = {
+        role: me.role ?? fromLogin.role,
+        name: me.name ?? fromLogin.name,
+        roleSelected: me.roleSelected ?? fromLogin.roleSelected,
+        isPairedWithCaretaker: me.isPairedWithCaretaker,
+        hasPushToken: me.hasPushToken,
+      };
+    } catch {
+      /* zostaw fromLogin */
+    }
+
     const role = profile.role;
     if (role === 'CARETAKER' || role === 'DEPENDENT' || role === 'HYBRID') {
       await setUserSession(accessToken, role);
     }
 
-    if (needsName) {
+    if (needsName || !profile.name?.trim()) {
+      await setNeedsDisplayName(true);
       router.replace('/onboarding-name');
       return;
     }
@@ -107,6 +107,6 @@ export async function finishAuthSession(options: {
     });
     router.replace(destination as Parameters<typeof router.replace>[0]);
   } finally {
-    clearGoogleIdTokenLock();
+    clearGoogleAuthPending();
   }
 }

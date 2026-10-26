@@ -71,7 +71,13 @@ describe('AuthService', () => {
       });
       expect(out).toEqual({
         access_token: 'signed-jwt',
-        user: { id: 'u1', email: 'x@y.pl', role: 'CARETAKER', name: 'Ania' },
+        user: {
+          id: 'u1',
+          email: 'x@y.pl',
+          role: 'CARETAKER',
+          name: 'Ania',
+          roleSelected: false,
+        },
       });
     });
   });

@@ -105,7 +105,12 @@ export async function getStoredAuthToken(): Promise<string | null> {
   }
 }
 
-const fetchApi = async (endpoint: string, options?: RequestInit) => {
+type FetchApiOptions = RequestInit & {
+  /** Nie doklejaj Bearer (login / register / google). */
+  skipAuth?: boolean;
+};
+
+const fetchApi = async (endpoint: string, options?: FetchApiOptions) => {
   const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
   const url = `${getApiBaseUrl().replace(/\/$/, '')}${path}`;
 
@@ -113,14 +118,15 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
     throw new Error(`Nieprawidłowy adres API: ${url}`);
   }
 
-  const token = await getStoredAuthToken();
+  const { skipAuth, ...fetchOptions } = options ?? {};
+  const token = skipAuth ? null : await getStoredAuthToken();
 
   const headers: Record<string, string> = {
     Accept: 'application/json',
-    ...((options?.headers as Record<string, string>) || {}),
+    ...((fetchOptions.headers as Record<string, string>) || {}),
   };
 
-  if (options?.body !== undefined) {
+  if (fetchOptions.body !== undefined) {
     headers['Content-Type'] = 'application/json';
   }
 
@@ -129,7 +135,7 @@ const fetchApi = async (endpoint: string, options?: RequestInit) => {
   }
 
   const response = await fetch(url, {
-    ...options,
+    ...fetchOptions,
     headers,
   });
 
@@ -166,19 +172,22 @@ export const authAPI = {
   login: async (data: any) => {
     return fetchApi('/auth/login', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      skipAuth: true,
     });
   },
   register: async (data: any) => {
     return fetchApi('/auth/register', {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      skipAuth: true,
     });
   },
   loginGoogle: async (idToken: string) => {
     return fetchApi('/auth/google', {
       method: 'POST',
       body: JSON.stringify({ idToken }),
+      skipAuth: true,
     });
   },
 };

@@ -1,50 +1,78 @@
 import { Platform } from 'react-native';
 
-const LOCK_KEY = 'bapka_google_id_token_lock';
+const PENDING_KEY = 'bapka_google_auth_pending';
+const TOKEN_KEY = 'bapka_google_id_token';
+
+function canUseSession(): boolean {
+  return Platform.OS === 'web' && typeof window !== 'undefined' && typeof sessionStorage !== 'undefined';
+}
+
+/** Czy trwa / zaraz wystartuje finalizacja logowania Google (Index nie może wtedy nawigować). */
+export function isGoogleAuthPending(): boolean {
+  if (!canUseSession()) return false;
+  try {
+    if (sessionStorage.getItem(PENDING_KEY) === '1') return true;
+    if (sessionStorage.getItem(TOKEN_KEY)) return true;
+    return window.location.href.includes('id_token');
+  } catch {
+    return false;
+  }
+}
 
 /**
- * Po pełnym redirectcie Google (_self) Expo AuthSession gubi `state` (nowy mount).
- * Backend weryfikuje id_token — tu wyciągamy token z URL (raz) i czyścimy hash.
+ * Wywołać synchronicznie przy starcie apki (przed useEffect Index).
+ * Zapisuje id_token z hashu do sessionStorage i czyści URL — żeby Index nie zdążył
+ * odesłać usera na /welcome zanim GoogleWebRedirectHandler dokończy login.
  */
-export function consumeGoogleIdTokenFromUrl(): string | null {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
-
+export function captureGoogleRedirectSync(): void {
+  if (!canUseSession()) return;
   try {
     const href = window.location.href;
-    if (!href.includes('id_token') && !href.includes('error=')) return null;
+    if (!href.includes('id_token') && !href.includes('error=')) return;
+
+    sessionStorage.setItem(PENDING_KEY, '1');
 
     const hash = window.location.hash?.replace(/^#/, '') ?? '';
     const search = window.location.search?.replace(/^\?/, '') ?? '';
     const params = new URLSearchParams(hash || search);
 
-    const error = params.get('error');
-    if (error) {
+    if (params.get('error')) {
       cleanAuthParamsFromUrl();
-      sessionStorage.removeItem(LOCK_KEY);
-      return null;
+      sessionStorage.removeItem(TOKEN_KEY);
+      sessionStorage.removeItem(PENDING_KEY);
+      return;
     }
 
     const idToken = params.get('id_token')?.trim();
-    if (!idToken) return null;
-
-    // Zapobiega podwójnemu loginowi (root handler + przycisk / React Strict Mode).
-    const existing = sessionStorage.getItem(LOCK_KEY);
-    if (existing === idToken) {
-      cleanAuthParamsFromUrl();
-      return null;
-    }
-    sessionStorage.setItem(LOCK_KEY, idToken);
     cleanAuthParamsFromUrl();
-    return idToken;
+    if (!idToken) {
+      sessionStorage.removeItem(PENDING_KEY);
+      return;
+    }
+
+    sessionStorage.setItem(TOKEN_KEY, idToken);
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Jednorazowo zabiera zapisany id_token (po captureGoogleRedirectSync). */
+export function takeCapturedGoogleIdToken(): string | null {
+  if (!canUseSession()) return null;
+  try {
+    const token = sessionStorage.getItem(TOKEN_KEY);
+    if (token) sessionStorage.removeItem(TOKEN_KEY);
+    return token;
   } catch {
     return null;
   }
 }
 
-export function clearGoogleIdTokenLock() {
-  if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+export function clearGoogleAuthPending(): void {
+  if (!canUseSession()) return;
   try {
-    sessionStorage.removeItem(LOCK_KEY);
+    sessionStorage.removeItem(PENDING_KEY);
+    sessionStorage.removeItem(TOKEN_KEY);
   } catch {
     /* ignore */
   }
