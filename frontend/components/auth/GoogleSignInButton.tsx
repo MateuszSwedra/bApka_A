@@ -1,7 +1,8 @@
-import React, { useEffect, useCallback, useMemo } from 'react';
+import React, { useEffect, useCallback, useMemo, useRef } from 'react';
 import { Pressable, Text, StyleSheet, Platform, ActivityIndicator, View } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
+import { ResponseType, type AuthSessionResult } from 'expo-auth-session';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { OnboardingPalette } from '../../constants/onboardingTheme';
@@ -20,18 +21,31 @@ type Props = {
   loading?: boolean;
 };
 
+function extractIdToken(response: AuthSessionResult | null): string | null {
+  if (!response || response.type !== 'success') return null;
+  const fromAuth = response.authentication?.idToken?.trim();
+  if (fromAuth) return fromAuth;
+  const fromParams = response.params?.id_token?.trim();
+  return fromParams || null;
+}
+
 export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
   const { t } = useTranslation();
+  const handledRef = useRef<string | null>(null);
 
   const webClientId = getGoogleWebClientId();
   const androidClientId = getGoogleAndroidClientId();
 
   const googleConfig = useMemo(() => {
+    const base = {
+      responseType: ResponseType.IdToken,
+      scopes: ['openid', 'profile', 'email'],
+    };
     if (Platform.OS === 'web') {
-      return { webClientId };
+      return { ...base, webClientId };
     }
     if (Platform.OS === 'android') {
-      return { webClientId, androidClientId };
+      return { ...base, webClientId, androidClientId };
     }
     return null;
   }, [webClientId, androidClientId]);
@@ -41,14 +55,14 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
   );
 
   useEffect(() => {
-    if (response?.type !== 'success') return;
-    const idToken = response.authentication?.idToken;
-    if (idToken) {
-      void onIdToken(idToken);
-    }
+    const idToken = extractIdToken(response);
+    if (!idToken || handledRef.current === idToken) return;
+    handledRef.current = idToken;
+    void onIdToken(idToken);
   }, [response, onIdToken]);
 
   const handlePress = useCallback(() => {
+    handledRef.current = null;
     void promptAsync({ showInRecents: true });
   }, [promptAsync]);
 

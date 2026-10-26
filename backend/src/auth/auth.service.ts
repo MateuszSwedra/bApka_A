@@ -153,6 +153,8 @@ export class AuthService {
       },
     });
 
+    let isNewUser = false;
+
     if (user) {
       if (!user.googleId) {
         user = await this.prisma.user.update({
@@ -161,6 +163,8 @@ export class AuthService {
         });
       }
     } else {
+      isNewUser = true;
+      // Placeholder role — klient czyści sesję roli i prowadzi przez role-selection (jak register).
       user = await this.prisma.user.create({
         data: {
           email,
@@ -171,6 +175,6 @@ export class AuthService {
       });
     }
 
-    return this.login(user);
+    return { ...this.login(user), isNewUser };
   }
 }

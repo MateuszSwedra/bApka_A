@@ -116,13 +116,36 @@ export default function LoginScreen() {
       setLoading('login');
       try {
         const response = await authAPI.loginGoogle(idToken);
-        if (!response.user?.name?.trim()) {
+        const isNewUser = response.isNewUser === true;
+        const needsName = !response.user?.name?.trim();
+
+        // Nowe konto Google = jak register: bez roli w sesji → onboarding / wybór roli (nie PIN seniora).
+        if (isNewUser) {
+          const { resetCaretakerTourState } = await import('../services/caretakerTourState');
+          const { resetSeniorTourState } = await import('../services/seniorTourState');
+          await resetCaretakerTourState();
+          await resetSeniorTourState();
+          if (Platform.OS === 'web') {
+            localStorage.setItem('userToken', response.access_token);
+            localStorage.removeItem('userRole');
+            if (needsName) localStorage.setItem('needsDisplayName', 'true');
+            else localStorage.removeItem('needsDisplayName');
+          } else {
+            await SecureStore.setItemAsync('userToken', response.access_token);
+            await SecureStore.deleteItemAsync('userRole');
+            if (needsName) await SecureStore.setItemAsync('needsDisplayName', 'true');
+            else await SecureStore.deleteItemAsync('needsDisplayName');
+          }
+          router.replace(needsName ? '/onboarding-name' : '/role-selection');
+          return;
+        }
+
+        if (needsName) {
           await markNeedsDisplayName();
         }
         await setUserSession(response.access_token, response.user.role);
-        if (!response.user?.name?.trim()) {
+        if (needsName) {
           router.replace('/onboarding-name');
-          return;
         }
       } catch (e) {
         const msg =

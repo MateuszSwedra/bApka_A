@@ -3,6 +3,16 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
+/** Typowe origins Expo web — bez tego przeglądarka dostaje „Failed to fetch” wobec API na Render. */
+const EXPO_WEB_DEV_ORIGINS = [
+  'http://localhost:8081',
+  'http://127.0.0.1:8081',
+  'http://localhost:19006',
+  'http://127.0.0.1:19006',
+  'http://localhost:8082',
+  'http://127.0.0.1:8082',
+];
+
 function resolveCorsOrigin(): boolean | string[] {
   const raw = process.env.CORS_ORIGINS?.trim();
   if (raw) {
@@ -12,9 +22,10 @@ function resolveCorsOrigin(): boolean | string[] {
       .filter(Boolean);
   }
   if (process.env.NODE_ENV === 'production') {
-    return false;
+    // Aplikacja natywna nie używa CORS; Expo web na localhost tak.
+    // Własny hosted front: ustaw CORS_ORIGINS.
+    return EXPO_WEB_DEV_ORIGINS;
   }
-  // Local/dev (Expo web, device against LAN API)
   return true;
 }
 
