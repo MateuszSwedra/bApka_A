@@ -1,5 +1,7 @@
 {
-  "brand": { "name": "bApka" },
+  "brand": {
+    "name": "bApka"
+  },
   "common": {
     "back": "Wróć",
     "save": "Zapisz",
@@ -13,10 +15,52 @@
     "minute": "Minuta"
   },
   "calendar": {
-    "monthNames": ["Styczeń", "Luty", "Marzec", "Kwiecień", "Maj", "Czerwiec", "Lipiec", "Sierpień", "Wrzesień", "Październik", "Listopad", "Grudzień"],
-    "monthNamesShort": ["Sty", "Lut", "Mar", "Kwi", "Maj", "Cze", "Lip", "Sie", "Wrz", "Paź", "Lis", "Gru"],
-    "dayNames": ["Niedziela", "Poniedziałek", "Wtorek", "Środa", "Czwartek", "Piątek", "Sobota"],
-    "dayNamesShort": ["Nd", "Pn", "Wt", "Śr", "Cz", "Pt", "Sb"],
+    "monthNames": [
+      "Styczeń",
+      "Luty",
+      "Marzec",
+      "Kwiecień",
+      "Maj",
+      "Czerwiec",
+      "Lipiec",
+      "Sierpień",
+      "Wrzesień",
+      "Październik",
+      "Listopad",
+      "Grudzień"
+    ],
+    "monthNamesShort": [
+      "Sty",
+      "Lut",
+      "Mar",
+      "Kwi",
+      "Maj",
+      "Cze",
+      "Lip",
+      "Sie",
+      "Wrz",
+      "Paź",
+      "Lis",
+      "Gru"
+    ],
+    "dayNames": [
+      "Niedziela",
+      "Poniedziałek",
+      "Wtorek",
+      "Środa",
+      "Czwartek",
+      "Piątek",
+      "Sobota"
+    ],
+    "dayNamesShort": [
+      "Nd",
+      "Pn",
+      "Wt",
+      "Śr",
+      "Cz",
+      "Pt",
+      "Sb"
+    ],
     "today": "Dzisiaj",
     "daySection": "Dzień: {{date}}",
     "emptyDay": "Brak aktywności na ten dzień.",
@@ -33,7 +77,15 @@
     "pickYear": "Wybierz rok",
     "moreEvents": "+{{count}}",
     "allDay": "Cały dzień",
-    "weekdayShort": { "1": "Pn", "2": "Wt", "3": "Śr", "4": "Cz", "5": "Pt", "6": "Sb", "7": "Nd" }
+    "weekdayShort": {
+      "1": "Pn",
+      "2": "Wt",
+      "3": "Śr",
+      "4": "Cz",
+      "5": "Pt",
+      "6": "Sb",
+      "7": "Nd"
+    }
   },
   "tabs": {
     "today": "Dziś",
@@ -51,9 +103,16 @@
   },
   "onboarding": {
     "welcome": {
-      "slide1": { "title": "Pomoc dla Twojego seniora" },
-      "slide2": { "title": "Przypomnienia o lekach", "subtitle": "i wiele więcej" },
-      "slide3": { "title": "Śledź postępy podopiecznego" },
+      "slide1": {
+        "title": "Pomoc dla Twojego seniora"
+      },
+      "slide2": {
+        "title": "Przypomnienia o lekach",
+        "subtitle": "i wiele więcej"
+      },
+      "slide3": {
+        "title": "Śledź postępy podopiecznego"
+      },
       "cta": "Zaczynamy"
     },
     "name": {
@@ -136,15 +195,27 @@
   "role": {
     "title": "Wybierz swoją rolę",
     "subtitle": "Dostosujemy aplikację do Twoich potrzeb.",
-    "caretaker": { "title": "Opiekun", "desc": "Zarządzasz harmonogramem i lekami podopiecznego." },
-    "dependent": { "title": "Podopieczny", "desc": "Otrzymujesz przypomnienia i łatwo oznaczasz wykonane czynności." },
+    "caretaker": {
+      "title": "Opiekun",
+      "desc": "Zarządzasz harmonogramem i lekami podopiecznego."
+    },
+    "dependent": {
+      "title": "Podopieczny",
+      "desc": "Otrzymujesz przypomnienia i łatwo oznaczasz wykonane czynności."
+    },
     "errorUpdate": "Nie udało się zaktualizować roli. Spróbuj ponownie."
   },
   "seniorType": {
     "title": "Jak chcesz korzystać?",
     "subtitle": "Wybierz tryb dopasowany do Twojej sytuacji.",
-    "withCaretaker": { "title": "Z Opiekunem", "desc": "Opiekun ustawia harmonogram, Ty korzystasz z przypomnień." },
-    "independent": { "title": "Samodzielnie", "desc": "Samodzielnie zarządzasz lekami i aktywnościami." },
+    "withCaretaker": {
+      "title": "Z Opiekunem",
+      "desc": "Opiekun ustawia harmonogram, Ty korzystasz z przypomnień."
+    },
+    "independent": {
+      "title": "Samodzielnie",
+      "desc": "Samodzielnie zarządzasz lekami i aktywnościami."
+    },
     "errorUpdate": "Nie udało się zaktualizować typu konta."
   },
   "profileReady": {
@@ -177,7 +248,9 @@
       "title": "Podaj kod PIN",
       "subtitle": "Wpisz 6-cyfrowy kod wyświetlony u opiekuna."
     },
-    "dependent": { "title": "Wpisz kod od Opiekuna" },
+    "dependent": {
+      "title": "Wpisz kod od Opiekuna"
+    },
     "pinPlaceholder": "------",
     "ctaConnect": "Połącz konto",
     "ctaConnectUpper": "POŁĄCZ",
@@ -193,9 +266,18 @@
   },
   "sounds": {
     "screenTitle": "Dźwięki powiadomień",
-    "default": { "label": "Domyślny systemowy", "description": "Standardowy dźwięk systemu przy powiadomieniu." },
-    "gentle": { "label": "Łagodny", "description": "Krótki, dyskretny sygnał." },
-    "strong": { "label": "Wyraźny", "description": "Bardziej zauważalny sygnał." },
+    "default": {
+      "label": "Domyślny systemowy",
+      "description": "Standardowy dźwięk systemu przy powiadomieniu."
+    },
+    "gentle": {
+      "label": "Łagodny",
+      "description": "Krótki, dyskretny sygnał."
+    },
+    "strong": {
+      "label": "Wyraźny",
+      "description": "Bardziej zauważalny sygnał."
+    },
     "sectionMedication": "Przypomnienie o leku",
     "sectionMedicationSubtitleCaretaker": "Dźwięk przypomnienia dla Ciebie o lekach podopiecznego.",
     "sectionMedicationSubtitleDependent": "Dźwięk przypomnienia o lekach i aktywnościach.",
@@ -222,103 +304,6 @@
       "emptyCta": "Dodaj podopiecznego",
       "statusAttention": "Wymaga uwagi",
       "statusOk": "Wszystko ok"
-    },
-    "tour": {
-      "gotIt": "Rozumiem",
-      "guided": {
-        "skip": "Pomiń tutorial",
-        "next": "Dalej",
-        "prev": "Wstecz",
-        "done": "Zakończ",
-        "progress": "{{current}} z {{total}}",
-        "preWelcome": {
-          "title": "Witaj w panelu opiekuna",
-          "body": "Krótko pokażemy, jak dodać podopiecznego i co znajdziesz w jego profilu. Ten tutorial pojawi się tylko raz, zanim dodasz pierwszego podopiecznego."
-        },
-        "postWelcome": {
-          "title": "Profil podopiecznego",
-          "body": "Masz już podopiecznego — przejdziemy teraz przez wszystkie zakładki profilu krok po kroku."
-        },
-        "tabsPreview": {
-          "body": "Po sparowaniu na dole profilu zobaczysz te zakładki: Dziś, Kalendarz, Apteczka i Statystyki."
-        }
-      },
-      "dashboardAddDependent": {
-        "title": "Dodaj podopiecznego",
-        "body": "Tu rozpoczynasz opiekę — wygenerujesz kod PIN do sparowania konta podopiecznego z Twoim profilem."
-      },
-      "dashboardSounds": {
-        "title": "Ustawienia aplikacji",
-        "body": "Ikona koła zębatego otwiera ustawienia opiekuna — dźwięki powiadomień o lekach, alarm SOS i język panelu."
-      },
-      "pairingPin": {
-        "title": "Kod parowania",
-        "body": "Podaj ten kod podopiecznemu. W aplikacji wybierze „Mam Opiekuna” i wpisze go, aby połączyć konta."
-      },
-      "dependentTabs": {
-        "title": "Nawigacja po profilu",
-        "body": "Dziś — plan na dziś. Kalendarz — harmonogram. Leczenie — lista leków. Statystyki — regularność i humor. Ustawienia otworzysz ikoną koła zębatego u góry."
-      },
-      "dependentSettings": {
-        "title": "Ustawienia podopiecznego",
-        "body": "Tu konfigurujesz humor, pomiary, dostępność ekranu seniora i język aplikacji na jego telefonie."
-      },
-      "treatmentsAdd": {
-        "title": "Nowa aktywność",
-        "body": "Dodaj lek lub inną aktywność, a potem ustaw harmonogram przyjmowania w kreatorze krok po kroku."
-      },
-      "treatmentsEdit": {
-        "title": "Edycja aktywności",
-        "body": "Dotknij wpisu w apteczce, aby go edytować — zmienisz nazwę, opis lub inne szczegóły leku albo aktywności."
-      },
-      "calendarFab": {
-        "title": "Dodaj do kalendarza",
-        "body": "Przycisk + dodaje nową aktywność do harmonogramu podopiecznego — wybierzesz lek, częstotliwość i godziny."
-      },
-      "calendarEdit": {
-        "title": "Edycja aktywności",
-        "body": "Dotknij wpisu w kalendarzu, aby zmienić godzinę lub dawkę. Puste pole godziny pozwala dodać nową aktywność."
-      },
-      "insightsRange": {
-        "title": "Statystyki w czasie",
-        "body": "Przełączaj okres: dziś, 7 lub 30 dni. Zobaczysz regularność leków, humor i pomiary zdrowotne."
-      },
-      "settingsMood": {
-        "title": "Pytanie o humor",
-        "body": "Włącz lub wyłącz codzienne pytanie o samopoczucie na ekranie głównym seniora. Po wyłączeniu kafelek humoru znika."
-      },
-      "settingsMoodTime": {
-        "title": "Godzina pytania o humor",
-        "body": "Ustaw, o której godzinie senior zobaczy pytanie o nastrój. Po zapisie kafelek pojawi się codziennie o tej porze."
-      },
-      "settingsVitals": {
-        "title": "Wpisywanie pomiarów",
-        "body": "Po włączeniu senior po potwierdzeniu aktywności cukru lub ciśnienia uzupełni wynik. Pomiary trafią do zakładki Statystyki."
-      },
-      "settingsColorBlind": {
-        "title": "Tryb daltonizmu",
-        "body": "Dostosowuje kolory i oznaczenia na ekranie seniora, aby łatwiej odróżniać status leków i alerty."
-      },
-      "settingsHighContrast": {
-        "title": "Wysoki kontrast",
-        "body": "Zwiększa kontrast tekstu i przycisków na telefonie seniora — pomaga przy słabszym wzroku."
-      },
-      "settingsSeniorLanguage": {
-        "title": "Język seniora",
-        "body": "Język interfejsu na telefonie podopiecznego: etykiety, przypomnienia i ekran główny."
-      },
-      "settingsCaretakerLanguage": {
-        "title": "Twój język",
-        "body": "Język panelu opiekuna na tym urządzeniu. Nie zmienia języka aplikacji na telefonie seniora."
-      },
-      "settingsReminderSound": {
-        "title": "Dźwięk przypomnienia",
-        "body": "Dźwięk odtwarzany na telefonie seniora, gdy przypomni mu o leku. Dotknij ikony głośnika, aby odsłuchać."
-      },
-      "soundsMedication": {
-        "title": "Dźwięk przypomnień",
-        "body": "Wybierz dźwięk powiadomień o lekach. Możesz go odsłuchać przed zapisaniem — na telefonie usłyszysz pełny efekt."
-      }
     },
     "insights": {
       "title": "Statystyki",
@@ -408,7 +393,11 @@
       "seniorLanguageSub": "Interfejs na telefonie podopiecznego.",
       "caretakerLanguage": "Twój język (opiekun)",
       "caretakerLanguageSub": "Interfejs panelu opiekuna na tym urządzeniu.",
-      "language": { "system": "Systemowy", "pl": "Polski", "en": "English" },
+      "language": {
+        "system": "Systemowy",
+        "pl": "Polski",
+        "en": "English"
+      },
       "soundHint": "Dźwięk przypomnienia o lekach na telefonie seniora.",
       "loadError": "Nie udało się wczytać ustawień.",
       "saveError": "Nie udało się zapisać ustawień.",
@@ -677,78 +666,7 @@
     "now": "TERAZ",
     "medTakenAlert": "Wzięto lek!"
   },
-  "senior": {
-    "tour": {
-      "gotIt": "Rozumiem",
-      "guided": {
-        "skip": "Pomiń tutorial",
-        "next": "Dalej",
-        "prev": "Wstecz",
-        "done": "Zakończ",
-        "progress": "{{current}} z {{total}}",
-        "welcome": {
-          "title": "Witaj w aplikacji",
-          "body": "Krótko pokażemy, jak korzystać z planu dnia, kalendarza, apteczki i statystyk. Ten tutorial pojawi się tylko raz."
-        }
-      },
-      "todayTakeMed": {
-        "title": "Potwierdź lek",
-        "body": "Gdy nadejdzie pora, dotknij ten kafelek, aby potwierdzić przyjęcie leku lub wykonanie aktywności."
-      },
-      "todayPlan": {
-        "title": "Plan na dziś",
-        "body": "Tu zobaczysz wszystkie zaplanowane na dziś leki i aktywności wraz ze statusem."
-      },
-      "hybridSettings": {
-        "title": "Ustawienia",
-        "body": "Koło zębate otwiera ustawienia — język, dostępność, pomiary i dźwięk przypomnień."
-      },
-      "hybridTabs": {
-        "title": "Nawigacja",
-        "body": "Dziś — plan dnia. Kalendarz — harmonogram. Apteczka — leki i aktywności. Statystyki — podsumowanie regularności."
-      },
-      "treatmentsAdd": {
-        "title": "Nowa aktywność",
-        "body": "Dodaj lek lub inną aktywność do swojej apteczki, a potem ustaw harmonogram w kreatorze."
-      },
-      "treatmentsEdit": {
-        "title": "Edycja aktywności",
-        "body": "Dotknij wpisu w apteczce, aby zmienić nazwę, opis lub ilość tabletek."
-      },
-      "calendarFab": {
-        "title": "Dodaj do kalendarza",
-        "body": "Przycisk + dodaje aktywność do harmonogramu — wybierzesz lek, częstotliwość i godziny."
-      },
-      "calendarEdit": {
-        "title": "Edycja w kalendarzu",
-        "body": "Dotknij wpisu, aby zmienić godzinę lub dawkę. Puste pole godziny pozwala dodać nową aktywność."
-      },
-      "insightsRange": {
-        "title": "Statystyki w czasie",
-        "body": "Przełącz okres: dziś, 7 lub 30 dni, aby zobaczyć regularność przyjmowania leków i pomiary."
-      },
-      "settingsVitals": {
-        "title": "Wpisywanie pomiarów",
-        "body": "Po włączeniu po potwierdzeniu cukru lub ciśnienia uzupełnisz wynik. Pomiary trafią do Statystyk."
-      },
-      "settingsColorBlind": {
-        "title": "Tryb daltonizmu",
-        "body": "Dostosowuje kolory i oznaczenia, aby łatwiej odróżniać status leków i alerty."
-      },
-      "settingsHighContrast": {
-        "title": "Wysoki kontrast",
-        "body": "Zwiększa kontrast tekstu i przycisków — pomaga przy słabszym wzroku."
-      },
-      "settingsLanguage": {
-        "title": "Język aplikacji",
-        "body": "Wybierz język interfejsu, etykiet i przypomnień w aplikacji."
-      },
-      "settingsReminderSound": {
-        "title": "Dźwięk przypomnienia",
-        "body": "Dźwięk odtwarzany przy przypomnieniu o leku. Dotknij ikony głośnika, aby odsłuchać."
-      }
-    }
-  },
+  "senior": {},
   "schedule": {
     "activityFallback": "Aktywność",
     "dosagePieces": " ({{count}} szt.)",
@@ -863,11 +781,31 @@
       "error": "Nie udało się usunąć pozycji z apteczki."
     },
     "type": {
-      "medication": { "label": "Lek", "hint": "Tabletki, kapsułki itp.", "defaultName": "Lek" },
-      "bloodSugar": { "label": "Cukier", "hint": "Pomiar glukozy", "defaultName": "Badanie cukru" },
-      "bloodPressure": { "label": "Ciśnienie", "hint": "Pomiar RR", "defaultName": "Ciśnienie" },
-      "exercise": { "label": "Ćwiczenia", "hint": "Aktywność fizyczna", "defaultName": "Ćwiczenia" },
-      "custom": { "label": "Inne", "hint": "Dowolna aktywność", "defaultName": "Aktywność" }
+      "medication": {
+        "label": "Lek",
+        "hint": "Tabletki, kapsułki itp.",
+        "defaultName": "Lek"
+      },
+      "bloodSugar": {
+        "label": "Cukier",
+        "hint": "Pomiar glukozy",
+        "defaultName": "Badanie cukru"
+      },
+      "bloodPressure": {
+        "label": "Ciśnienie",
+        "hint": "Pomiar RR",
+        "defaultName": "Ciśnienie"
+      },
+      "exercise": {
+        "label": "Ćwiczenia",
+        "hint": "Aktywność fizyczna",
+        "defaultName": "Ćwiczenia"
+      },
+      "custom": {
+        "label": "Inne",
+        "hint": "Dowolna aktywność",
+        "defaultName": "Aktywność"
+      }
     }
   },
   "calendarEdit": {

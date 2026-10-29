@@ -7,7 +7,6 @@ export type UserRole = 'CARETAKER' | 'DEPENDENT' | 'HYBRID';
 export type MeProfile = {
   role?: string | null;
   name?: string | null;
-  /** false / brak = nie ukończono wyboru opiekun/senior → role-selection */
   roleSelected?: boolean | null;
   isPairedWithCaretaker?: boolean;
   hasPushToken?: boolean;
@@ -26,7 +25,6 @@ export type PostAuthRoute =
 export type PostAuthRouteOptions = {
   needsDisplayName?: boolean;
   storedRole?: string | null;
-  /** Ekran powiadomień — po „Pomiń” idziemy dalej bez ponownego pytania w tej sesji. */
   skipNotificationCheck?: boolean;
 };
 
@@ -36,7 +34,6 @@ function normalizeRole(me: MeProfile | null, storedRole?: string | null): UserRo
   return null;
 }
 
-/** Senior (DEPENDENT) bez potwierdzonej pary z opiekunem musi wpisać PIN. */
 export function dependentNeedsCaretakerPin(me: MeProfile | null, storedRole?: string | null): boolean {
   const role = normalizeRole(me, storedRole);
   if (role !== 'DEPENDENT') return false;
@@ -59,11 +56,9 @@ export async function needsNotificationPrompt(
 
 export function hasCompletedRoleSelection(me: MeProfile | null): boolean {
   if (!me) return false;
-  // Nowe API zawsze zwraca boolean roleSelected — tylko true = wybór roli ukończony.
   if (typeof me.roleSelected === 'boolean') {
     return me.roleSelected === true;
   }
-  // Stary API bez pola: nie zgaduj „ukończone” przy samym DEPENDENT (placeholder Google).
   return false;
 }
 

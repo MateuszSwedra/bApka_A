@@ -1,29 +1,17 @@
-import { Tabs, useFocusEffect } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Platform, View } from 'react-native';
-import { useCallback } from 'react';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../../constants/theme';
-import { useSeniorGuidedTourOptional } from '../../../context/SeniorGuidedTourContext';
 import { useDependentDisplay } from '../../../context/DependentDisplayContext';
 
 export default function HybridTabsLayout() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { colors } = useDependentDisplay();
-  const guidedTour = useSeniorGuidedTourOptional();
   const tabBarBottom =
     Platform.OS === 'android' ? Math.max(insets.bottom, 28) : Math.max(insets.bottom, 8);
-
-  useFocusEffect(
-    useCallback(() => {
-      const timer = setTimeout(() => {
-        guidedTour?.tryStartTour();
-      }, Platform.OS === 'web' ? 500 : 700);
-      return () => clearTimeout(timer);
-    }, [guidedTour]),
-  );
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>

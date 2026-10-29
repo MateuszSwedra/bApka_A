@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  ScrollView,
 } from 'react-native';
 import { useFocusEffect, router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -30,10 +31,6 @@ import {
 } from '../../../services/appLanguage';
 import { applySeniorProfileSettings } from '../../../services/seniorProfileSync';
 import { useDependentDisplay } from '../../../context/DependentDisplayContext';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../../context/CaretakerTourScrollContext';
 import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
 
 type SelfSettings = {
@@ -109,7 +106,6 @@ export default function HybridSettingsScreen() {
   };
 
   return (
-    <CaretakerTourScrollProvider>
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <HybridProfileHeader
         title={t('tabs.settings')}
@@ -118,7 +114,7 @@ export default function HybridSettingsScreen() {
         showBack
         onBack={() => router.push('/(hybrid)/(tabs)/' as any)}
       />
-      <CaretakerTourScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]}>
+      <ScrollView contentContainerStyle={[styles.scroll, { paddingBottom: scrollBottomPadding }]}>
         {loading ? (
           <ActivityIndicator size="large" color={colors.primaryLimeDark} style={{ marginTop: 32 }} />
         ) : (
@@ -197,9 +193,8 @@ export default function HybridSettingsScreen() {
             </Pressable>
           </>
         )}
-      </CaretakerTourScrollView>
+      </ScrollView>
     </View>
-    </CaretakerTourScrollProvider>
   );
 }
 

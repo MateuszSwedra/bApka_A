@@ -113,7 +113,6 @@ export default function LoginScreen() {
           accessToken: response.access_token,
           user: response.user ?? {},
           setUserSession,
-          resetTours: response.isNewUser === true || response.user?.roleSelected === false,
         });
       } catch (e) {
         const msg =
@@ -143,7 +142,6 @@ export default function LoginScreen() {
         accessToken: response.access_token,
         user: response.user ?? {},
         setUserSession,
-        resetTours: response.user?.roleSelected === false,
       });
     } catch (e) {
       const msg =
@@ -179,7 +177,6 @@ export default function LoginScreen() {
         accessToken: response.access_token,
         user: { ...(response.user ?? {}), roleSelected: false },
         setUserSession,
-        resetTours: true,
       });
     } catch (e) {
       const msg =

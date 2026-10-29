@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { Theme } from '../../constants/theme';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 import { useTranslation } from 'react-i18next';
@@ -11,12 +11,6 @@ import { VitalsInsightsCharts } from '../caretaker/VitalsInsightsCharts';
 import { useDependentTabTopInset } from '../../utils/useDependentTabTopInset';
 import { useTabScreenScrollBottomPadding } from '../../utils/safeAreaInsets';
 import { useSelfUserId } from '../../hooks/useSelfUserId';
-import { SeniorTourTarget } from '../senior/SeniorTourTarget';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../context/CaretakerTourScrollContext';
-
 type RangeKey = 'today' | 'week' | 'month';
 
 export default function HybridInsightsScreen() {
@@ -84,11 +78,10 @@ export default function HybridInsightsScreen() {
   }, [doseStats]);
 
   return (
-    <CaretakerTourScrollProvider>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <CaretakerTourScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.background }]} contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}>
         <Text style={[styles.title, { color: colors.textDark }]}>{t('caretaker.insights.title')}</Text>
-        <SeniorTourTarget stepId="insights-range" wrapStyle={styles.rangeSwitcherWrap}>
+        <View style={styles.rangeSwitcherWrap}>
         <View style={[styles.rangeSwitcher, { backgroundColor: colors.surfaceGrey }]}>
           {(['today', 'week', 'month'] as RangeKey[]).map(key => (
             <Pressable key={key} onPress={() => setRange(key)} style={[styles.rangeChip, key === range && { backgroundColor: colors.surfaceWhite }]}>
@@ -96,7 +89,7 @@ export default function HybridInsightsScreen() {
             </Pressable>
           ))}
         </View>
-        </SeniorTourTarget>
+        </View>
         {currentRangeLabel ? <Text style={[styles.rangeHint, { color: colors.textLight }]}>{t('caretaker.insights.rangeLabel', { range: currentRangeLabel })}</Text> : null}
         {loading ? (
           <View style={styles.loadingBox}>
@@ -121,9 +114,8 @@ export default function HybridInsightsScreen() {
             />
           </>
         ) : null}
-      </CaretakerTourScrollView>
+      </ScrollView>
     </View>
-    </CaretakerTourScrollProvider>
   );
 }
 

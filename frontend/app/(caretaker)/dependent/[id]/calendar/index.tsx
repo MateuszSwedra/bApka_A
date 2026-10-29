@@ -12,7 +12,6 @@ import type { ScheduleItem } from '../../../../../context/MedsContext';
 import { getScheduleTreatmentId } from '../../../../../context/MedsContext';
 import { useTranslation } from 'react-i18next';
 import { AndroidStyleMonthCalendar } from '../../../../../components/caretaker/AndroidStyleMonthCalendar';
-import { CaretakerTourTarget } from '../../../../../components/caretaker/CaretakerTourTarget';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
 
 export default function DependentCalendarMonthScreen() {
@@ -75,22 +74,20 @@ export default function DependentCalendarMonthScreen() {
         />
       </View>
 
-      <CaretakerTourTarget stepId="calendar-fab" wrapStyle={[styles.fab, { bottom: fabBottomOffset }]}>
-        <Pressable
-          style={styles.fabInner}
-          onPress={() => {
-            if (!dependentId) {
-              Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
-              return;
-            }
-            openAddMedForDependent(dependentId);
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={t('tabs.calendar')}
-        >
-          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
-        </Pressable>
-      </CaretakerTourTarget>
+      <Pressable
+        style={[styles.fab, styles.fabInner, { bottom: fabBottomOffset }]}
+        onPress={() => {
+          if (!dependentId) {
+            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+            return;
+          }
+          openAddMedForDependent(dependentId);
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={t('tabs.calendar')}
+      >
+        <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
+      </Pressable>
     </View>
   );
 }

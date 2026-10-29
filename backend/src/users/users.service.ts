@@ -320,7 +320,6 @@ export class UsersService {
 
     const native = nativePushToken?.trim() || null;
 
-    // Ten sam telefon nie może mieć tokenu na dwóch kontach (np. opiekun + senior).
     await this.prisma.user.updateMany({
       where: {
         id: { not: userId },
@@ -345,7 +344,6 @@ export class UsersService {
     });
   }
 
-  /** Imię / forma zwrotu - m.in. przy łączeniu kont i na liście podopiecznych. */
   async updateDisplayName(userId: string, name: string) {
     const trimmed = (name ?? '').trim();
     if (trimmed.length < 2) {
@@ -437,7 +435,6 @@ export class UsersService {
     };
   }
 
-  /** Usuwa własne konto zalogowanego użytkownika (i powiązane dane). */
   async deleteOwnAccount(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
     if (!user) throw new NotFoundException('Użytkownik nie istnieje');
@@ -445,7 +442,6 @@ export class UsersService {
     return { ok: true };
   }
 
-  /** Opiekun trwale usuwa konto sparowanego seniora. */
   async deleteDependentAccount(caretakerId: string, dependentId: string) {
     await this.assertCaretakerOwnsDependent(caretakerId, dependentId);
     const dependent = await this.prisma.user.findUnique({
@@ -459,7 +455,6 @@ export class UsersService {
     return { ok: true };
   }
 
-  /** Trwałe rozłączenie pary opiekun–senior (konta zostają). */
   async unpairDependent(caretakerId: string, dependentId: string) {
     await this.assertCaretakerOwnsDependent(caretakerId, dependentId);
     await this.prisma.connection.deleteMany({
@@ -468,7 +463,6 @@ export class UsersService {
     return { ok: true };
   }
 
-  /** Kasuje użytkownika i dane zależne (brak onDelete Cascade w schemacie). */
   private async purgeUserData(userId: string) {
     await this.prisma.$transaction(async (tx) => {
       const ownedSchedules = await tx.schedule.findMany({

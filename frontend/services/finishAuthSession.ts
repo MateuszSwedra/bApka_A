@@ -35,20 +35,13 @@ async function persistTokenWithoutRole(token: string) {
   try {
     await SecureStore.deleteItemAsync('userRole');
   } catch {
-    /* ignore */
   }
 }
 
-/**
- * Po login / Google / register.
- * Dla nowego konta (roleSelected !== true) NIE wołamy getMe wcześniej niż trzeba —
- * wystarczy payload z /auth/* (unikamy wyścigu z AuthContext czyszczącym sesję).
- */
 export async function finishAuthSession(options: {
   accessToken: string;
   user: AuthUser;
   setUserSession: (token: string, role: 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null) => Promise<void>;
-  resetTours?: boolean;
 }): Promise<void> {
   const { accessToken, user, setUserSession } = options;
 
@@ -65,17 +58,10 @@ export async function finishAuthSession(options: {
 
   try {
     if (!hasCompletedRoleSelection(fromLogin)) {
-      if (options.resetTours) {
-        const { resetCaretakerTourState } = await import('./caretakerTourState');
-        const { resetSeniorTourState } = await import('./seniorTourState');
-        await resetCaretakerTourState();
-        await resetSeniorTourState();
-      }
       router.replace(needsName ? '/onboarding-name' : '/role-selection');
       return;
     }
 
-    // Ukończona rola — dociągnij parowanie itd.
     let profile = fromLogin;
     try {
       const me = (await usersAPI.getMe()) as MeProfile;
@@ -87,7 +73,6 @@ export async function finishAuthSession(options: {
         hasPushToken: me.hasPushToken,
       };
     } catch {
-      /* zostaw fromLogin */
     }
 
     const role = profile.role;

@@ -35,8 +35,8 @@ export default function DependentAccountScreen() {
     try {
       await usersAPI.deleteMyAccount();
       setConfirmOpen(false);
+      await logout({ skipPushClear: true });
       showAlert(t('common.success'), t('dependent.account.deleteSuccess'));
-      await logout();
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('dependent.account.deleteError');
       showAlert(t('common.error'), msg || t('dependent.account.deleteError'));

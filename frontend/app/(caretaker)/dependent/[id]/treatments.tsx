@@ -17,7 +17,6 @@ import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopIns
 import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../../i18n/treatmentLabels';
 import { openAddTreatment, resolveMedsFlowScope } from '../../../../utils/medsFlowNavigation';
-import { CaretakerTourTarget } from '../../../../components/caretaker/CaretakerTourTarget';
 import { RestockMedicationSheet } from '../../../../components/caretaker/RestockMedicationSheet';
 import { confirmAction, showErrorAlert } from '../../../../utils/confirmAction';
 
@@ -74,15 +73,13 @@ export default function DependentTreatmentsScreen() {
     items: treatments.filter(t => t.type === type),
   })).filter(group => group.items.length > 0);
 
-  const firstTreatmentId = grouped.flatMap(group => group.items)[0]?.id;
-
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l }]}>
         <Text style={styles.sectionTitle}>{t('treatment.list.title')}</Text>
         <Text style={styles.sectionSubtitle}>{t('treatment.list.subtitle')}</Text>
 
-        <CaretakerTourTarget stepId="treatments-add" wrapStyle={styles.addRowWrap}>
+        <View style={styles.addRowWrap}>
           <Pressable
             onPress={handleOpenAddTreatment}
             style={styles.addRow}
@@ -93,7 +90,7 @@ export default function DependentTreatmentsScreen() {
             </View>
             <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
           </Pressable>
-        </CaretakerTourTarget>
+        </View>
 
         {grouped.length === 0 && (
           <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
@@ -109,25 +106,18 @@ export default function DependentTreatmentsScreen() {
               <Text style={styles.groupCount}>{group.items.length}</Text>
             </View>
 
-            {group.items.map(item => {
-              const card = (
-                <TreatmentCard
-                  item={item}
-                  accent={group.meta.accent}
-                  onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
-                  onRestock={
-                    item.type === 'MEDICATION' ? () => setRestockTarget(item) : undefined
-                  }
-                  onRemove={() => confirmRemoveTreatment(item)}
-                />
-              );
-
-              if (item.id !== firstTreatmentId) {
-                return <React.Fragment key={item.id}>{card}</React.Fragment>;
-              }
-
-              return <View key={item.id} style={styles.tourCardWrap}>{card}</View>;
-            })}
+            {group.items.map(item => (
+              <TreatmentCard
+                key={item.id}
+                item={item}
+                accent={group.meta.accent}
+                onEdit={() => router.push(`/(caretaker)/edit-treatment/${item.id}` as any)}
+                onRestock={
+                  item.type === 'MEDICATION' ? () => setRestockTarget(item) : undefined
+                }
+                onRemove={() => confirmRemoveTreatment(item)}
+              />
+            ))}
           </View>
         ))}
       </ScrollView>
@@ -288,9 +278,6 @@ const styles = StyleSheet.create({
   },
   itemCard: {
     marginBottom: Theme.spacing.s,
-  },
-  tourCardWrap: {
-    width: '100%',
   },
   itemHeader: {
     flexDirection: 'row',

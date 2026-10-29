@@ -17,7 +17,6 @@ type Props = {
   visible: boolean;
   title: string;
   message: string;
-  /** Dokładna fraza do wpisania (porównanie bez wielkości liter, trim). */
   expectedPhrase: string;
   phraseHint: string;
   confirmLabel: string;

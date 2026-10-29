@@ -25,8 +25,6 @@ import {
 } from '../../utils/scheduleDateHelpers';
 import { parseYmdLocal } from '../../utils/ymdDate';
 import type { CalendarDepletionAlert } from './AndroidStyleMonthCalendar';
-import { useCaretakerTourLock } from '../../context/CaretakerTourLockContext';
-
 const HOUR_HEIGHT = 64;
 const HOURS = 24;
 const TIME_GUTTER = 56;
@@ -47,9 +45,6 @@ type Props = {
   onSlotPress?: (hour: number) => void;
   scrollRef?: React.RefObject<ScrollView | null>;
   timelineContentRef?: React.RefObject<View | null>;
-  tourTargetScheduleId?: string | null;
-  tourFallbackHour?: number;
-  wrapTourTarget?: (node: React.ReactElement, wrapStyle: ViewStyle) => React.ReactElement;
 };
 
 function hourLabel(hour: number): string {
@@ -67,12 +62,8 @@ export function AndroidStyleDayView({
   onSlotPress,
   scrollRef: scrollRefProp,
   timelineContentRef: timelineContentRefProp,
-  tourTargetScheduleId,
-  tourFallbackHour = 9,
-  wrapTourTarget,
 }: Props) {
   const { t } = useTranslation();
-  const tourLock = useCaretakerTourLock();
   const { width: windowWidth } = useWindowDimensions();
   const scrollBottomPadding = Theme.spacing.xl;
   const [activeSlotHour, setActiveSlotHour] = useState<number | null>(null);
@@ -273,8 +264,6 @@ export function AndroidStyleDayView({
         style={styles.scroll}
         contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
         showsVerticalScrollIndicator
-        scrollEnabled={!tourLock?.locked}
-        bounces={!tourLock?.locked}
       >
         <View ref={timelineContentRef} collapsable={false}>
           {dayAlerts.length > 0 ? (
@@ -319,11 +308,10 @@ export function AndroidStyleDayView({
                     height: HOUR_HEIGHT,
                   };
                   const slotPast = !dayIsPast && isCalendarHourSlotInPast(dateStr, hour);
-                  const isTourSlot =
-                    !tourTargetScheduleId && wrapTourTarget && hour === tourFallbackHour;
 
-                  const slotNode = (
+                  return (
                     <Pressable
+                      key={`slot-${hour}`}
                       disabled={dayIsPast || slotPast}
                       onPress={() => {
                         if (dayIsPast || slotPast) return;
@@ -348,21 +336,6 @@ export function AndroidStyleDayView({
                       ) : null}
                     </Pressable>
                   );
-
-                  if (isTourSlot && wrapTourTarget) {
-                    return (
-                      <React.Fragment key={`tour-hour-${hour}`}>
-                        {wrapTourTarget(slotNode, {
-                          position: 'absolute',
-                          left: 0,
-                          right: 0,
-                          ...hourRowStyle,
-                        })}
-                      </React.Fragment>
-                    );
-                  }
-
-                  return <React.Fragment key={`slot-${hour}`}>{slotNode}</React.Fragment>;
                 })
               : null}
             {nowLineTop != null ? (
@@ -380,21 +353,19 @@ export function AndroidStyleDayView({
             >
               {positionedEvents.map(({ sch, top, height, left, width, accent, label }) => {
                 const eventPast = isScheduleItemInPast(dateStr, sch.time);
-                const isTourTarget = Boolean(wrapTourTarget && tourTargetScheduleId === sch.id);
-                const eventLayout: ViewStyle = {
-                  top,
-                  height,
-                  left,
-                  width,
-                  backgroundColor: accent,
-                };
 
-                const eventNode = (
+                return (
                   <Pressable
+                    key={sch.id}
                     style={[
                       styles.timedEvent,
-                      isTourTarget ? styles.timedEventInTourWrap : eventLayout,
-                      { backgroundColor: accent },
+                      {
+                        top,
+                        height,
+                        left,
+                        width,
+                        backgroundColor: accent,
+                      },
                       eventPast && styles.timedEventPast,
                     ]}
                     onPress={() => {
@@ -411,22 +382,6 @@ export function AndroidStyleDayView({
                     </Text>
                   </Pressable>
                 );
-
-                if (isTourTarget && wrapTourTarget) {
-                  return (
-                    <React.Fragment key={sch.id}>
-                      {wrapTourTarget(eventNode, {
-                        position: 'absolute',
-                        top,
-                        height,
-                        left,
-                        width,
-                      })}
-                    </React.Fragment>
-                  );
-                }
-
-                return <React.Fragment key={sch.id}>{eventNode}</React.Fragment>;
               })}
             </View>
           </View>
@@ -621,13 +576,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.15,
     shadowRadius: 2,
-  },
-  // W trybie "tour target" pozycję nadaje wrapper; tu wypełniamy tylko jego obszar.
-  timedEventInTourWrap: {
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
   },
   timedEventPast: {
     opacity: 0.55,

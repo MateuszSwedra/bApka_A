@@ -166,7 +166,6 @@ export class AuthService {
       }
     } else {
       isNewUser = true;
-      // Placeholder role — wybór roli kończy się dopiero w PATCH /users/me/role (roleSelected=true).
       user = await this.prisma.user.create({
         data: {
           email,

@@ -107,7 +107,6 @@ export default function DependentDashboard() {
         mergeDoseLogsIntoCompletionSets(logs, todayStr, completed, missed);
       }
     } catch {
-      /* offline - zostaje lokalny stan */
     }
     setCompletedIds(completed);
     setCompletedMoodSlots(new Set(moodSlots));
@@ -126,7 +125,6 @@ export default function DependentDashboard() {
       setMoodCheckTimes(normalizeMoodCheckTimes(me?.moodCheckTimes));
       if (me && typeof me.vitalsEntryEnabled === 'boolean') setVitalsEntryEnabled(me.vitalsEntryEnabled);
     } catch {
-      /* offline */
     }
   }, [selfUserId, refetchFromServer, loadCompleted, reload]);
 

@@ -6,6 +6,7 @@ import {
   Pressable,
   Platform,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -29,11 +30,6 @@ import {
 } from '../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../services/notificationSoundPreview';
 import { HugeButton } from '../components/HugeButton';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../context/CaretakerTourScrollContext';
-
 function exitSettings(userRole: string | null) {
   if (router.canGoBack()) {
     router.back();
@@ -168,7 +164,6 @@ export default function NotificationSoundSettingsScreen() {
   );
 
   return (
-    <CaretakerTourScrollProvider>
       <View style={styles.root}>
       <LinearGradient
         colors={['#E8F2F8', Theme.colors.surfaceGrey, Theme.colors.background]}
@@ -189,7 +184,7 @@ export default function NotificationSoundSettingsScreen() {
         </Pressable>
       </View>
 
-      <CaretakerTourScrollView
+      <ScrollView
         contentContainerStyle={[
           styles.scroll,
           { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.xl) },
@@ -240,13 +235,12 @@ export default function NotificationSoundSettingsScreen() {
             )}
           </>
         )}
-      </CaretakerTourScrollView>
+      </ScrollView>
 
       <View style={[styles.footer, { paddingBottom: getScreenBottomPadding(insets.bottom, Theme.spacing.m) }]}>
         <HugeButton title={t('common.done')} onPress={() => exitSettings(userRole)} style={styles.doneBtn} />
       </View>
     </View>
-    </CaretakerTourScrollProvider>
   );
 }
 
@@ -339,9 +333,6 @@ const styles = StyleSheet.create({
   },
   loader: {
     marginTop: 40,
-  },
-  sectionTourWrap: {
-    width: '100%',
   },
   section: {
     marginBottom: Theme.spacing.xl,

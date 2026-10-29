@@ -13,10 +13,14 @@ import { isGoogleAuthPending } from '../utils/googleWebRedirect';
 
 type Role = 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null;
 
+type LogoutOptions = {
+  skipPushClear?: boolean;
+};
+
 interface AuthContextType {
   userRole: Role;
   loginFake: (role: Role) => void;
-  logout: () => Promise<void>;
+  logout: (options?: LogoutOptions) => Promise<void>;
   setUserSession: (token: string, role: Role) => Promise<void>;
   isReady: boolean;
 }
@@ -40,7 +44,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         try {
           const me = await usersAPI.getMe();
-          // roleSelected === false → placeholder po rejestracji/Google, bez wyboru roli.
           if (me?.roleSelected === false) {
             await persistSession(token, null);
             setUserRole(null);
@@ -53,7 +56,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }
           }
         } catch (e) {
-          // Nie czyść sesji w trakcie finalizacji Google (wyścig z zapisem nowego JWT).
           if (isAuthApiError(e) && !isGoogleAuthPending()) {
             await clearSessionStorage();
             setUserRole(null);
@@ -70,13 +72,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const setUserSession = async (token: string, role: Role) => {
     try {
-      // Najpierw zapisz JWT — clearPush nie może działać na starym/brakującym tokenie.
       await persistSession(token, role);
       setUserRole(role);
       try {
         await clearPushTokenFromBackend();
       } catch {
-        /* ignore */
       }
       void syncPushTokenWithBackend();
     } catch (e) {
@@ -88,22 +88,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserRole(role);
   };
 
-  const logout = async () => {
+  const logout = async (options?: LogoutOptions) => {
     try {
-      // Najpierw push (jeszcze z JWT), potem storage — zanim zerujemy rolę / nawigujemy.
-      await clearPushTokenFromBackend();
+      if (!options?.skipPushClear) {
+        await clearPushTokenFromBackend();
+      }
       await clearSessionStorage();
     } catch (e) {
       console.warn('Logout error', e);
+      try {
+        await clearSessionStorage();
+      } catch {
+      }
     }
-    // Najpierw /login, potem null roli — inaczej layout opiekuna zdąży
-    // resolvePostAuthRoute(null) → /role-selection (migawka przed logowaniem).
+    setUserRole(null);
     if (Platform.OS === 'web' && typeof window !== 'undefined') {
-      window.location.href = '/login';
+      window.location.replace('/login');
       return;
     }
     router.replace('/login');
-    setUserRole(null);
   };
 
   return (

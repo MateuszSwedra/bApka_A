@@ -68,8 +68,6 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
     googleConfig ?? { webClientId: undefined },
   );
 
-  // Na web id_token z URL obsługuje wyłącznie GoogleWebRedirectHandler (root).
-  // Tu tylko wynik promptAsync (native / ewentualny popup bez full reload).
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const idToken = extractIdToken(response);
@@ -83,12 +81,10 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
         ? { windowName: '_self' }
         : { showInRecents: true },
     ).then((result) => {
-      // Przy _self strona się przeładuje — wynik zwykle nie wraca tutaj.
       if (Platform.OS === 'web') return;
       const idToken = extractIdToken(result);
       if (idToken) deliver(idToken);
     }).catch(() => {
-      /* anulowano */
     });
   }, [promptAsync, deliver]);
 

@@ -14,8 +14,6 @@ import { useTranslation } from 'react-i18next';
 import { AndroidStyleMonthCalendar } from '../../../../components/caretaker/AndroidStyleMonthCalendar';
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
-import { SeniorTourTarget } from '../../../../components/senior/SeniorTourTarget';
-
 export default function HybridCalendarMonthScreen() {
   const { t } = useTranslation();
   const { colors } = useDependentDisplay();
@@ -62,25 +60,20 @@ export default function HybridCalendarMonthScreen() {
         />
       </View>
 
-      <SeniorTourTarget
-        stepId="calendar-fab"
-        wrapStyle={StyleSheet.flatten([styles.fab, { bottom: fabBottomOffset }])}
+      <Pressable
+        style={[styles.fab, styles.fabInner, { bottom: fabBottomOffset }]}
+        onPress={() => {
+          if (!selfUserId) {
+            Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
+            return;
+          }
+          openAddMed(selfUserId, 'hybrid');
+        }}
+        accessibilityRole="button"
+        accessibilityLabel={t('schedule.add.pickActivityTitle')}
       >
-        <Pressable
-          style={styles.fabInner}
-          onPress={() => {
-            if (!selfUserId) {
-              Alert.alert(t('common.error'), t('errors.invalidDependentProfile'));
-              return;
-            }
-            openAddMed(selfUserId, 'hybrid');
-          }}
-          accessibilityRole="button"
-          accessibilityLabel={t('schedule.add.pickActivityTitle')}
-        >
-          <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
-        </Pressable>
-      </SeniorTourTarget>
+        <MaterialIcons name="add" size={28} color={Theme.colors.textDark} style={styles.fabAddIcon} />
+      </Pressable>
     </View>
   );
 }

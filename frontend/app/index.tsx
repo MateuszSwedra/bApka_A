@@ -58,7 +58,6 @@ export default function IndexRouter() {
     if (!isReady) return;
 
     const route = async () => {
-      // Google OAuth w toku (token w sessionStorage / pending) — czeka GoogleWebRedirectHandler.
       if (Platform.OS === 'web' && isGoogleAuthPending()) {
         return;
       }
@@ -81,7 +80,6 @@ export default function IndexRouter() {
             routeToGuestOnboarding(hasSeenWelcome, hasSeenConsents);
             return;
           }
-          /* sieć niedostępna — kontynuuj z zapisaną rolą */
         }
 
         const storedRole = await getStoredRole();

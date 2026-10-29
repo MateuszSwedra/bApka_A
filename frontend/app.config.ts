@@ -1,6 +1,5 @@
 import type { ExpoConfig } from 'expo/config';
 
-/** Docelowy package na Google Play - nie zmieniaj po publikacji. */
 export const ANDROID_PACKAGE = 'com.bapka.app';
 
 const config: ExpoConfig = {
@@ -9,7 +8,6 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  // `bapka` = deep linki; `com.bapka.app` = redirect Google (expo-auth-session → package:/oauthredirect)
   scheme: ['bapka', 'com.bapka.app'],
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
@@ -79,7 +77,6 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
-    // Wpinane w native (jak Google IDs) — niezawodniejsze niż sam process.env w release.
     apiUrl:
       process.env.EXPO_PUBLIC_API_URL?.trim() ||
       'https://bapka-a.onrender.com',

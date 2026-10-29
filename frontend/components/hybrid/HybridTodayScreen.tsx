@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet, Alert, ScrollView } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { format } from 'date-fns';
@@ -32,12 +32,6 @@ import {
   todayStatsBucketFromKind,
 } from '../../utils/todayScheduleStatus';
 import { findDoseLogForScheduleOnDate, mergeDoseLogsIntoCompletionSets } from '../../utils/doseLogDay';
-import { SeniorTourTarget } from '../senior/SeniorTourTarget';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../context/CaretakerTourScrollContext';
-
 const AVATAR_PALETTE_HC = [
   { solid: '#003366', soft: 'rgba(0, 51, 102, 0.14)' },
   { solid: '#994400', soft: 'rgba(153, 68, 0, 0.2)' },
@@ -178,25 +172,19 @@ export default function HybridTodayScreen() {
   }, [now, t]);
 
   return (
-    <CaretakerTourScrollProvider>
     <View style={[styles.screen, { backgroundColor: colors.background }]}>
       <LinearGradient colors={[colors.surfaceGrey, colors.background, colors.background]} locations={[0, 0.4, 1]} style={StyleSheet.absoluteFill} />
       <HybridProfileHeader title={displayName} subtitle={format(now, 'd.MM.yyyy')} showSettings />
-      <CaretakerTourScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]} showsVerticalScrollIndicator={false}>
-        <SeniorTourTarget
-          stepId="today-take-med"
-          wrapStyle={styles.tourFullWidth}
-        >
-          <HybridTakeMedCard
-            mainState={mainState}
-            schedules={schedules}
-            treatments={treatments}
-            onPress={() => setMedConfirmVisible(true)}
-            colors={colors}
-            colorBlindFriendly={colorBlindFriendly}
-            highContrast={highContrast}
-          />
-        </SeniorTourTarget>
+      <ScrollView style={styles.scroll} contentContainerStyle={[styles.content, { paddingBottom: scrollBottomPadding }]} showsVerticalScrollIndicator={false}>
+        <HybridTakeMedCard
+          mainState={mainState}
+          schedules={schedules}
+          treatments={treatments}
+          onPress={() => setMedConfirmVisible(true)}
+          colors={colors}
+          colorBlindFriendly={colorBlindFriendly}
+          highContrast={highContrast}
+        />
         <DependentTodayHeroCard
           initials={displayName.substring(0, 2).toUpperCase()}
           greeting={greetingLine}
@@ -211,10 +199,6 @@ export default function HybridTodayScreen() {
           overviewLabel={t('caretaker.today.dayOverview')}
           emptyDayLabel={t('caretaker.today.empty')}
         />
-        <SeniorTourTarget
-          stepId="today-plan"
-          wrapStyle={styles.tourFullWidth}
-        >
         <View>
         <View style={styles.sectionHead}>
           <MaterialIcons name="view-agenda" size={20} color={colors.primaryLimeDark} />
@@ -252,7 +236,6 @@ export default function HybridTodayScreen() {
           })
         )}
         </View>
-        </SeniorTourTarget>
         {depletionAlerts.filter(a => a.date === todayStr).map((alert, idx) => (
           <View key={idx} style={[styles.alertCard, { backgroundColor: colors.surfaceWhite, borderColor: colors.accentOrange }]}>
             <MaterialIcons name="warning-amber" size={22} color={colors.accentOrange} />
@@ -260,11 +243,10 @@ export default function HybridTodayScreen() {
             <Text style={[styles.alertStockMargin, { color: colors.accentOrange }]}>{alert.pillsLeft}</Text>
           </View>
         ))}
-      </CaretakerTourScrollView>
+      </ScrollView>
       <SeniorConfirmModal visible={medConfirmVisible} title={t('dependent.home.confirmTitle')} message={medConfirmMessage} onConfirm={() => void confirmMed()} onCancel={() => setMedConfirmVisible(false)} confirmColor={colors.primaryLimeDark} />
       <VitalsMetricModal visible={vitalsModalVisible} type={vitalsModalType} colors={colors} onClose={() => setVitalsModalVisible(false)} />
     </View>
-    </CaretakerTourScrollProvider>
   );
 }
 
@@ -282,5 +264,4 @@ const styles = StyleSheet.create({
   alertCard: { flexDirection: 'row', alignItems: 'center', gap: Theme.spacing.s, padding: Theme.spacing.m, borderRadius: Theme.borderRadius.large, borderWidth: 1, marginTop: Theme.spacing.s },
   alertText: { flex: 1, fontWeight: '600' },
   alertStockMargin: { fontSize: 20, fontWeight: '900', minWidth: 32, textAlign: 'center' },
-  tourFullWidth: { width: '100%' },
 });

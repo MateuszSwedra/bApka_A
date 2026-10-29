@@ -13,7 +13,6 @@ import { VitalsInsightsCharts } from '../../../../components/caretaker/VitalsIns
 import { DoseInsightsCard } from '../../../../components/caretaker/DoseInsightsCard';
 import { MoodWeekChart } from '../../../../components/insights/MoodWeekChart';
 import { MoodDistributionSummary } from '../../../../components/insights/MoodDistributionSummary';
-import { CaretakerTourTarget } from '../../../../components/caretaker/CaretakerTourTarget';
 import { buildMoodDayCells } from '../../../../utils/moodWeekChart';
 import { buildMoodDistribution } from '../../../../utils/moodDistribution';
 import { DoseStatsPayload } from '../../../../utils/doseStats';
@@ -196,32 +195,30 @@ export default function DependentInsightsScreen() {
       >
         <Text style={styles.title}>{t('caretaker.insights.title')}</Text>
 
-        <CaretakerTourTarget stepId="insights-range" wrapStyle={styles.rangeSwitcherWrap}>
-          <View style={styles.rangeSwitcher}>
-            {(['today', 'week', 'month'] as RangeKey[]).map((key) => {
-              const active = key === range;
-              return (
-                <Pressable
-                  key={key}
-                  onPress={() => onChangeRange(key)}
+        <View style={[styles.rangeSwitcherWrap, styles.rangeSwitcher]}>
+          {(['today', 'week', 'month'] as RangeKey[]).map((key) => {
+            const active = key === range;
+            return (
+              <Pressable
+                key={key}
+                onPress={() => onChangeRange(key)}
+                style={[
+                  styles.rangeChip,
+                  active && styles.rangeChipActive,
+                ]}
+              >
+                <Text
                   style={[
-                    styles.rangeChip,
-                    active && styles.rangeChipActive,
+                    styles.rangeChipLabel,
+                    active && styles.rangeChipLabelActive,
                   ]}
                 >
-                  <Text
-                    style={[
-                      styles.rangeChipLabel,
-                      active && styles.rangeChipLabelActive,
-                    ]}
-                  >
-                    {renderRangeLabel(key)}
-                  </Text>
-                </Pressable>
-              );
-            })}
-          </View>
-        </CaretakerTourTarget>
+                  {renderRangeLabel(key)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
 
         {currentRangeLabel ? (
           <Text style={styles.rangeHint}>

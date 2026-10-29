@@ -26,8 +26,6 @@ export default function SeniorTypeScreen() {
     await setRequiresCaretakerPairing(false);
     setIsLoading(true);
     try {
-      const { resetSeniorTourState } = await import('../services/seniorTourState');
-      await resetSeniorTourState();
       await usersAPI.updateRole('HYBRID');
       
       let token = null;

@@ -5,7 +5,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
 import { router } from 'expo-router';
-import { SeniorTourTarget } from '../senior/SeniorTourTarget';
 import { useDependentDisplay } from '../../context/DependentDisplayContext';
 
 type HybridProfileHeaderProps = {
@@ -61,23 +60,21 @@ export function HybridProfileHeader({
         ) : null}
       </View>
       {showSettings ? (
-        <SeniorTourTarget stepId="hybrid-settings">
-          <Pressable
-            onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
-            style={({ pressed }) => [
-              styles.settingsBtn,
-              {
-                backgroundColor: colors.surfaceWhite,
-                borderColor: colors.primaryLimeDark,
-              },
-              pressed && { opacity: 0.85, backgroundColor: colors.surfaceWarmHighlight ?? colors.surfaceGrey },
-            ]}
-            accessibilityRole="button"
-            accessibilityLabel={t('tabs.settings')}
-          >
-            <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
-          </Pressable>
-        </SeniorTourTarget>
+        <Pressable
+          onPress={() => router.push('/(hybrid)/(tabs)/settings' as any)}
+          style={({ pressed }) => [
+            styles.settingsBtn,
+            {
+              backgroundColor: colors.surfaceWhite,
+              borderColor: colors.primaryLimeDark,
+            },
+            pressed && { opacity: 0.85, backgroundColor: colors.surfaceWarmHighlight ?? colors.surfaceGrey },
+          ]}
+          accessibilityRole="button"
+          accessibilityLabel={t('tabs.settings')}
+        >
+          <MaterialIcons name="settings" size={28} color={colors.primaryLimeDark} />
+        </Pressable>
       ) : (
         <View style={styles.iconSpacer} />
       )}

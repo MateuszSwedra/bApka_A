@@ -58,7 +58,6 @@ export class UsersController {
     return this.usersService.clearFcmToken(req.user.userId);
   }
 
-  /** POST — pewniejsze niż DELETE /users/me (proxy / starsze wdrożenia). */
   @Post('me/delete-account')
   @HttpCode(200)
   @ApiOperation({ summary: 'Delete my account and associated data' })
@@ -176,7 +175,6 @@ export class UsersController {
     return this.usersService.listHealthMetricLogs(req.user.userId, id, start, end, type);
   }
 
-  /** POST na tę samą ścieżkę co PATCH - niektóre wdrożenia / cache miały tylko PATCH. */
   @Post('me/name')
   @HttpCode(200)
   @ApiOperation({ summary: 'Update display name (POST alias, same path as PATCH)' })
@@ -184,7 +182,6 @@ export class UsersController {
     return this.usersService.updateDisplayName(req.user.userId, name);
   }
 
-  /** POST - alternatywna ścieżka (np. starszy klient). */
   @Post('me/display-name')
   @HttpCode(200)
   @ApiOperation({ summary: 'Update display name (POST alias, hyphen path)' })

@@ -2,7 +2,6 @@ import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as SecureStore from 'expo-secure-store';
 
-/** Porty dev-serwera (Metro / Expo) - nigdy nie używamy ich jako portu API. */
 const METRO_LIKE_PORTS = new Set([
   '8081',
   '8082',
@@ -16,7 +15,6 @@ function stripTrailingSlash(s: string): string {
   return s.replace(/\/$/, '');
 }
 
-/** hostUri bywa `192.168.1.2:8081` albo `http://localhost:8081` - nie używamy `split(':')`. */
 function hostnameFromExpoHostUri(hostUri: string): string | null {
   const t = hostUri.trim();
   if (!t) return null;
@@ -29,7 +27,6 @@ function hostnameFromExpoHostUri(hostUri: string): string | null {
   }
 }
 
-/** Gdy ktoś wklei URL bundlera lub zły hostUri, nie wysyłamy API na port Metro. */
 function ensureApiBaseNotOnMetroPort(base: string): string {
   const trimmed = stripTrailingSlash(base);
   try {
@@ -50,15 +47,7 @@ function ensureApiBaseNotOnMetroPort(base: string): string {
 
 type ApiExtra = { apiUrl?: string };
 
-/**
- * Bazowy URL API - zawsze absolutny (unikamy żądań względnych do Metro :8081).
- * 1) EXPO_PUBLIC_API_URL (bez `?.` — Expo inline’uje tylko process.env.EXPO_PUBLIC_*)
- * 2) extra.apiUrl z app.config (pewne w release APK)
- * 3) web/LAN fallbacki
- */
 function resolveApiBaseUrl(): string {
-  // Nie używaj process.env?.EXPO_PUBLIC_* — optional chaining psuje inlining i w APK
-  // zostaje puste env → fałszywy fallback 10.0.2.2 → „Network request failed”.
   const fromEnv =
     typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL
       ? String(process.env.EXPO_PUBLIC_API_URL).trim()
@@ -96,7 +85,6 @@ function resolveApiBaseUrl(): string {
   return ensureApiBaseNotOnMetroPort('http://localhost:3000');
 }
 
-/** Rozwiązywane przy każdym żądaniu - na webie host strony może być dostępny dopiero po hydracji. */
 export function getApiBaseUrl(): string {
   return resolveApiBaseUrl();
 }
@@ -118,7 +106,6 @@ export async function getStoredAuthToken(): Promise<string | null> {
 }
 
 type FetchApiOptions = RequestInit & {
-  /** Nie doklejaj Bearer (login / register / google). */
   skipAuth?: boolean;
 };
 

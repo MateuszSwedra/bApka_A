@@ -8,10 +8,6 @@ import {
   takeCapturedGoogleIdToken,
 } from '../../utils/googleWebRedirect';
 
-/**
- * Finalizuje Google OAuth po full-page redirect na origin.
- * Token jest już w sessionStorage (captureGoogleRedirectSync w _layout).
- */
 export function GoogleWebRedirectHandler() {
   const { setUserSession, isReady } = useAuth();
   const started = useRef(false);
@@ -35,7 +31,6 @@ export function GoogleWebRedirectHandler() {
           accessToken: response.access_token,
           user: response.user ?? {},
           setUserSession,
-          resetTours: response.isNewUser === true || response.user?.roleSelected === false,
         });
       } catch (e) {
         clearGoogleAuthPending();

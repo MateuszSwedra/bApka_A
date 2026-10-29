@@ -26,8 +26,6 @@ import { Theme } from '../constants/theme';
 import { ANDROID_NAV_BAR_COLOR } from '../utils/safeAreaInsets';
 import { captureGoogleRedirectSync } from '../utils/googleWebRedirect';
 
-// Google OAuth (web): zamknięcie popupu + natychmiastowe przejęcie id_token z URL
-// (zanim Index odesłałby usera na /welcome bez sesji).
 WebBrowser.maybeCompleteAuthSession();
 captureGoogleRedirectSync();
 

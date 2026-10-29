@@ -1,5 +1,7 @@
 {
-  "brand": { "name": "bApka" },
+  "brand": {
+    "name": "bApka"
+  },
   "common": {
     "back": "Back",
     "save": "Save",
@@ -13,10 +15,52 @@
     "minute": "Minute"
   },
   "calendar": {
-    "monthNames": ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    "monthNamesShort": ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"],
-    "dayNames": ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-    "dayNamesShort": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    "monthNames": [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December"
+    ],
+    "monthNamesShort": [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec"
+    ],
+    "dayNames": [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday"
+    ],
+    "dayNamesShort": [
+      "Sun",
+      "Mon",
+      "Tue",
+      "Wed",
+      "Thu",
+      "Fri",
+      "Sat"
+    ],
     "today": "Today",
     "daySection": "Day: {{date}}",
     "emptyDay": "No activities on this day.",
@@ -33,7 +77,15 @@
     "pickYear": "Choose year",
     "moreEvents": "+{{count}}",
     "allDay": "All day",
-    "weekdayShort": { "1": "Mon", "2": "Tue", "3": "Wed", "4": "Thu", "5": "Fri", "6": "Sat", "7": "Sun" }
+    "weekdayShort": {
+      "1": "Mon",
+      "2": "Tue",
+      "3": "Wed",
+      "4": "Thu",
+      "5": "Fri",
+      "6": "Sat",
+      "7": "Sun"
+    }
   },
   "tabs": {
     "today": "Today",
@@ -51,9 +103,16 @@
   },
   "onboarding": {
     "welcome": {
-      "slide1": { "title": "Help for your senior" },
-      "slide2": { "title": "Medication reminders", "subtitle": "and much more" },
-      "slide3": { "title": "Track your dependent's progress" },
+      "slide1": {
+        "title": "Help for your senior"
+      },
+      "slide2": {
+        "title": "Medication reminders",
+        "subtitle": "and much more"
+      },
+      "slide3": {
+        "title": "Track your dependent's progress"
+      },
       "cta": "Let's start"
     },
     "name": {
@@ -136,15 +195,27 @@
   "role": {
     "title": "Choose your role",
     "subtitle": "We'll tailor the app to your needs.",
-    "caretaker": { "title": "Caretaker", "desc": "You manage schedules and medications for your dependent." },
-    "dependent": { "title": "Dependent", "desc": "You get reminders and can easily mark activities as done." },
+    "caretaker": {
+      "title": "Caretaker",
+      "desc": "You manage schedules and medications for your dependent."
+    },
+    "dependent": {
+      "title": "Dependent",
+      "desc": "You get reminders and can easily mark activities as done."
+    },
     "errorUpdate": "Could not update role. Please try again."
   },
   "seniorType": {
     "title": "How do you want to use the app?",
     "subtitle": "Pick the mode that fits your situation.",
-    "withCaretaker": { "title": "With a caretaker", "desc": "Your caretaker sets the schedule; you use reminders." },
-    "independent": { "title": "On my own", "desc": "You manage medications and activities yourself." },
+    "withCaretaker": {
+      "title": "With a caretaker",
+      "desc": "Your caretaker sets the schedule; you use reminders."
+    },
+    "independent": {
+      "title": "On my own",
+      "desc": "You manage medications and activities yourself."
+    },
     "errorUpdate": "Could not update account type."
   },
   "profileReady": {
@@ -177,7 +248,9 @@
       "title": "Enter PIN code",
       "subtitle": "Enter the 6-digit code shown on your caretaker's device."
     },
-    "dependent": { "title": "Enter code from caretaker" },
+    "dependent": {
+      "title": "Enter code from caretaker"
+    },
     "pinPlaceholder": "------",
     "ctaConnect": "Connect account",
     "ctaConnectUpper": "CONNECT",
@@ -193,9 +266,18 @@
   },
   "sounds": {
     "screenTitle": "Notification sounds",
-    "default": { "label": "System default", "description": "Standard device notification sound." },
-    "gentle": { "label": "Gentle", "description": "Short, discreet signal." },
-    "strong": { "label": "Clear", "description": "More noticeable signal." },
+    "default": {
+      "label": "System default",
+      "description": "Standard device notification sound."
+    },
+    "gentle": {
+      "label": "Gentle",
+      "description": "Short, discreet signal."
+    },
+    "strong": {
+      "label": "Clear",
+      "description": "More noticeable signal."
+    },
     "sectionMedication": "Medication reminder",
     "sectionMedicationSubtitleCaretaker": "Reminder sound for your dependent's medications.",
     "sectionMedicationSubtitleDependent": "Reminder sound for medications and activities.",
@@ -220,103 +302,6 @@
       "emptyCta": "Add dependent",
       "statusAttention": "Needs attention",
       "statusOk": "All good"
-    },
-    "tour": {
-      "gotIt": "Got it",
-      "guided": {
-        "skip": "Skip tour",
-        "next": "Next",
-        "prev": "Back",
-        "done": "Finish",
-        "progress": "{{current}} of {{total}}",
-        "preWelcome": {
-          "title": "Welcome to the caretaker hub",
-          "body": "We'll briefly show you how to add a dependent and what's in their profile. This tour appears only once, before you add your first dependent."
-        },
-        "postWelcome": {
-          "title": "Dependent profile",
-          "body": "You've added a dependent — we'll now walk through every profile tab step by step."
-        },
-        "tabsPreview": {
-          "body": "After pairing you'll see these tabs at the bottom of the profile: Today, Calendar, Med cabinet, and Insights."
-        }
-      },
-      "dashboardAddDependent": {
-        "title": "Add a dependent",
-        "body": "Start here — you'll generate a PIN code to pair your dependent's account with your profile."
-      },
-      "dashboardSounds": {
-        "title": "App settings",
-        "body": "The gear icon opens caretaker settings — medication reminder sounds, SOS alarm, and panel language."
-      },
-      "pairingPin": {
-        "title": "Pairing code",
-        "body": "Share this code with your dependent. In their app they choose \"I have a caretaker\" and enter it to link accounts."
-      },
-      "dependentTabs": {
-        "title": "Profile navigation",
-        "body": "Today — daily plan. Calendar — schedule. Treatment — meds list. Insights — adherence and mood. Open settings with the gear icon at the top."
-      },
-      "dependentSettings": {
-        "title": "Dependent settings",
-        "body": "Configure mood prompts, vitals, senior screen accessibility, and the language on their phone."
-      },
-      "treatmentsAdd": {
-        "title": "New activity",
-        "body": "Add a medication or other activity, then set the schedule step by step in the wizard."
-      },
-      "treatmentsEdit": {
-        "title": "Edit an activity",
-        "body": "Tap an entry in the medicine cabinet to edit it — change the name, description, or other medication details."
-      },
-      "calendarFab": {
-        "title": "Add to calendar",
-        "body": "The + button adds a new activity to your dependent's schedule — pick the med, frequency, and times."
-      },
-      "calendarEdit": {
-        "title": "Edit activities",
-        "body": "Tap a calendar entry to change the time or dose. Tap an empty time slot to add a new activity."
-      },
-      "insightsRange": {
-        "title": "Stats over time",
-        "body": "Switch the range: today, 7, or 30 days. You'll see dose adherence, mood, and health readings."
-      },
-      "settingsMood": {
-        "title": "Mood prompt",
-        "body": "Turn the daily mood check on the senior's home screen on or off. When off, the mood tile is hidden."
-      },
-      "settingsMoodTime": {
-        "title": "Mood check time",
-        "body": "Set when the senior sees the mood question. After saving, the tile appears daily at that time."
-      },
-      "settingsVitals": {
-        "title": "Vitals entry",
-        "body": "When on, after confirming a glucose or blood pressure activity the senior enters the reading. Values appear in Insights."
-      },
-      "settingsColorBlind": {
-        "title": "Color-blind mode",
-        "body": "Adjusts colors and labels on the senior's screen to tell medication status and alerts apart more easily."
-      },
-      "settingsHighContrast": {
-        "title": "High contrast",
-        "body": "Increases text and button contrast on the senior's phone — helpful for low vision."
-      },
-      "settingsSeniorLanguage": {
-        "title": "Senior's language",
-        "body": "Language of the interface on your dependent's phone: labels, reminders, and home screen."
-      },
-      "settingsCaretakerLanguage": {
-        "title": "Your language",
-        "body": "Language of the caretaker panel on this device. Does not change the senior's app language."
-      },
-      "settingsReminderSound": {
-        "title": "Reminder sound",
-        "body": "Sound played on the senior's phone for medication reminders. Tap the speaker icon to preview."
-      },
-      "soundsMedication": {
-        "title": "Reminder sound",
-        "body": "Pick the medication notification sound. Preview it before saving — you'll hear the full effect on your phone."
-      }
     },
     "insights": {
       "title": "Insights",
@@ -406,7 +391,11 @@
       "seniorLanguageSub": "Interface on the dependent's phone.",
       "caretakerLanguage": "Your language (caretaker)",
       "caretakerLanguageSub": "Caretaker panel language on this device.",
-      "language": { "system": "System", "pl": "Polish", "en": "English" },
+      "language": {
+        "system": "System",
+        "pl": "Polish",
+        "en": "English"
+      },
       "soundHint": "Medication reminder sound on the senior's phone.",
       "loadError": "Could not load settings.",
       "saveError": "Could not save settings.",
@@ -673,78 +662,7 @@
     "now": "NOW",
     "medTakenAlert": "Medication taken!"
   },
-  "senior": {
-    "tour": {
-      "gotIt": "Got it",
-      "guided": {
-        "skip": "Skip tutorial",
-        "next": "Next",
-        "prev": "Back",
-        "done": "Finish",
-        "progress": "{{current}} of {{total}}",
-        "welcome": {
-          "title": "Welcome to the app",
-          "body": "We'll briefly show you how to use today's plan, calendar, medicine cabinet, and insights. This tutorial appears only once."
-        }
-      },
-      "todayTakeMed": {
-        "title": "Confirm medication",
-        "body": "When it's time, tap this tile to confirm you took your medication or completed the activity."
-      },
-      "todayPlan": {
-        "title": "Today's plan",
-        "body": "Here you'll see all medications and activities scheduled for today with their status."
-      },
-      "hybridSettings": {
-        "title": "Settings",
-        "body": "The gear icon opens settings — language, accessibility, vitals, and reminder sounds."
-      },
-      "hybridTabs": {
-        "title": "Navigation",
-        "body": "Today — daily plan. Calendar — schedule. Medicine cabinet — meds and activities. Insights — adherence summary."
-      },
-      "treatmentsAdd": {
-        "title": "New activity",
-        "body": "Add a medication or other activity to your cabinet, then set the schedule in the wizard."
-      },
-      "treatmentsEdit": {
-        "title": "Edit an activity",
-        "body": "Tap an entry in the cabinet to change the name, description, or pill count."
-      },
-      "calendarFab": {
-        "title": "Add to calendar",
-        "body": "The + button adds an activity to your schedule — pick the med, frequency, and times."
-      },
-      "calendarEdit": {
-        "title": "Edit in calendar",
-        "body": "Tap an entry to change the time or dose. Tap an empty time slot to add a new activity."
-      },
-      "insightsRange": {
-        "title": "Stats over time",
-        "body": "Switch the range: today, 7, or 30 days to see medication adherence and vitals."
-      },
-      "settingsVitals": {
-        "title": "Vitals entry",
-        "body": "When on, after confirming glucose or blood pressure you'll enter the reading. Values appear in Insights."
-      },
-      "settingsColorBlind": {
-        "title": "Color-blind mode",
-        "body": "Adjusts colors and labels to tell medication status and alerts apart more easily."
-      },
-      "settingsHighContrast": {
-        "title": "High contrast",
-        "body": "Increases text and button contrast — helpful for low vision."
-      },
-      "settingsLanguage": {
-        "title": "App language",
-        "body": "Choose the language for labels and reminders in the app."
-      },
-      "settingsReminderSound": {
-        "title": "Reminder sound",
-        "body": "Sound played for medication reminders. Tap the speaker icon to preview."
-      }
-    }
-  },
+  "senior": {},
   "schedule": {
     "activityFallback": "Activity",
     "dosagePieces": " ({{count}} pcs.)",
@@ -859,11 +777,31 @@
       "error": "Could not remove the item from the medicine cabinet."
     },
     "type": {
-      "medication": { "label": "Medication", "hint": "Tablets, capsules, etc.", "defaultName": "Medication" },
-      "bloodSugar": { "label": "Blood sugar", "hint": "Glucose measurement", "defaultName": "Blood sugar" },
-      "bloodPressure": { "label": "Blood pressure", "hint": "BP measurement", "defaultName": "Blood pressure" },
-      "exercise": { "label": "Exercise", "hint": "Physical activity", "defaultName": "Exercise" },
-      "custom": { "label": "Other", "hint": "Any activity", "defaultName": "Activity" }
+      "medication": {
+        "label": "Medication",
+        "hint": "Tablets, capsules, etc.",
+        "defaultName": "Medication"
+      },
+      "bloodSugar": {
+        "label": "Blood sugar",
+        "hint": "Glucose measurement",
+        "defaultName": "Blood sugar"
+      },
+      "bloodPressure": {
+        "label": "Blood pressure",
+        "hint": "BP measurement",
+        "defaultName": "Blood pressure"
+      },
+      "exercise": {
+        "label": "Exercise",
+        "hint": "Physical activity",
+        "defaultName": "Exercise"
+      },
+      "custom": {
+        "label": "Other",
+        "hint": "Any activity",
+        "defaultName": "Activity"
+      }
     }
   },
   "calendarEdit": {

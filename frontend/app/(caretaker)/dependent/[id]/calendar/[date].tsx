@@ -16,8 +16,6 @@ import { AndroidStyleDayView } from '../../../../../components/caretaker/Android
 import { ScheduleEventSheet } from '../../../../../components/caretaker/ScheduleEventSheet';
 import { useDependentTabTopInset } from '../../../../../utils/useDependentTabTopInset';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../../utils/scheduleHelpers';
-import type { ViewStyle } from 'react-native';
-
 export default function DependentCalendarDayScreen() {
   const { t } = useTranslation();
   const { date: dateParam } = useLocalSearchParams<{ date: string }>();
@@ -77,18 +75,6 @@ export default function DependentCalendarDayScreen() {
     [schedules, dateStr],
   );
 
-  const tourTargetScheduleId = useMemo(
-    () => daySchedules[0]?.id ?? null,
-    [daySchedules],
-  );
-
-  const wrapTourTarget = useCallback(
-    (node: React.ReactElement, wrapStyle: ViewStyle) => (
-      <View style={wrapStyle}>{node}</View>
-    ),
-    [],
-  );
-
   const handleSlotPress = useCallback(
     (hour: number) => {
       if (!dependentId) {
@@ -132,8 +118,6 @@ export default function DependentCalendarDayScreen() {
             onSlotPress={handleSlotPress}
             scrollRef={dayScrollRef}
             timelineContentRef={dayContentRef}
-            tourTargetScheduleId={tourTargetScheduleId}
-            wrapTourTarget={wrapTourTarget}
           />
         </View>
 

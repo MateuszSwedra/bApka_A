@@ -15,8 +15,6 @@ import { ScheduleEventSheet } from '../../../../components/caretaker/ScheduleEve
 import { useDependentTabTopInset } from '../../../../utils/useDependentTabTopInset';
 import { useSelfUserId } from '../../../../hooks/useSelfUserId';
 import { scheduleAppliesToDate, timeToMinutes } from '../../../../utils/scheduleHelpers';
-import type { ViewStyle } from 'react-native';
-
 export default function HybridCalendarDayScreen() {
   const { t } = useTranslation();
   const { date: dateParam } = useLocalSearchParams<{ date: string }>();
@@ -56,18 +54,6 @@ export default function HybridCalendarDayScreen() {
         .filter(s => scheduleAppliesToDate(s, dateStr))
         .sort((a, b) => timeToMinutes(a.time) - timeToMinutes(b.time)),
     [schedules, dateStr],
-  );
-
-  const tourTargetScheduleId = useMemo(
-    () => daySchedules[0]?.id ?? null,
-    [daySchedules],
-  );
-
-  const wrapTourTarget = useCallback(
-    (node: React.ReactElement, wrapStyle: ViewStyle) => (
-      <View style={wrapStyle}>{node}</View>
-    ),
-    [],
   );
 
   const handleSlotPress = useCallback(
@@ -113,8 +99,6 @@ export default function HybridCalendarDayScreen() {
             onSlotPress={handleSlotPress}
             scrollRef={dayScrollRef}
             timelineContentRef={dayContentRef}
-            tourTargetScheduleId={tourTargetScheduleId}
-            wrapTourTarget={wrapTourTarget}
           />
         </View>
         <ScheduleEventSheet

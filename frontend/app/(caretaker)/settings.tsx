@@ -92,8 +92,8 @@ export default function CaretakerSettingsScreen() {
     try {
       await usersAPI.deleteMyAccount();
       setSelfDeleteOpen(false);
+      await logout({ skipPushClear: true });
       showAlert(t('common.success'), t('caretaker.settings.deleteSuccess'));
-      await logout();
     } catch (e) {
       const msg = e instanceof Error ? e.message : t('caretaker.settings.deleteError');
       showAlert(t('common.error'), msg || t('caretaker.settings.deleteError'));

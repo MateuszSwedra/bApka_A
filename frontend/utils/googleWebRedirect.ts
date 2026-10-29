@@ -7,7 +7,6 @@ function canUseSession(): boolean {
   return Platform.OS === 'web' && typeof window !== 'undefined' && typeof sessionStorage !== 'undefined';
 }
 
-/** Czy trwa / zaraz wystartuje finalizacja logowania Google (Index nie może wtedy nawigować). */
 export function isGoogleAuthPending(): boolean {
   if (!canUseSession()) return false;
   try {
@@ -19,11 +18,6 @@ export function isGoogleAuthPending(): boolean {
   }
 }
 
-/**
- * Wywołać synchronicznie przy starcie apki (przed useEffect Index).
- * Zapisuje id_token z hashu do sessionStorage i czyści URL — żeby Index nie zdążył
- * odesłać usera na /welcome zanim GoogleWebRedirectHandler dokończy login.
- */
 export function captureGoogleRedirectSync(): void {
   if (!canUseSession()) return;
   try {
@@ -52,11 +46,9 @@ export function captureGoogleRedirectSync(): void {
 
     sessionStorage.setItem(TOKEN_KEY, idToken);
   } catch {
-    /* ignore */
   }
 }
 
-/** Jednorazowo zabiera zapisany id_token (po captureGoogleRedirectSync). */
 export function takeCapturedGoogleIdToken(): string | null {
   if (!canUseSession()) return null;
   try {
@@ -74,7 +66,6 @@ export function clearGoogleAuthPending(): void {
     sessionStorage.removeItem(PENDING_KEY);
     sessionStorage.removeItem(TOKEN_KEY);
   } catch {
-    /* ignore */
   }
 }
 
@@ -87,6 +78,5 @@ function cleanAuthParamsFromUrl() {
     );
     window.history.replaceState({}, document.title, `${url.pathname}${url.search}`);
   } catch {
-    /* ignore */
   }
 }

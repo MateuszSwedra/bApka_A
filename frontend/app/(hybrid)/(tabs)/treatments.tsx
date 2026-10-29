@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Theme } from '../../../constants/theme';
 import { useDependentDisplay } from '../../../context/DependentDisplayContext';
@@ -12,13 +12,7 @@ import { useTranslation } from 'react-i18next';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { useSelfUserId } from '../../../hooks/useSelfUserId';
 import { openAddTreatment, openEditTreatment } from '../../../utils/medsFlowNavigation';
-import { SeniorTourTarget } from '../../../components/senior/SeniorTourTarget';
 import { RestockMedicationSheet } from '../../../components/caretaker/RestockMedicationSheet';
-import { getSeniorTourStepSeen, setSeniorTourStepSeen } from '../../../services/seniorTourState';
-import {
-  CaretakerTourScrollProvider,
-  CaretakerTourScrollView,
-} from '../../../context/CaretakerTourScrollContext';
 import { confirmAction, showErrorAlert } from '../../../utils/confirmAction';
 
 export default function HybridTreatmentsScreen() {
@@ -36,17 +30,10 @@ export default function HybridTreatmentsScreen() {
     items: treatments.filter(tr => tr.type === type),
   })).filter(group => group.items.length > 0);
 
-  const firstTreatmentId = grouped.flatMap(group => group.items)[0]?.id;
-
   useFocusEffect(
     useCallback(() => {
       if (selfUserId) void refetchFromServer(selfUserId);
-      void (async () => {
-        if (!firstTreatmentId && (await getSeniorTourStepSeen('treatments-add'))) {
-          await setSeniorTourStepSeen('treatments-edit');
-        }
-      })();
-    }, [selfUserId, refetchFromServer, firstTreatmentId]),
+    }, [selfUserId, refetchFromServer]),
   );
 
   const handleOpenAddTreatment = () => {
@@ -70,16 +57,15 @@ export default function HybridTreatmentsScreen() {
   };
 
   return (
-    <CaretakerTourScrollProvider>
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <CaretakerTourScrollView
+        <ScrollView
           style={[styles.container, { backgroundColor: colors.background }]}
           contentContainerStyle={[styles.content, { paddingTop: topInset + Theme.spacing.l, paddingBottom: scrollBottomPadding }]}
         >
           <Text style={[styles.sectionTitle, { color: colors.textDark }]}>{t('treatment.list.title')}</Text>
           <Text style={[styles.sectionSubtitle, { color: colors.textLight }]}>{t('hybrid.treatmentsSubtitle')}</Text>
 
-          <SeniorTourTarget stepId="treatments-add" wrapStyle={styles.addRowWrap}>
+          <View style={styles.addRowWrap}>
             <Pressable
               onPress={handleOpenAddTreatment}
               style={styles.addRow}
@@ -90,7 +76,7 @@ export default function HybridTreatmentsScreen() {
               </View>
               <Text style={styles.addRowText}>{t('schedule.add.addNewActivity')}</Text>
             </Pressable>
-          </SeniorTourTarget>
+          </View>
 
           {grouped.length === 0 ? (
             <Text style={styles.emptyText}>{t('treatment.list.empty')}</Text>
@@ -104,34 +90,22 @@ export default function HybridTreatmentsScreen() {
                   <Text style={styles.groupTitle}>{getTreatmentGroupLabel(group.type)}</Text>
                   <Text style={styles.groupCount}>{group.items.length}</Text>
                 </View>
-                {group.items.map(item => {
-                  const card = (
-                    <TreatmentCard
-                      key={item.id}
-                      item={item}
-                      accent={group.meta.accent}
-                      onEdit={() => openEditTreatment(item.id, 'hybrid')}
-                      onRestock={
-                        item.type === 'MEDICATION' ? () => setRestockTarget(item) : undefined
-                      }
-                      onRemove={() => confirmRemoveTreatment(item)}
-                    />
-                  );
-
-                  if (item.id !== firstTreatmentId) {
-                    return card;
-                  }
-
-                  return (
-                    <View key={item.id} style={styles.tourCardWrap}>
-                      {card}
-                    </View>
-                  );
-                })}
+                {group.items.map(item => (
+                  <TreatmentCard
+                    key={item.id}
+                    item={item}
+                    accent={group.meta.accent}
+                    onEdit={() => openEditTreatment(item.id, 'hybrid')}
+                    onRestock={
+                      item.type === 'MEDICATION' ? () => setRestockTarget(item) : undefined
+                    }
+                    onRemove={() => confirmRemoveTreatment(item)}
+                  />
+                ))}
               </View>
             ))
           )}
-        </CaretakerTourScrollView>
+        </ScrollView>
 
         <RestockMedicationSheet
           treatment={restockTarget}
@@ -142,7 +116,6 @@ export default function HybridTreatmentsScreen() {
           }}
         />
       </View>
-    </CaretakerTourScrollProvider>
   );
 }
 
@@ -209,7 +182,6 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: Theme.typography.title, fontWeight: '800', color: Theme.colors.textDark },
   sectionSubtitle: { marginTop: Theme.spacing.xs, marginBottom: Theme.spacing.m, color: Theme.colors.textLight, lineHeight: 20 },
   addRowWrap: { width: '100%' },
-  tourCardWrap: { width: '100%' },
   addRow: {
     flexDirection: 'row',
     alignItems: 'center',

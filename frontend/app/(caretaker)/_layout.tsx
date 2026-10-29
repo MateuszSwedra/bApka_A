@@ -2,8 +2,6 @@ import { useEffect } from 'react';
 import { Stack, useRouter } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { CaretakerLanguageSync } from '../../components/CaretakerLanguageSync';
-import { CaretakerTourLockProvider } from '../../context/CaretakerTourLockContext';
-import { CaretakerGuidedTourProvider } from '../../context/CaretakerGuidedTourContext';
 import { useAuth } from '../../context/AuthContext';
 import { getStoredRole, getStoredToken } from '../../services/sessionStorage';
 import { resolvePostAuthRoute } from '../../services/postAuthRouting';
@@ -25,7 +23,6 @@ export default function CaretakerLayout() {
 
       const token = await getStoredToken();
       if (!token) {
-        // Wylogowanie / brak sesji — nie role-selection (resolvePostAuthRoute(null)).
         if (!cancelled) router.replace('/login');
         return;
       }
@@ -34,7 +31,6 @@ export default function CaretakerLayout() {
       try {
         me = await usersAPI.getMe();
       } catch {
-        /* offline */
       }
 
       if (cancelled) return;
@@ -61,11 +57,9 @@ export default function CaretakerLayout() {
   }
 
   return (
-    <CaretakerTourLockProvider>
-      <CaretakerGuidedTourProvider>
-        <CaretakerLanguageSync />
-        <Stack screenOptions={{ headerShown: false }} />
-      </CaretakerGuidedTourProvider>
-    </CaretakerTourLockProvider>
+    <>
+      <CaretakerLanguageSync />
+      <Stack screenOptions={{ headerShown: false }} />
+    </>
   );
 }
