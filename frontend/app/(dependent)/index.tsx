@@ -330,6 +330,13 @@ export default function DependentDashboard() {
   return (
     <View style={[styles.container, { backgroundColor: colors.surfaceGrey }]}>
       <View style={[styles.header, { backgroundColor: colors.surfaceWhite, borderBottomColor: colors.border }]}>
+        <Pressable
+          onPress={() => router.push('/(dependent)/account' as never)}
+          style={[styles.iconBtn, { backgroundColor: colors.surfaceWhite, borderWidth: 1, borderColor: colors.border }]}
+          accessibilityLabel={t('dependent.account.infoA11y')}
+        >
+          <MaterialIcons name="info-outline" size={28} color={colors.primaryLimeDark} />
+        </Pressable>
         <View style={styles.headerCenter}>
           <Text style={[styles.seniorName, { color: colors.textDark }]}>{seniorName}</Text>
           {lowStockMeds.length > 0 ? (
@@ -358,15 +365,13 @@ export default function DependentDashboard() {
             </View>
           ) : null}
         </View>
-        <View style={styles.headerActions}>
-          <Pressable
-            onPress={handleLogout}
-            style={[styles.iconBtn, { backgroundColor: colors.surfaceSoftOrange }]}
-            accessibilityLabel={t('auth.signIn.ctaLogin')}
-          >
-            <MaterialIcons name="logout" size={28} color={colors.accentOrange} />
-          </Pressable>
-        </View>
+        <Pressable
+          onPress={handleLogout}
+          style={[styles.iconBtn, { backgroundColor: colors.surfaceSoftOrange }]}
+          accessibilityLabel={t('hybrid.logout')}
+        >
+          <MaterialIcons name="logout" size={28} color={colors.accentOrange} />
+        </Pressable>
       </View>
 
       <View style={[styles.grid, { paddingBottom: bottomPadding }]}>
@@ -561,7 +566,7 @@ const styles = StyleSheet.create({
   },
   headerCenter: {
     flex: 1,
-    paddingRight: Theme.spacing.m,
+    paddingHorizontal: Theme.spacing.m,
   },
   seniorName: {
     fontSize: 32,
@@ -613,10 +618,6 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Theme.colors.textLight,
     lineHeight: 13,
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: Theme.spacing.s,
   },
   iconBtn: {
     padding: Theme.spacing.s,

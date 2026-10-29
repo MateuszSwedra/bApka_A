@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Alert,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { useLocalSearchParams, useGlobalSearchParams, useSegments, useFocusEffect, router } from 'expo-router';
 import { pickDependentUserId } from '../../../../utils/resolveMedsTargetUserId';
@@ -16,6 +17,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../../../constants/theme';
 import { usersAPI } from '../../../../services/api';
+import { ConfirmPhraseModal } from '../../../../components/ConfirmPhraseModal';
 import { DependentProfileHeader } from '../../../../components/caretaker/DependentProfileHeader';
 import type { NotificationSoundChoiceId } from '../../../../constants/notificationSounds';
 import {
@@ -70,6 +72,29 @@ export default function DependentSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [unpairOpen, setUnpairOpen] = useState(false);
+  const [unpairBusy, setUnpairBusy] = useState(false);
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') window.alert(`${title}: ${message}`);
+    else Alert.alert(title, message);
+  };
+
+  const onUnpair = async () => {
+    if (!dependentId) return;
+    setUnpairBusy(true);
+    try {
+      await usersAPI.unpairDependent(dependentId);
+      setUnpairOpen(false);
+      showAlert(t('common.success'), t('caretaker.settings.unpairSuccess'));
+      router.replace('/(caretaker)' as never);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t('caretaker.settings.unpairError');
+      showAlert(t('common.error'), msg || t('caretaker.settings.unpairError'));
+    } finally {
+      setUnpairBusy(false);
+    }
+  };
 
   const load = useCallback(async () => {
     if (!dependentId) {
@@ -258,9 +283,37 @@ export default function DependentSettingsScreen() {
             <Text style={styles.sectionHint}>{t('caretaker.settings.soundHint')}</Text>
             {NOTIFICATION_SOUND_CHOICE_IDS.map(soundId => renderSoundRow(soundId))}
 
+            <Text style={[styles.sectionTitle, styles.sectionGap]}>
+              {t('caretaker.settings.dangerSection')}
+            </Text>
+            <Text style={styles.sectionHint}>{t('caretaker.settings.unpairMessage', {
+              name: dependentName || t('caretaker.dependentFallbackName'),
+            })}</Text>
+            <Pressable
+              onPress={() => setUnpairOpen(true)}
+              style={({ pressed }) => [styles.dangerBtnOutline, pressed && { opacity: 0.9 }]}
+            >
+              <MaterialIcons name="link-off" size={22} color="#C62828" />
+              <Text style={styles.dangerBtnOutlineText}>{t('caretaker.settings.unpairBtn')}</Text>
+            </Pressable>
           </>
         )}
       </ScrollView>
+
+      <ConfirmPhraseModal
+        visible={unpairOpen}
+        title={t('caretaker.settings.unpairTitle')}
+        message={t('caretaker.settings.unpairMessage', {
+          name: dependentName || t('caretaker.dependentFallbackName'),
+        })}
+        expectedPhrase={t('caretaker.settings.unpairPhrase')}
+        phraseHint={t('caretaker.settings.phraseHint')}
+        confirmLabel={t('caretaker.settings.unpairConfirm')}
+        cancelLabel={t('common.cancel')}
+        loading={unpairBusy}
+        onCancel={() => !unpairBusy && setUnpairOpen(false)}
+        onConfirm={onUnpair}
+      />
     </View>
   );
 }
@@ -350,5 +403,22 @@ const styles = StyleSheet.create({
     backgroundColor: Theme.colors.surfaceWhite,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  dangerBtnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 2,
+    borderColor: '#C62828',
+    paddingVertical: 14,
+    marginBottom: Theme.spacing.m,
+  },
+  dangerBtnOutlineText: {
+    color: '#C62828',
+    fontWeight: '800',
+    fontSize: Theme.typography.body,
   },
 });

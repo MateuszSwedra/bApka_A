@@ -146,7 +146,15 @@ export default function RootLayout() {
         <Stack.Screen name="consents" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="legal-terms" options={{ animation: 'slide_from_right' }} />
         <Stack.Screen name="legal-privacy" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="legal-account-deletion"
+          options={{ animation: 'slide_from_right' }}
+        />
         <Stack.Screen name="login" options={{ animation: 'slide_from_right' }} />
+        <Stack.Screen
+          name="oauthredirect"
+          options={{ animation: 'fade', headerShown: false }}
+        />
         <Stack.Screen
           name="onboarding-name"
           options={{ animation: 'slide_from_right' }}

@@ -9,6 +9,7 @@ import { OnboardingPalette } from '../../constants/onboardingTheme';
 import { Theme } from '../../constants/theme';
 import {
   getGoogleAndroidClientId,
+  getGoogleRedirectUri,
   getGoogleWebClientId,
   isGoogleSignInConfigured,
 } from '../../constants/googleAuth';
@@ -53,7 +54,12 @@ export function GoogleSignInButton({ onIdToken, disabled, loading }: Props) {
       return { ...base, webClientId };
     }
     if (Platform.OS === 'android') {
-      return { ...base, webClientId, androidClientId };
+      return {
+        ...base,
+        webClientId,
+        androidClientId,
+        redirectUri: getGoogleRedirectUri(),
+      };
     }
     return null;
   }, [webClientId, androidClientId]);

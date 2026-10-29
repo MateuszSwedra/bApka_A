@@ -9,7 +9,8 @@ const config: ExpoConfig = {
   version: '1.0.0',
   orientation: 'portrait',
   icon: './assets/images/icon.png',
-  scheme: 'bapka',
+  // `bapka` = deep linki; `com.bapka.app` = redirect Google (expo-auth-session → package:/oauthredirect)
+  scheme: ['bapka', 'com.bapka.app'],
   userInterfaceStyle: 'automatic',
   newArchEnabled: true,
   ios: {
@@ -78,6 +79,10 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
+    // Wpinane w native (jak Google IDs) — niezawodniejsze niż sam process.env w release.
+    apiUrl:
+      process.env.EXPO_PUBLIC_API_URL?.trim() ||
+      'https://bapka-a.onrender.com',
     googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '',
     googleAndroidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID ?? '',
     eas: {

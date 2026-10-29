@@ -15,12 +15,22 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bapka-a.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "23976106986-s7492sqphmt537ugog9roambbeda8f3u.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "23976106986-cnnc59rccd18dffojurmmid8n6clnoj4.apps.googleusercontent.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "android": {
         "buildType": "app-bundle"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://bapka-a.onrender.com",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "23976106986-s7492sqphmt537ugog9roambbeda8f3u.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "23976106986-cnnc59rccd18dffojurmmid8n6clnoj4.apps.googleusercontent.com"
       }
     }
   },

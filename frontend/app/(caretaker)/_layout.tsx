@@ -5,7 +5,7 @@ import { CaretakerLanguageSync } from '../../components/CaretakerLanguageSync';
 import { CaretakerTourLockProvider } from '../../context/CaretakerTourLockContext';
 import { CaretakerGuidedTourProvider } from '../../context/CaretakerGuidedTourContext';
 import { useAuth } from '../../context/AuthContext';
-import { getStoredRole } from '../../services/sessionStorage';
+import { getStoredRole, getStoredToken } from '../../services/sessionStorage';
 import { resolvePostAuthRoute } from '../../services/postAuthRouting';
 import { usersAPI } from '../../services/api';
 import { Theme } from '../../constants/theme';
@@ -22,6 +22,13 @@ export default function CaretakerLayout() {
     const guard = async () => {
       const role = userRole ?? ((await getStoredRole()) as typeof userRole);
       if (role === 'CARETAKER' || role === 'HYBRID') return;
+
+      const token = await getStoredToken();
+      if (!token) {
+        // Wylogowanie / brak sesji — nie role-selection (resolvePostAuthRoute(null)).
+        if (!cancelled) router.replace('/login');
+        return;
+      }
 
       let me = null;
       try {

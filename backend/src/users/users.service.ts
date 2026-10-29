@@ -436,4 +436,64 @@ export class UsersService {
       histogram,
     };
   }
+
+  /** Usuwa własne konto zalogowanego użytkownika (i powiązane dane). */
+  async deleteOwnAccount(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!user) throw new NotFoundException('Użytkownik nie istnieje');
+    await this.purgeUserData(userId);
+    return { ok: true };
+  }
+
+  /** Opiekun trwale usuwa konto sparowanego seniora. */
+  async deleteDependentAccount(caretakerId: string, dependentId: string) {
+    await this.assertCaretakerOwnsDependent(caretakerId, dependentId);
+    const dependent = await this.prisma.user.findUnique({
+      where: { id: dependentId },
+      select: { id: true, role: true },
+    });
+    if (!dependent || dependent.role !== Role.DEPENDENT) {
+      throw new NotFoundException('Podopieczny nie istnieje');
+    }
+    await this.purgeUserData(dependentId);
+    return { ok: true };
+  }
+
+  /** Trwałe rozłączenie pary opiekun–senior (konta zostają). */
+  async unpairDependent(caretakerId: string, dependentId: string) {
+    await this.assertCaretakerOwnsDependent(caretakerId, dependentId);
+    await this.prisma.connection.deleteMany({
+      where: { caretakerId, dependentId, isPaired: true },
+    });
+    return { ok: true };
+  }
+
+  /** Kasuje użytkownika i dane zależne (brak onDelete Cascade w schemacie). */
+  private async purgeUserData(userId: string) {
+    await this.prisma.$transaction(async (tx) => {
+      const ownedSchedules = await tx.schedule.findMany({
+        where: { userId },
+        select: { id: true },
+      });
+      const ownedIds = ownedSchedules.map((s: { id: string }) => s.id);
+      if (ownedIds.length) {
+        await tx.doseLog.deleteMany({ where: { scheduleId: { in: ownedIds } } });
+        await tx.schedule.deleteMany({ where: { id: { in: ownedIds } } });
+      }
+
+      await tx.schedule.updateMany({
+        where: { createdById: userId },
+        data: { createdById: null },
+      });
+
+      await tx.inventory.deleteMany({ where: { userId } });
+      await tx.moodLog.deleteMany({ where: { userId } });
+      await tx.sosLog.deleteMany({ where: { userId } });
+      await tx.healthMetricLog.deleteMany({ where: { userId } });
+      await tx.connection.deleteMany({
+        where: { OR: [{ caretakerId: userId }, { dependentId: userId }] },
+      });
+      await tx.user.delete({ where: { id: userId } });
+    });
+  }
 }

@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { isAuthApiError, usersAPI } from '../services/api';
 import {
   getStoredToken,
@@ -88,11 +90,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      // Najpierw push (jeszcze z JWT), potem storage — zanim zerujemy rolę / nawigujemy.
       await clearPushTokenFromBackend();
       await clearSessionStorage();
     } catch (e) {
       console.warn('Logout error', e);
     }
+    // Najpierw /login, potem null roli — inaczej layout opiekuna zdąży
+    // resolvePostAuthRoute(null) → /role-selection (migawka przed logowaniem).
+    if (Platform.OS === 'web' && typeof window !== 'undefined') {
+      window.location.href = '/login';
+      return;
+    }
+    router.replace('/login');
     setUserRole(null);
   };
 

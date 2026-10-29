@@ -8,13 +8,16 @@ import {
   Alert,
   ScrollView,
   Platform,
+  Modal,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { Theme } from '../../constants/theme';
+import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
+import { ConfirmPhraseModal } from '../../components/ConfirmPhraseModal';
 import {
   applyAppLanguagePreference,
   getStoredAppLanguagePreference,
@@ -35,9 +38,13 @@ import {
 } from '../../services/notificationSoundPreferences';
 import { previewNotificationAsset } from '../../services/notificationSoundPreview';
 import { getScreenBottomPadding } from '../../utils/safeAreaInsets';
+import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
+
+type DependentLite = { id: string; email: string; name?: string };
 
 export default function CaretakerSettingsScreen() {
   const { t } = useTranslation();
+  const { logout } = useAuth();
   const insets = useSafeAreaInsets();
   const [language, setLanguage] = useState<AppLanguagePreference>('system');
   const [medSound, setMedSound] = useState<NotificationSoundChoiceId>('default');
@@ -45,25 +52,83 @@ export default function CaretakerSettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [savingLang, setSavingLang] = useState(false);
   const [previewKey, setPreviewKey] = useState<string | null>(null);
+  const [dependents, setDependents] = useState<DependentLite[]>([]);
+  const [pickSeniorOpen, setPickSeniorOpen] = useState(false);
+  const [selfDeleteOpen, setSelfDeleteOpen] = useState(false);
+  const [seniorDeleteTarget, setSeniorDeleteTarget] = useState<DependentLite | null>(null);
+  const [busyDelete, setBusyDelete] = useState(false);
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') window.alert(`${title}: ${message}`);
+    else Alert.alert(title, message);
+  };
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [me, storedPreference, med, sos] = await Promise.all([
+      const [me, storedPreference, med, sos, deps] = await Promise.all([
         usersAPI.getMe(),
         getStoredAppLanguagePreference(),
         getMedicationSoundChoice(),
         getSosSoundChoice(),
+        usersAPI.getDependents().catch(() => []),
       ]);
       setLanguage(storedPreference ?? normalizeAppLanguagePreference(me?.appLanguage));
       setMedSound(med);
       setSosSound(sos);
+      const list = Array.isArray(deps) ? deps : [];
+      setDependents(
+        list.filter((d): d is DependentLite => !!d?.id && isUserUuid(String(d.id))),
+      );
     } catch {
       Alert.alert(t('common.error'), t('caretaker.settings.loadError'));
     } finally {
       setLoading(false);
     }
   }, [t]);
+
+  const onDeleteSelf = async () => {
+    setBusyDelete(true);
+    try {
+      await usersAPI.deleteMyAccount();
+      setSelfDeleteOpen(false);
+      showAlert(t('common.success'), t('caretaker.settings.deleteSuccess'));
+      await logout();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t('caretaker.settings.deleteError');
+      showAlert(t('common.error'), msg || t('caretaker.settings.deleteError'));
+    } finally {
+      setBusyDelete(false);
+    }
+  };
+
+  const onDeleteSenior = async () => {
+    if (!seniorDeleteTarget) return;
+    setBusyDelete(true);
+    try {
+      await usersAPI.deleteDependentAccount(seniorDeleteTarget.id);
+      setSeniorDeleteTarget(null);
+      showAlert(t('common.success'), t('caretaker.settings.deleteSuccess'));
+      await load();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t('caretaker.settings.deleteError');
+      showAlert(t('common.error'), msg || t('caretaker.settings.deleteError'));
+    } finally {
+      setBusyDelete(false);
+    }
+  };
+
+  const openDeleteSenior = () => {
+    if (dependents.length === 0) {
+      showAlert(t('common.error'), t('caretaker.settings.deleteSeniorNone'));
+      return;
+    }
+    if (dependents.length === 1) {
+      setSeniorDeleteTarget(dependents[0]);
+      return;
+    }
+    setPickSeniorOpen(true);
+  };
 
   useFocusEffect(
     useCallback(() => {
@@ -225,8 +290,101 @@ export default function CaretakerSettingsScreen() {
               })}
             </View>
           </View>
+
+          <Text style={[styles.sectionTitle, styles.sectionGap]}>
+            {t('caretaker.settings.dangerSection')}
+          </Text>
+          <Text style={styles.sectionHint}>{t('caretaker.settings.dangerHint')}</Text>
+
+          <Pressable
+            onPress={() => setSelfDeleteOpen(true)}
+            style={({ pressed }) => [styles.dangerBtn, pressed && { opacity: 0.9 }]}
+          >
+            <MaterialIcons name="delete-forever" size={22} color="#fff" />
+            <Text style={styles.dangerBtnText}>{t('caretaker.settings.deleteMyAccount')}</Text>
+          </Pressable>
+
+          <Pressable
+            onPress={openDeleteSenior}
+            style={({ pressed }) => [styles.dangerBtnOutline, pressed && { opacity: 0.9 }]}
+          >
+            <MaterialIcons name="person-off" size={22} color="#C62828" />
+            <Text style={styles.dangerBtnOutlineText}>
+              {t('caretaker.settings.deleteSeniorAccount')}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => router.push('/legal-account-deletion' as never)}
+            style={({ pressed }) => [styles.policyLink, pressed && { opacity: 0.85 }]}
+          >
+            <MaterialIcons name="description" size={20} color={Theme.colors.primaryLimeDark} />
+            <Text style={styles.policyLinkText}>{t('caretaker.settings.deletionPolicyLink')}</Text>
+            <MaterialIcons name="chevron-right" size={20} color={Theme.colors.textLight} />
+          </Pressable>
         </ScrollView>
       )}
+
+      <ConfirmPhraseModal
+        visible={selfDeleteOpen}
+        title={t('caretaker.settings.deleteSelfTitle')}
+        message={t('caretaker.settings.deleteSelfMessage')}
+        expectedPhrase={t('caretaker.settings.phraseDelete')}
+        phraseHint={t('caretaker.settings.phraseHint')}
+        confirmLabel={t('caretaker.settings.confirmDelete')}
+        cancelLabel={t('common.cancel')}
+        loading={busyDelete}
+        onCancel={() => !busyDelete && setSelfDeleteOpen(false)}
+        onConfirm={onDeleteSelf}
+      />
+
+      <ConfirmPhraseModal
+        visible={!!seniorDeleteTarget}
+        title={t('caretaker.settings.deleteSeniorTitle')}
+        message={t('caretaker.settings.deleteSeniorMessage', {
+          name:
+            seniorDeleteTarget?.name?.trim() ||
+            seniorDeleteTarget?.email ||
+            t('caretaker.dependentFallbackName'),
+        })}
+        expectedPhrase={t('caretaker.settings.phraseDelete')}
+        phraseHint={t('caretaker.settings.phraseHint')}
+        confirmLabel={t('caretaker.settings.confirmDelete')}
+        cancelLabel={t('common.cancel')}
+        loading={busyDelete}
+        onCancel={() => !busyDelete && setSeniorDeleteTarget(null)}
+        onConfirm={onDeleteSenior}
+      />
+
+      <Modal
+        visible={pickSeniorOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setPickSeniorOpen(false)}
+      >
+        <View style={styles.pickOverlay}>
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setPickSeniorOpen(false)} />
+          <View style={styles.pickCard}>
+            <Text style={styles.pickTitle}>{t('caretaker.settings.deleteSeniorPickTitle')}</Text>
+            {dependents.map(d => (
+              <Pressable
+                key={d.id}
+                onPress={() => {
+                  setPickSeniorOpen(false);
+                  setSeniorDeleteTarget(d);
+                }}
+                style={({ pressed }) => [styles.pickRow, pressed && { opacity: 0.85 }]}
+              >
+                <Text style={styles.pickRowText}>{d.name?.trim() || d.email}</Text>
+                <MaterialIcons name="chevron-right" size={22} color={Theme.colors.textLight} />
+              </Pressable>
+            ))}
+            <Pressable onPress={() => setPickSeniorOpen(false)} style={styles.pickCancel}>
+              <Text style={styles.pickCancelText}>{t('common.cancel')}</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -353,5 +511,88 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     lineHeight: 18,
     marginBottom: Theme.spacing.m,
+  },
+  dangerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#C62828',
+    borderRadius: Theme.borderRadius.large,
+    paddingVertical: 15,
+    marginBottom: Theme.spacing.m,
+  },
+  dangerBtnText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: Theme.typography.body,
+  },
+  dangerBtnOutline: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 2,
+    borderColor: '#C62828',
+    paddingVertical: 14,
+    marginBottom: Theme.spacing.m,
+  },
+  dangerBtnOutlineText: {
+    color: '#C62828',
+    fontWeight: '800',
+    fontSize: Theme.typography.body,
+  },
+  policyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.s,
+    paddingVertical: Theme.spacing.m,
+  },
+  policyLinkText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+    color: Theme.colors.primaryLimeDark,
+  },
+  pickOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(27, 60, 83, 0.55)',
+    justifyContent: 'center',
+    padding: Theme.spacing.l,
+  },
+  pickCard: {
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.xlarge,
+    padding: Theme.spacing.l,
+  },
+  pickTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: Theme.colors.textDark,
+    marginBottom: Theme.spacing.m,
+  },
+  pickRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: Theme.colors.border,
+  },
+  pickRowText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+    color: Theme.colors.textDark,
+  },
+  pickCancel: {
+    marginTop: Theme.spacing.m,
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  pickCancelText: {
+    fontWeight: '700',
+    color: Theme.colors.textLight,
   },
 });

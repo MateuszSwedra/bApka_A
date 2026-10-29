@@ -48,18 +48,30 @@ function ensureApiBaseNotOnMetroPort(base: string): string {
   }
 }
 
+type ApiExtra = { apiUrl?: string };
+
 /**
  * Bazowy URL API - zawsze absolutny (unikamy żądań względnych do Metro :8081).
- * Preferuj EXPO_PUBLIC_API_URL (np. https://bapka-a.onrender.com albo LAN :3000).
- * Gdy brak env na webie → localhost:3000 (lokalny Docker).
+ * 1) EXPO_PUBLIC_API_URL (bez `?.` — Expo inline’uje tylko process.env.EXPO_PUBLIC_*)
+ * 2) extra.apiUrl z app.config (pewne w release APK)
+ * 3) web/LAN fallbacki
  */
 function resolveApiBaseUrl(): string {
-  const raw =
-    typeof process !== 'undefined' && process.env?.EXPO_PUBLIC_API_URL
+  // Nie używaj process.env?.EXPO_PUBLIC_* — optional chaining psuje inlining i w APK
+  // zostaje puste env → fałszywy fallback 10.0.2.2 → „Network request failed”.
+  const fromEnv =
+    typeof process !== 'undefined' && process.env.EXPO_PUBLIC_API_URL
       ? String(process.env.EXPO_PUBLIC_API_URL).trim()
       : '';
-  if (raw) {
-    return ensureApiBaseNotOnMetroPort(raw);
+  if (fromEnv) {
+    return ensureApiBaseNotOnMetroPort(fromEnv);
+  }
+
+  const fromExtra = String(
+    (Constants.expoConfig?.extra as ApiExtra | undefined)?.apiUrl ?? '',
+  ).trim();
+  if (fromExtra) {
+    return ensureApiBaseNotOnMetroPort(fromExtra);
   }
 
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -85,7 +97,7 @@ function resolveApiBaseUrl(): string {
 }
 
 /** Rozwiązywane przy każdym żądaniu - na webie host strony może być dostępny dopiero po hydracji. */
-function getApiBaseUrl(): string {
+export function getApiBaseUrl(): string {
   return resolveApiBaseUrl();
 }
 
@@ -134,10 +146,17 @@ const fetchApi = async (endpoint: string, options?: FetchApiOptions) => {
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const response = await fetch(url, {
-    ...fetchOptions,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      ...fetchOptions,
+      headers,
+    });
+  } catch (e) {
+    const base = getApiBaseUrl();
+    const reason = e instanceof Error ? e.message : String(e ?? 'błąd sieci');
+    throw new Error(`${reason} (API: ${base})`);
+  }
 
   const text = await response.text();
 
@@ -207,6 +226,21 @@ export const usersAPI = {
   },
   clearFcmToken: async () => {
     return fetchApi('/users/me/fcm-token', { method: 'DELETE' });
+  },
+  deleteMyAccount: async () => {
+    return fetchApi('/users/me/delete-account', { method: 'POST', body: JSON.stringify({}) });
+  },
+  deleteDependentAccount: async (dependentId: string) => {
+    return fetchApi(`/users/me/dependents/${dependentId}/delete-account`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
+  },
+  unpairDependent: async (dependentId: string) => {
+    return fetchApi(`/users/me/dependents/${dependentId}/unpair`, {
+      method: 'POST',
+      body: JSON.stringify({}),
+    });
   },
   generatePin: async () => {
     return fetchApi('/users/generate-pin', {

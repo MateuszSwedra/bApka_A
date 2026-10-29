@@ -58,6 +58,28 @@ export class UsersController {
     return this.usersService.clearFcmToken(req.user.userId);
   }
 
+  /** POST — pewniejsze niż DELETE /users/me (proxy / starsze wdrożenia). */
+  @Post('me/delete-account')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Delete my account and associated data' })
+  deleteMe(@Request() req: any) {
+    return this.usersService.deleteOwnAccount(req.user.userId);
+  }
+
+  @Post('me/dependents/:dependentId/delete-account')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Caretaker permanently deletes a paired dependent account' })
+  deleteDependent(@Request() req: any, @Param('dependentId') dependentId: string) {
+    return this.usersService.deleteDependentAccount(req.user.userId, dependentId);
+  }
+
+  @Post('me/dependents/:dependentId/unpair')
+  @HttpCode(200)
+  @ApiOperation({ summary: 'Caretaker unpairs a dependent (keeps both accounts)' })
+  unpairDependent(@Request() req: any, @Param('dependentId') dependentId: string) {
+    return this.usersService.unpairDependent(req.user.userId, dependentId);
+  }
+
   @Patch('me/mood')
   @ApiOperation({ summary: 'Update senior mood' })
   updateMood(@Request() req: any, @Body('mood') mood: string) {
