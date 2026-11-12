@@ -10,7 +10,6 @@ import {
   Switch,
 } from 'react-native';
 import { router } from 'expo-router';
-import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Theme } from '../constants/theme';
@@ -21,6 +20,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getScreenBottomPadding } from '../utils/safeAreaInsets';
+import {
+  markConsentsSeen,
+  setConsentPreferences,
+} from '../services/consentPreferences';
 
 export type LegalLocale = 'pl' | 'en';
 export type LegalDocKind = 'terms' | 'privacy';
@@ -131,37 +134,10 @@ Since the application is available internationally (including via Google Play), 
   },
 };
 
-async function persistConsentFlags(
-  allAccepted: boolean,
-  analytics: boolean,
-  tailored: boolean,
-) {
-  const payload = JSON.stringify({
-    allAccepted,
-    analytics,
-    tailoredContent: tailored,
-    at: new Date().toISOString(),
-  });
-  if (Platform.OS === 'web') {
-    localStorage.setItem('consentPrefs', payload);
-  } else {
-    await SecureStore.setItemAsync('consentPrefs', payload);
-  }
-}
-
-async function markConsentsSeen() {
-  if (Platform.OS === 'web') {
-    localStorage.setItem('hasSeenConsents', 'true');
-  } else {
-    await SecureStore.setItemAsync('hasSeenConsents', 'true');
-  }
-}
-
 export default function ConsentsScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const footerBottomPadding = getScreenBottomPadding(insets.bottom, Theme.spacing.m);
-  const scrollBottomPadding = footerBottomPadding + 120;
   const [granular, setGranular] = useState(false);
   const [analytics, setAnalytics] = useState(true);
   const [tailored, setTailored] = useState(true);
@@ -176,9 +152,12 @@ export default function ConsentsScreen() {
     if (!canContinue) return;
     try {
       if (!granular) {
-        await persistConsentFlags(true, true, true);
+        await setConsentPreferences({ analytics: true, tailoredContent: true });
       } else {
-        await persistConsentFlags(false, analytics, tailored);
+        await setConsentPreferences({
+          analytics,
+          tailoredContent: tailored,
+        });
       }
       await markConsentsSeen();
       router.replace('/login');
@@ -207,8 +186,10 @@ export default function ConsentsScreen() {
 
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: scrollBottomPadding }]}
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        bounces
+        alwaysBounceVertical
       >
         <Image
           source={require('../assets/images/consent-hero.png')}
@@ -347,6 +328,8 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 24,
     paddingTop: 52,
+    paddingBottom: Theme.spacing.l,
+    flexGrow: 1,
   },
   hero: {
     width: '100%',
@@ -470,12 +453,9 @@ const styles = StyleSheet.create({
     color: OnboardingPalette.textSecondary,
     textAlign: 'center',
     marginTop: 8,
+    marginBottom: Theme.spacing.s,
   },
   footer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
     paddingHorizontal: 24,
     paddingTop: 12,
     backgroundColor: OnboardingPalette.background,

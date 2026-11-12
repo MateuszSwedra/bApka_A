@@ -13,7 +13,9 @@ export function resolveDeviceLanguage(
   const code =
     locale?.languageCode?.toLowerCase() ??
     locale?.languageTag?.split(/[-_]/)[0]?.toLowerCase() ??
-    'pl';
+    '';
   if (code === 'pl' || code.startsWith('pl')) return 'pl';
-  return 'en';
+  if (code === 'en' || code.startsWith('en')) return 'en';
+  // Nieobsługiwany / brak locale → polski
+  return 'pl';
 }

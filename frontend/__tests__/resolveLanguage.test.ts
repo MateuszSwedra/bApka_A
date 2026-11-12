@@ -6,12 +6,13 @@ describe('resolveDeviceLanguage', () => {
     expect(resolveDeviceLanguage([{ languageTag: 'pl-PL' }])).toBe('pl');
   });
 
-  it('returns en for English and other languages', () => {
+  it('returns en for English locales', () => {
     expect(resolveDeviceLanguage([{ languageCode: 'en' }])).toBe('en');
-    expect(resolveDeviceLanguage([{ languageCode: 'de' }])).toBe('en');
+    expect(resolveDeviceLanguage([{ languageTag: 'en-US' }])).toBe('en');
   });
 
-  it('defaults to pl when locales empty', () => {
+  it('defaults to pl for unsupported or empty locales', () => {
+    expect(resolveDeviceLanguage([{ languageCode: 'de' }])).toBe('pl');
     expect(resolveDeviceLanguage([])).toBe('pl');
   });
 });

@@ -28,6 +28,7 @@ import { promptFullScreenIntentIfNeeded, needsFullScreenIntentPrompt, openFullSc
 import { requestPermissionAndSyncPushToken, syncPushTokenWithBackend } from '../services/registerPushToken';
 import * as Notifications from 'expo-notifications';
 import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
+import { markNotificationOnboardingDone } from '../services/notificationOnboarding';
 import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../utils/safeAreaInsets';
@@ -48,6 +49,7 @@ async function resolveRole(hookRole: Role): Promise<Role> {
 }
 
 async function finishOnboardingAfterNotifications(role: Role) {
+  await markNotificationOnboardingDone();
   const me = (await usersAPI.getMe().catch(() => null)) as MeProfile | null;
   const destination = await resolvePostAuthRoute(me, {
     storedRole: role,

@@ -95,6 +95,18 @@ describe('AuthService', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
+    it('rejects oversized password', async () => {
+      await expect(
+        service.register({ email: 'a@b.com', password: 'x'.repeat(73) }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
+    it('rejects email with control characters', async () => {
+      await expect(
+        service.register({ email: 'a@b.com\n', password: '123456' }),
+      ).rejects.toThrow(BadRequestException);
+    });
+
     it('rejects duplicate email', async () => {
       prisma.user.findFirst.mockResolvedValue({ id: 'existing' });
       await expect(

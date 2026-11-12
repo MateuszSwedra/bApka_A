@@ -22,6 +22,12 @@ import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../../../utils/safeAreaInsets';
 import { getTreatmentGroupLabel } from '../../../i18n/treatmentLabels';
 import { HugeButton } from '../../../components/HugeButton';
+import {
+  TREATMENT_DESCRIPTION_MAX_LENGTH,
+  TREATMENT_NAME_MAX_LENGTH,
+  TREATMENT_PILLS_MAX_DIGITS,
+  clampTreatmentPillsInput,
+} from '../../../constants/treatmentFieldLimits';
 
 export default function EditTreatmentScreen() {
   const { t } = useTranslation();
@@ -173,6 +179,7 @@ export default function EditTreatmentScreen() {
           style={styles.textInput}
           value={name}
           onChangeText={setName}
+          maxLength={TREATMENT_NAME_MAX_LENGTH}
           placeholderTextColor={Theme.colors.border}
         />
 
@@ -183,8 +190,9 @@ export default function EditTreatmentScreen() {
               style={styles.textInput}
               placeholder={t('treatment.edit.placeholderPills')}
               value={pillsStr}
-              onChangeText={setPillsStr}
+              onChangeText={text => setPillsStr(clampTreatmentPillsInput(text))}
               keyboardType="number-pad"
+              maxLength={TREATMENT_PILLS_MAX_DIGITS}
               placeholderTextColor={Theme.colors.border}
             />
           </>
@@ -196,6 +204,7 @@ export default function EditTreatmentScreen() {
           placeholder={t('treatment.edit.placeholderHints')}
           value={description}
           onChangeText={setDescription}
+          maxLength={TREATMENT_DESCRIPTION_MAX_LENGTH}
           placeholderTextColor={Theme.colors.border}
           multiline
           numberOfLines={4}

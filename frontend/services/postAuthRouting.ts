@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { needsFullScreenIntentPrompt } from './fullScreenIntentPermission';
+import { hasCompletedNotificationOnboarding } from './notificationOnboarding';
 
 export type UserRole = 'CARETAKER' | 'DEPENDENT' | 'HYBRID';
 
@@ -45,13 +46,16 @@ export async function needsNotificationPrompt(
   role: UserRole | null,
 ): Promise<boolean> {
   if (Platform.OS === 'web' || !role) return false;
-  if (!me?.hasPushToken) return true;
+  if (await hasCompletedNotificationOnboarding()) return false;
   try {
     const { status } = await Notifications.getPermissionsAsync();
-    return status !== 'granted';
+    // Już zaakceptowane w systemie — nie pokazuj ekranu drugi raz (token dociągnie sync).
+    if (status === 'granted') return false;
   } catch {
-    return true;
+    // brak statusu — poniżej decyzja po tokenie
   }
+  // Brak tokenu w profilu albo brak zgody OS → jeden prompt przy onboardingu.
+  return !me?.hasPushToken;
 }
 
 export function hasCompletedRoleSelection(me: MeProfile | null): boolean {

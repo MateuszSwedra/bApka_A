@@ -27,8 +27,45 @@ import * as SecureStore from 'expo-secure-store';
 import { useTranslation } from 'react-i18next';
 import { GoogleSignInButton } from '../components/auth/GoogleSignInButton';
 import { useScreenBottomPadding } from '../utils/safeAreaInsets';
+import {
+  AUTH_EMAIL_MAX_LENGTH,
+  AUTH_PASSWORD_MAX_LENGTH,
+  getLoginFieldIssue,
+  getRegisterFieldIssue,
+  normalizeAuthEmail,
+  type AuthFieldIssue,
+} from '../utils/authCredentials';
 
 type AuthMode = 'pick' | 'register' | 'signIn';
+
+function authIssueMessage(
+  t: (key: string) => string,
+  issue: AuthFieldIssue,
+): string {
+  switch (issue) {
+    case 'empty':
+      return t('auth.validationAllFields');
+    case 'email_invalid':
+      return t('auth.validationEmailInvalid');
+    case 'password_short':
+      return t('auth.validationPasswordLength');
+    case 'password_long':
+      return t('auth.validationPasswordTooLong');
+    case 'password_invalid':
+      return t('auth.validationPasswordInvalid');
+    case 'password_mismatch':
+      return t('auth.validationPasswordMatch');
+    default:
+      return t('common.error');
+  }
+}
+
+function mapAuthApiError(e: unknown, fallback: string, tooMany: string): string {
+  if (!(e instanceof Error)) return fallback;
+  const msg = e.message || fallback;
+  if (/429|throttl|too many|rate limit|zbyt wiele/i.test(msg)) return tooMany;
+  return msg;
+}
 
 const { height: SCREEN_H, width: SCREEN_W } = Dimensions.get('window');
 
@@ -113,6 +150,7 @@ export default function LoginScreen() {
           accessToken: response.access_token,
           user: response.user ?? {},
           setUserSession,
+          seedAppLanguage: Boolean(response.isNewUser),
         });
       } catch (e) {
         const msg =
@@ -126,15 +164,19 @@ export default function LoginScreen() {
   );
 
   const handleLogin = async () => {
-    if (!email.trim() || !password) {
-      showAlert(t('common.error'), t('auth.validationEmailPassword'));
+    const issue = getLoginFieldIssue(email, password);
+    if (issue) {
+      showAlert(
+        t('common.error'),
+        issue === 'empty' ? t('auth.validationEmailPassword') : authIssueMessage(t, issue),
+      );
       return;
     }
 
     setLoading('login');
     try {
       const response = await authAPI.login({
-        email: email.trim(),
+        email: normalizeAuthEmail(email),
         password,
       });
       const { finishAuthSession } = await import('../services/finishAuthSession');
@@ -144,46 +186,40 @@ export default function LoginScreen() {
         setUserSession,
       });
     } catch (e) {
-      const msg =
-        e instanceof Error
-          ? e.message
-          : t('auth.errorLoginFallback');
-      showAlert(t('auth.errorLoginTitle'), msg);
+      showAlert(
+        t('auth.errorLoginTitle'),
+        mapAuthApiError(e, t('auth.errorLoginFallback'), t('auth.errorTooManyRequests')),
+      );
     } finally {
       setLoading('idle');
     }
   };
 
   const handleRegister = async () => {
-    const em = email.trim();
-    if (!em || !password || !passwordRepeat) {
-      showAlert(t('common.error'), t('auth.validationAllFields'));
-      return;
-    }
-    if (password !== passwordRepeat) {
-      showAlert(t('common.error'), t('auth.validationPasswordMatch'));
-      return;
-    }
-    if (password.length < 6) {
-      showAlert(t('common.error'), t('auth.validationPasswordLength'));
+    const issue = getRegisterFieldIssue(email, password, passwordRepeat);
+    if (issue) {
+      showAlert(t('common.error'), authIssueMessage(t, issue));
       return;
     }
 
     setLoading('register');
     try {
-      const response = await authAPI.register({ email: em, password });
+      const response = await authAPI.register({
+        email: normalizeAuthEmail(email),
+        password,
+      });
       const { finishAuthSession } = await import('../services/finishAuthSession');
       await finishAuthSession({
         accessToken: response.access_token,
         user: { ...(response.user ?? {}), roleSelected: false },
         setUserSession,
+        seedAppLanguage: true,
       });
     } catch (e) {
-      const msg =
-        e instanceof Error
-          ? e.message
-          : t('auth.errorRegisterFallback');
-      showAlert(t('auth.errorRegisterTitle'), msg);
+      showAlert(
+        t('auth.errorRegisterTitle'),
+        mapAuthApiError(e, t('auth.errorRegisterFallback'), t('auth.errorTooManyRequests')),
+      );
     } finally {
       setLoading('idle');
     }
@@ -200,6 +236,7 @@ export default function LoginScreen() {
       keyboard?: 'default' | 'email-address';
       visible?: boolean;
       onToggleVisible?: () => void;
+      maxLength?: number;
     },
   ) => (
     <View style={styles.field}>
@@ -214,6 +251,7 @@ export default function LoginScreen() {
         placeholder={placeholder}
         value={value}
         onChangeText={onChangeText}
+        maxLength={options?.maxLength}
         secureTextEntry={options?.secure && !options?.visible}
         keyboardType={options?.keyboard ?? 'default'}
         autoCapitalize="none"
@@ -393,12 +431,14 @@ export default function LoginScreen() {
             <View style={styles.formCard}>
               {renderField('email-outline', t('auth.fieldEmail'), email, setEmail, {
                 keyboard: 'email-address',
+                maxLength: AUTH_EMAIL_MAX_LENGTH,
               })}
               {renderField('lock-outline', t('auth.fieldPassword'), password, setPassword, {
                 secure: true,
                 newPassword: true,
                 visible: showPassword,
                 onToggleVisible: () => setShowPassword(v => !v),
+                maxLength: AUTH_PASSWORD_MAX_LENGTH,
               })}
               {renderField(
                 'lock-check-outline',
@@ -410,6 +450,7 @@ export default function LoginScreen() {
                   newPassword: true,
                   visible: showPasswordRepeat,
                   onToggleVisible: () => setShowPasswordRepeat(v => !v),
+                  maxLength: AUTH_PASSWORD_MAX_LENGTH,
                 },
               )}
             </View>
@@ -461,11 +502,13 @@ export default function LoginScreen() {
             <View style={styles.formCard}>
               {renderField('email-outline', t('auth.fieldEmail'), email, setEmail, {
                 keyboard: 'email-address',
+                maxLength: AUTH_EMAIL_MAX_LENGTH,
               })}
               {renderField('lock-outline', t('auth.fieldPassword'), password, setPassword, {
                 secure: true,
                 visible: showPassword,
                 onToggleVisible: () => setShowPassword(v => !v),
+                maxLength: AUTH_PASSWORD_MAX_LENGTH,
               })}
             </View>
 

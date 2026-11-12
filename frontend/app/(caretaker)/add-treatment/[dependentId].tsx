@@ -23,6 +23,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getScreenBottomPadding } from '../../../utils/safeAreaInsets';
 import { HugeButton } from '../../../components/HugeButton';
 import { usersAPI } from '../../../services/api';
+import {
+  TREATMENT_DESCRIPTION_MAX_LENGTH,
+  TREATMENT_NAME_MAX_LENGTH,
+  TREATMENT_PILLS_MAX_DIGITS,
+  clampTreatmentPillsInput,
+} from '../../../constants/treatmentFieldLimits';
 
 type IconName = React.ComponentProps<typeof MaterialIcons>['name'];
 
@@ -290,6 +296,7 @@ export default function AddTreatmentScreen() {
               }
               value={name}
               onChangeText={setName}
+              maxLength={TREATMENT_NAME_MAX_LENGTH}
               placeholderTextColor={Theme.colors.border}
             />
 
@@ -300,8 +307,9 @@ export default function AddTreatmentScreen() {
                   style={styles.textInput}
                   placeholder={t('treatment.edit.placeholderPills')}
                   value={pillsStr}
-                  onChangeText={setPillsStr}
+                  onChangeText={text => setPillsStr(clampTreatmentPillsInput(text))}
                   keyboardType="number-pad"
+                  maxLength={TREATMENT_PILLS_MAX_DIGITS}
                   placeholderTextColor={Theme.colors.border}
                 />
               </>
@@ -313,6 +321,7 @@ export default function AddTreatmentScreen() {
               placeholder={currentOption.hint}
               value={description}
               onChangeText={setDescription}
+              maxLength={TREATMENT_DESCRIPTION_MAX_LENGTH}
               placeholderTextColor={Theme.colors.border}
               multiline
               numberOfLines={4}

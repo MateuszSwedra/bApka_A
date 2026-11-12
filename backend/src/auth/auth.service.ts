@@ -4,11 +4,16 @@ import { JwtService } from '@nestjs/jwt';
 import { Prisma, Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 import { OAuth2Client } from 'google-auth-library';
-
-function normalizeEmail(email: unknown): string {
-  if (typeof email !== 'string') return '';
-  return email.trim().toLowerCase();
-}
+import {
+  AUTH_EMAIL_MAX_LENGTH,
+  AUTH_GOOGLE_ID_TOKEN_MAX_LENGTH,
+  AUTH_PASSWORD_MAX_LENGTH,
+  authCredentialErrorMessage,
+  getAuthCredentialIssue,
+  isValidAuthEmail,
+  normalizeAuthEmail,
+} from './auth-credentials';
+import type { RegisterDto } from './dto/register.dto';
 
 @Injectable()
 export class AuthService {
@@ -25,12 +30,19 @@ export class AuthService {
   }
 
   async validateUser(email: string, pass: string): Promise<any> {
-    const trimmed = typeof email === 'string' ? email.trim() : '';
-    if (!trimmed) return null;
+    const normalized = normalizeAuthEmail(email);
+    if (
+      !isValidAuthEmail(normalized) ||
+      typeof pass !== 'string' ||
+      pass.length === 0 ||
+      pass.length > AUTH_PASSWORD_MAX_LENGTH
+    ) {
+      return null;
+    }
     const user = await this.prisma.user.findFirst({
-      where: { email: { equals: trimmed, mode: 'insensitive' } },
+      where: { email: { equals: normalized, mode: 'insensitive' } },
     });
-    if (user && user.password && await bcrypt.compare(pass, user.password)) {
+    if (user && user.password && (await bcrypt.compare(pass, user.password))) {
       const { password, ...result } = user;
       return result;
     }
@@ -51,16 +63,14 @@ export class AuthService {
     };
   }
 
-  async register(data: any) {
-    const email = normalizeEmail(data?.email);
-    if (!email || !email.includes('@')) {
-      throw new BadRequestException('Podaj prawidłowy adres e-mail.');
+  async register(data: RegisterDto | Record<string, unknown>) {
+    const issue = getAuthCredentialIssue(data?.email, data?.password);
+    if (issue) {
+      throw new BadRequestException(authCredentialErrorMessage(issue));
     }
 
-    const password = data?.password;
-    if (typeof password !== 'string' || password.length < 6) {
-      throw new BadRequestException('Hasło musi mieć co najmniej 6 znaków.');
-    }
+    const email = normalizeAuthEmail(data.email);
+    const password = data.password as string;
 
     const existing = await this.prisma.user.findFirst({
       where: { email: { equals: email, mode: 'insensitive' } },
@@ -71,7 +81,9 @@ export class AuthService {
       );
     }
 
-    const role = this.parseOptionalRole(data?.role);
+    const role = this.parseOptionalRole(
+      data && typeof data === 'object' && 'role' in data ? data.role : undefined,
+    );
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -116,6 +128,9 @@ export class AuthService {
     if (typeof idToken !== 'string' || !idToken.trim()) {
       throw new BadRequestException('Brak tokenu Google.');
     }
+    if (idToken.length > AUTH_GOOGLE_ID_TOKEN_MAX_LENGTH) {
+      throw new BadRequestException('Token Google jest nieprawidłowy.');
+    }
 
     const client = this.googleClient();
     if (!client) {
@@ -143,7 +158,10 @@ export class AuthService {
       throw new UnauthorizedException('Adres e-mail Google nie jest zweryfikowany.');
     }
 
-    const email = normalizeEmail(payload.email);
+    const email = normalizeAuthEmail(payload.email);
+    if (!isValidAuthEmail(email) || email.length > AUTH_EMAIL_MAX_LENGTH) {
+      throw new UnauthorizedException('Konto Google nie zawiera prawidłowego adresu e-mail.');
+    }
     const googleId = payload.sub;
 
     let user = await this.prisma.user.findFirst({

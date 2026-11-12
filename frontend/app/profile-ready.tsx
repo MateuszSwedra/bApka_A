@@ -23,6 +23,8 @@ import {
 import { usersAPI } from '../services/api';
 import { useTranslation } from 'react-i18next';
 import { useScreenBottomPadding } from '../utils/safeAreaInsets';
+import { hasCompletedNotificationOnboarding } from '../services/notificationOnboarding';
+import { resolvePostAuthRoute, type MeProfile } from '../services/postAuthRouting';
 
 export default function ProfileReadyScreen() {
   const { t } = useTranslation();
@@ -33,6 +35,7 @@ export default function ProfileReadyScreen() {
   const heroH = Math.min(winH * 0.32, 280);
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [continuing, setContinuing] = useState(false);
   const bottomPadding = useScreenBottomPadding(Theme.spacing.l);
 
   useEffect(() => {
@@ -54,8 +57,23 @@ export default function ProfileReadyScreen() {
     };
   }, []);
 
-  const handleContinue = () => {
-    router.replace('/notification');
+  const handleContinue = async () => {
+    if (continuing) return;
+    setContinuing(true);
+    try {
+      // Tylko jeden ekran powiadomień przy tworzeniu konta.
+      if (await hasCompletedNotificationOnboarding()) {
+        const me = (await usersAPI.getMe().catch(() => null)) as MeProfile | null;
+        const destination = await resolvePostAuthRoute(me, {
+          skipNotificationCheck: true,
+        });
+        router.replace(destination as Parameters<typeof router.replace>[0]);
+        return;
+      }
+      router.replace('/notification');
+    } finally {
+      setContinuing(false);
+    }
   };
 
   const greetingLine =
@@ -100,12 +118,12 @@ export default function ProfileReadyScreen() {
 
           <View style={styles.ctaShadowWrap}>
             <Pressable
-              onPress={handleContinue}
-              disabled={loading}
+              onPress={() => void handleContinue()}
+              disabled={loading || continuing}
               style={({ pressed }) => [
                 styles.ctaPressable,
                 pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
-                loading && { opacity: 0.65 },
+                (loading || continuing) && { opacity: 0.65 },
               ]}
             >
               <LinearGradient

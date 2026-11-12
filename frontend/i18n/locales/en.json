@@ -153,6 +153,15 @@
     "ctaSave": "Save and continue",
     "ctaSettings": "Open settings"
   },
+  "settings": {
+    "consents": {
+      "title": "Privacy consents",
+      "hint": "You can turn optional consents on or off at any time.",
+      "analyticsSub": "Anonymous stats help improve stability and features.",
+      "tailoredSub": "Personalise in-app content and recommendations.",
+      "saveError": "Could not save consents."
+    }
+  },
   "auth": {
     "pick": {
       "title": "Welcome",
@@ -184,9 +193,13 @@
     "validationEmailPassword": "Enter email and password",
     "validationAllFields": "Fill in all fields",
     "validationPasswordMatch": "Passwords must match",
-    "validationPasswordLength": "Password should be at least 6 characters",
+    "validationPasswordLength": "Password should be 6 to 72 characters",
+    "validationPasswordTooLong": "Password can be at most 72 characters",
+    "validationPasswordInvalid": "Password contains disallowed characters",
+    "validationEmailInvalid": "Enter a valid email address (max 254 characters)",
     "errorLoginFallback": "Invalid email or password, or no server connection.",
     "errorRegisterFallback": "Check your details or connection and try again.",
+    "errorTooManyRequests": "Too many attempts. Please wait a moment and try again.",
     "google": {
       "cta": "Continue with Google",
       "errorFallback": "Could not sign in with Google."
@@ -647,7 +660,18 @@
     "settings": {
       "section": "Your settings",
       "sectionHint": "Adjust the app to your needs.",
-      "language": "App language"
+      "language": "App language",
+      "dangerSection": "Account and data",
+      "dangerHint": "Deleting the account removes your care data. Usually immediate; within 30 days at latest.",
+      "deleteMyAccount": "Delete my account",
+      "deleteSelfTitle": "Delete your account?",
+      "deleteSelfMessage": "We will permanently delete your account and related data (medications, schedules, vitals, mood, SOS). Usually immediate; within 30 days at latest. Then irreversible.",
+      "phraseDelete": "delete my account",
+      "phraseHint": "Type the phrase below to confirm:",
+      "confirmDelete": "Delete account",
+      "deleteSuccess": "Account deleted.",
+      "deleteError": "Could not delete the account.",
+      "deletionPolicyLink": "How we delete accounts and data"
     },
     "greeting": "Good day,",
     "nameFallback": "User",

@@ -153,6 +153,15 @@
     "ctaSave": "Zapisz i kontynuuj",
     "ctaSettings": "Przejdź do ustawień"
   },
+  "settings": {
+    "consents": {
+      "title": "Zgody prywatności",
+      "hint": "Możesz w każdej chwili włączyć lub wyłączyć opcjonalne zgody.",
+      "analyticsSub": "Anonimowe statystyki pomagają poprawiać stabilność i funkcje.",
+      "tailoredSub": "Dopasowanie treści i rekomendacji w aplikacji.",
+      "saveError": "Nie udało się zapisać zgód."
+    }
+  },
   "auth": {
     "pick": {
       "title": "Witaj",
@@ -184,9 +193,13 @@
     "validationEmailPassword": "Wpisz e-mail i hasło",
     "validationAllFields": "Uzupełnij wszystkie pola",
     "validationPasswordMatch": "Hasła muszą być takie same",
-    "validationPasswordLength": "Hasło powinno mieć co najmniej 6 znaków",
+    "validationPasswordLength": "Hasło powinno mieć od 6 do 72 znaków",
+    "validationPasswordTooLong": "Hasło może mieć co najwyżej 72 znaki",
+    "validationPasswordInvalid": "Hasło zawiera niedozwolone znaki",
+    "validationEmailInvalid": "Podaj prawidłowy adres e-mail (max. 254 znaki)",
     "errorLoginFallback": "Nieprawidłowy e-mail lub hasło albo brak połączenia z serwerem.",
     "errorRegisterFallback": "Sprawdź dane lub połączenie z serwerem i spróbuj ponownie.",
+    "errorTooManyRequests": "Zbyt wiele prób. Poczekaj chwilę i spróbuj ponownie.",
     "google": {
       "cta": "Kontynuuj z Google",
       "errorFallback": "Nie udało się zalogować przez Google."
@@ -651,7 +664,18 @@
     "settings": {
       "section": "Twoje ustawienia",
       "sectionHint": "Dostosuj aplikację do swoich potrzeb.",
-      "language": "Język aplikacji"
+      "language": "Język aplikacji",
+      "dangerSection": "Konto i dane",
+      "dangerHint": "Usunięcie konta kasuje Twoje dane opieki. Zazwyczaj od razu; najpóźniej w 30 dni.",
+      "deleteMyAccount": "Usuń moje konto",
+      "deleteSelfTitle": "Usunąć Twoje konto?",
+      "deleteSelfMessage": "Trwale usuniemy Twoje konto oraz powiązane dane (leki, harmonogramy, pomiary, nastrój, SOS). Zazwyczaj od razu; najpóźniej w 30 dni. Potem nieodwracalne.",
+      "phraseDelete": "usuń moje konto",
+      "phraseHint": "Wpisz poniższą frazę, aby potwierdzić:",
+      "confirmDelete": "Usuń konto",
+      "deleteSuccess": "Konto zostało usunięte.",
+      "deleteError": "Nie udało się usunąć konta.",
+      "deletionPolicyLink": "Jak usuwamy konto i dane"
     },
     "greeting": "Dzień dobry,",
     "nameFallback": "Użytkowniku",

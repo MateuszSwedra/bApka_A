@@ -31,6 +31,7 @@ export function GoogleWebRedirectHandler() {
           accessToken: response.access_token,
           user: response.user ?? {},
           setUserSession,
+          seedAppLanguage: Boolean(response.isNewUser),
         });
       } catch (e) {
         clearGoogleAuthPending();

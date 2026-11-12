@@ -28,10 +28,13 @@ void i18n.use(initReactI18next).init({
 
 void (async () => {
   const storedPreference = await getStoredAppLanguagePreference();
-  const preference = storedPreference ?? 'system';
-  const lng = resolveLanguageFromPreference(preference);
-  if (!storedPreference) {
-    await setStoredAppLanguagePreference('system');
+  // Pierwsze uruchomienie / nowe urządzenie: język systemu (pl|en), inaczej PL.
+  // Stare „system” migrujemy do konkretnego pl/en — w UI nie ma już tej opcji.
+  const lng = storedPreference
+    ? resolveLanguageFromPreference(storedPreference)
+    : resolveDeviceLanguage(Localization.getLocales());
+  if (!storedPreference || storedPreference === 'system') {
+    await setStoredAppLanguagePreference(lng);
   }
   if (i18n.language !== lng) {
     await i18n.changeLanguage(lng);

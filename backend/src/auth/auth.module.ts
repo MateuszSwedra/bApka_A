@@ -22,3 +22,4 @@ import { resolveJwtExpiresIn, resolveJwtSecret } from './jwt-secret';
   exports: [AuthService],
 })
 export class AuthModule {}
+

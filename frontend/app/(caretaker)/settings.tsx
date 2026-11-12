@@ -19,11 +19,13 @@ import { useAuth } from '../../context/AuthContext';
 import { usersAPI } from '../../services/api';
 import { ConfirmPhraseModal } from '../../components/ConfirmPhraseModal';
 import {
-  applyAppLanguagePreference,
+  applyAppLanguage,
   getStoredAppLanguagePreference,
-  normalizeAppLanguagePreference,
+  normalizeAppLanguage,
+  resolveLanguageFromPreference,
   type AppLanguagePreference,
 } from '../../services/appLanguage';
+import type { AppLanguage } from '../../i18n/resolveLanguage';
 import {
   NOTIFICATION_SOUND_CHOICE_IDS,
   type NotificationSoundChoiceId,
@@ -39,6 +41,11 @@ import {
 import { previewNotificationAsset } from '../../services/notificationSoundPreview';
 import { getScreenBottomPadding } from '../../utils/safeAreaInsets';
 import { isUserUuid } from '../../utils/resolveMedsTargetUserId';
+import {
+  getConsentPreferences,
+  setConsentPreferences,
+} from '../../services/consentPreferences';
+import { ConsentPreferencesCard } from '../../components/settings/ConsentPreferencesCard';
 
 type DependentLite = { id: string; email: string; name?: string };
 
@@ -46,7 +53,7 @@ export default function CaretakerSettingsScreen() {
   const { t } = useTranslation();
   const { logout } = useAuth();
   const insets = useSafeAreaInsets();
-  const [language, setLanguage] = useState<AppLanguagePreference>('system');
+  const [language, setLanguage] = useState<AppLanguage>('pl');
   const [medSound, setMedSound] = useState<NotificationSoundChoiceId>('default');
   const [sosSound, setSosSound] = useState<NotificationSoundChoiceId>('default');
   const [loading, setLoading] = useState(true);
@@ -57,6 +64,9 @@ export default function CaretakerSettingsScreen() {
   const [selfDeleteOpen, setSelfDeleteOpen] = useState(false);
   const [seniorDeleteTarget, setSeniorDeleteTarget] = useState<DependentLite | null>(null);
   const [busyDelete, setBusyDelete] = useState(false);
+  const [consentAnalytics, setConsentAnalytics] = useState(false);
+  const [consentTailored, setConsentTailored] = useState(false);
+  const [savingConsent, setSavingConsent] = useState(false);
 
   const showAlert = (title: string, message: string) => {
     if (Platform.OS === 'web') window.alert(`${title}: ${message}`);
@@ -66,16 +76,21 @@ export default function CaretakerSettingsScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [me, storedPreference, med, sos, deps] = await Promise.all([
+      const [me, storedPreference, med, sos, deps, consents] = await Promise.all([
         usersAPI.getMe(),
         getStoredAppLanguagePreference(),
         getMedicationSoundChoice(),
         getSosSoundChoice(),
         usersAPI.getDependents().catch(() => []),
+        getConsentPreferences(),
       ]);
-      setLanguage(storedPreference ?? normalizeAppLanguagePreference(me?.appLanguage));
+      const preference: AppLanguagePreference =
+        storedPreference ?? normalizeAppLanguage(me?.appLanguage);
+      setLanguage(resolveLanguageFromPreference(preference));
       setMedSound(med);
       setSosSound(sos);
+      setConsentAnalytics(consents.analytics);
+      setConsentTailored(consents.tailoredContent);
       const list = Array.isArray(deps) ? deps : [];
       setDependents(
         list.filter((d): d is DependentLite => !!d?.id && isUserUuid(String(d.id))),
@@ -137,12 +152,12 @@ export default function CaretakerSettingsScreen() {
   );
 
   const saveLanguage = useCallback(
-    async (next: AppLanguagePreference) => {
+    async (next: AppLanguage) => {
       if (savingLang) return;
       setSavingLang(true);
       try {
-        const resolved = await applyAppLanguagePreference(next);
-        await usersAPI.updateSettings({ appLanguage: resolved });
+        await applyAppLanguage(next);
+        await usersAPI.updateSettings({ appLanguage: next });
         setLanguage(next);
       } catch {
         Alert.alert(t('common.error'), t('caretaker.settings.saveError'));
@@ -151,6 +166,26 @@ export default function CaretakerSettingsScreen() {
       }
     },
     [savingLang, t],
+  );
+
+  const saveConsent = useCallback(
+    async (next: { analytics: boolean; tailoredContent: boolean }) => {
+      if (savingConsent) return;
+      const prev = { analytics: consentAnalytics, tailoredContent: consentTailored };
+      setConsentAnalytics(next.analytics);
+      setConsentTailored(next.tailoredContent);
+      setSavingConsent(true);
+      try {
+        await setConsentPreferences(next);
+      } catch {
+        setConsentAnalytics(prev.analytics);
+        setConsentTailored(prev.tailoredContent);
+        showAlert(t('common.error'), t('settings.consents.saveError'));
+      } finally {
+        setSavingConsent(false);
+      }
+    },
+    [consentAnalytics, consentTailored, savingConsent, t],
   );
 
   const onSelectMed = async (id: NotificationSoundChoiceId) => {
@@ -269,7 +304,7 @@ export default function CaretakerSettingsScreen() {
             <Text style={styles.rowTitle}>{t('caretaker.settings.caretakerLanguage')}</Text>
             <Text style={styles.rowSub}>{t('caretaker.settings.caretakerLanguageSub')}</Text>
             <View style={styles.langRow}>
-              {(['system', 'pl', 'en'] as AppLanguagePreference[]).map(lang => {
+              {(['pl', 'en'] as AppLanguage[]).map(lang => {
                 const selected = language === lang;
                 return (
                   <Pressable
@@ -290,6 +325,21 @@ export default function CaretakerSettingsScreen() {
               })}
             </View>
           </View>
+
+          <Text style={[styles.sectionTitle, styles.sectionGap]}>
+            {t('settings.consents.title')}
+          </Text>
+          <ConsentPreferencesCard
+            analytics={consentAnalytics}
+            tailoredContent={consentTailored}
+            busy={savingConsent}
+            onChangeAnalytics={value =>
+              void saveConsent({ analytics: value, tailoredContent: consentTailored })
+            }
+            onChangeTailored={value =>
+              void saveConsent({ analytics: consentAnalytics, tailoredContent: value })
+            }
+          />
 
           <Text style={[styles.sectionTitle, styles.sectionGap]}>
             {t('caretaker.settings.dangerSection')}

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
+import { AuthRateLimitGuard } from './auth-rate-limit.guard';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -16,7 +17,10 @@ describe('AuthController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
       providers: [{ provide: AuthService, useValue: authService }],
-    }).compile();
+    })
+      .overrideGuard(AuthRateLimitGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
   });

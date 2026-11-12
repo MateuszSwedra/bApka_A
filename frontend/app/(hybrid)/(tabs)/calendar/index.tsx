@@ -90,6 +90,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
+  },
+  fabInner: {
     backgroundColor: Theme.colors.primaryLime,
     width: 64,
     height: 64,
@@ -98,12 +100,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1.5,
     borderColor: Theme.colors.primaryLimeDark,
-  },
-  fabInner: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   fabAddIcon: {
     marginTop: 3,

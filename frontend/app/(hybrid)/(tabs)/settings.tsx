@@ -24,26 +24,34 @@ import {
 } from '../../../constants/notificationSounds';
 import { previewNotificationAsset } from '../../../services/notificationSoundPreview';
 import {
-  applyAppLanguagePreference,
+  applyAppLanguage,
   getStoredAppLanguagePreference,
-  normalizeAppLanguagePreference,
+  normalizeAppLanguage,
+  resolveLanguageFromPreference,
   type AppLanguagePreference,
 } from '../../../services/appLanguage';
+import type { AppLanguage } from '../../../i18n/resolveLanguage';
 import { applySeniorProfileSettings } from '../../../services/seniorProfileSync';
 import { useDependentDisplay } from '../../../context/DependentDisplayContext';
 import { useTabScreenScrollBottomPadding } from '../../../utils/safeAreaInsets';
+import {
+  getConsentPreferences,
+  setConsentPreferences,
+} from '../../../services/consentPreferences';
+import { ConsentPreferencesCard } from '../../../components/settings/ConsentPreferencesCard';
+import { ConfirmPhraseModal } from '../../../components/ConfirmPhraseModal';
 
 type SelfSettings = {
   highContrast: boolean;
   colorBlindFriendly: boolean;
-  appLanguage: AppLanguagePreference;
+  appLanguage: AppLanguage;
   medicationSoundChoice: NotificationSoundChoiceId;
 };
 
 const DEFAULT: SelfSettings = {
   highContrast: false,
   colorBlindFriendly: false,
-  appLanguage: 'system',
+  appLanguage: 'pl',
   medicationSoundChoice: 'default',
 };
 
@@ -56,18 +64,36 @@ export default function HybridSettingsScreen() {
   const [settings, setSettings] = useState<SelfSettings>(DEFAULT);
   const [loading, setLoading] = useState(true);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [consentAnalytics, setConsentAnalytics] = useState(false);
+  const [consentTailored, setConsentTailored] = useState(false);
+  const [savingConsent, setSavingConsent] = useState(false);
+  const [selfDeleteOpen, setSelfDeleteOpen] = useState(false);
+  const [busyDelete, setBusyDelete] = useState(false);
+
+  const showAlert = (title: string, message: string) => {
+    if (Platform.OS === 'web') window.alert(`${title}: ${message}`);
+    else Alert.alert(title, message);
+  };
+
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const me = await usersAPI.getMe();
-      const storedPreference = await getStoredAppLanguagePreference();
+      const [me, storedPreference, consents] = await Promise.all([
+        usersAPI.getMe(),
+        getStoredAppLanguagePreference(),
+        getConsentPreferences(),
+      ]);
       setDisplayName(me?.name?.trim() || me?.email || '');
+      const preference: AppLanguagePreference =
+        storedPreference ?? normalizeAppLanguage(me?.appLanguage);
       setSettings({
         highContrast: me?.highContrast ?? false,
         colorBlindFriendly: me?.colorBlindFriendly ?? false,
-        appLanguage: storedPreference ?? normalizeAppLanguagePreference(me?.appLanguage),
+        appLanguage: resolveLanguageFromPreference(preference),
         medicationSoundChoice: (me?.medicationSoundChoice ?? 'default') as NotificationSoundChoiceId,
       });
+      setConsentAnalytics(consents.analytics);
+      setConsentTailored(consents.tailoredContent);
     } catch {
       Alert.alert(t('common.error'), t('caretaker.settings.loadError'));
     } finally {
@@ -86,6 +112,38 @@ export default function HybridSettingsScreen() {
     }
   };
 
+  const saveConsent = async (next: { analytics: boolean; tailoredContent: boolean }) => {
+    if (savingConsent) return;
+    const prev = { analytics: consentAnalytics, tailoredContent: consentTailored };
+    setConsentAnalytics(next.analytics);
+    setConsentTailored(next.tailoredContent);
+    setSavingConsent(true);
+    try {
+      await setConsentPreferences(next);
+    } catch {
+      setConsentAnalytics(prev.analytics);
+      setConsentTailored(prev.tailoredContent);
+      showAlert(t('common.error'), t('settings.consents.saveError'));
+    } finally {
+      setSavingConsent(false);
+    }
+  };
+
+  const onDeleteSelf = async () => {
+    setBusyDelete(true);
+    try {
+      await usersAPI.deleteMyAccount();
+      setSelfDeleteOpen(false);
+      await logout({ skipPushClear: true });
+      showAlert(t('common.success'), t('hybrid.settings.deleteSuccess'));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : t('hybrid.settings.deleteError');
+      showAlert(t('common.error'), msg || t('hybrid.settings.deleteError'));
+    } finally {
+      setBusyDelete(false);
+    }
+  };
+
   const patch = async (patchData: Partial<SelfSettings>, key: string) => {
     setSavingKey(key);
     try {
@@ -94,8 +152,8 @@ export default function HybridSettingsScreen() {
       await applySeniorProfileSettings(updated ?? patchData);
       await syncLocalPreferences();
       if (patchData.appLanguage) {
-        const resolved = await applyAppLanguagePreference(patchData.appLanguage);
-        await usersAPI.updateSettings({ appLanguage: resolved });
+        await applyAppLanguage(patchData.appLanguage);
+        await usersAPI.updateSettings({ appLanguage: patchData.appLanguage });
       }
     } catch {
       Alert.alert(t('common.error'), t('caretaker.settings.saveError'));
@@ -138,7 +196,7 @@ export default function HybridSettingsScreen() {
               <View style={[styles.langBlock, { backgroundColor: colors.surfaceWhite, borderColor: colors.border }]}>
                 <Text style={[styles.rowTitle, { color: colors.textDark }]}>{t('hybrid.settings.language')}</Text>
                 <View style={styles.langRow}>
-                  {(['system', 'pl', 'en'] as AppLanguagePreference[]).map(lang => (
+                  {(['pl', 'en'] as AppLanguage[]).map(lang => (
                     <Pressable key={lang} disabled={savingKey === 'lang'} onPress={() => void patch({ appLanguage: lang }, 'lang')} style={[styles.langChip, { borderColor: colors.border }, settings.appLanguage === lang && { borderColor: colors.primaryLimeDark, backgroundColor: 'rgba(69, 104, 130, 0.12)' }]}>
                       <Text style={[styles.langChipText, { color: colors.textLight }, settings.appLanguage === lang && { color: colors.primaryLimeDark }]}>{t(`caretaker.settings.language.${lang}`)}</Text>
                     </Pressable>
@@ -191,9 +249,69 @@ export default function HybridSettingsScreen() {
               <MaterialIcons name="logout" size={24} color={Theme.colors.accentOrange} />
               <Text style={styles.logoutText}>{t('hybrid.logout')}</Text>
             </Pressable>
+
+            <Text style={[styles.sectionTitle, styles.gap, { color: colors.textDark }]}>
+              {t('settings.consents.title')}
+            </Text>
+            <ConsentPreferencesCard
+              analytics={consentAnalytics}
+              tailoredContent={consentTailored}
+              busy={savingConsent}
+              colors={{
+                surface: colors.surfaceWhite,
+                border: colors.border,
+                text: colors.textDark,
+                textMuted: colors.textLight,
+                trackOn: colors.primaryLimeDark,
+                trackOff: colors.border,
+              }}
+              onChangeAnalytics={value =>
+                void saveConsent({ analytics: value, tailoredContent: consentTailored })
+              }
+              onChangeTailored={value =>
+                void saveConsent({ analytics: consentAnalytics, tailoredContent: value })
+              }
+            />
+
+            <Text style={[styles.sectionTitle, styles.gap, { color: colors.textDark }]}>
+              {t('hybrid.settings.dangerSection')}
+            </Text>
+            <Text style={[styles.sectionHint, { color: colors.textLight }]}>
+              {t('hybrid.settings.dangerHint')}
+            </Text>
+            <Pressable
+              onPress={() => setSelfDeleteOpen(true)}
+              style={({ pressed }) => [styles.dangerBtn, pressed && { opacity: 0.9 }]}
+            >
+              <MaterialIcons name="delete-forever" size={22} color="#fff" />
+              <Text style={styles.dangerBtnText}>{t('hybrid.settings.deleteMyAccount')}</Text>
+            </Pressable>
+            <Pressable
+              onPress={() => router.push('/legal-account-deletion' as never)}
+              style={({ pressed }) => [styles.policyLink, pressed && { opacity: 0.85 }]}
+            >
+              <MaterialIcons name="description" size={20} color={colors.primaryLimeDark} />
+              <Text style={[styles.policyLinkText, { color: colors.primaryLimeDark }]}>
+                {t('hybrid.settings.deletionPolicyLink')}
+              </Text>
+              <MaterialIcons name="chevron-right" size={20} color={colors.textLight} />
+            </Pressable>
           </>
         )}
       </ScrollView>
+
+      <ConfirmPhraseModal
+        visible={selfDeleteOpen}
+        title={t('hybrid.settings.deleteSelfTitle')}
+        message={t('hybrid.settings.deleteSelfMessage')}
+        expectedPhrase={t('hybrid.settings.phraseDelete')}
+        phraseHint={t('hybrid.settings.phraseHint')}
+        confirmLabel={t('hybrid.settings.confirmDelete')}
+        cancelLabel={t('common.cancel')}
+        loading={busyDelete}
+        onCancel={() => !busyDelete && setSelfDeleteOpen(false)}
+        onConfirm={onDeleteSelf}
+      />
     </View>
   );
 }
@@ -257,4 +375,34 @@ const styles = StyleSheet.create({
   },
   logoutBtnPressed: { opacity: 0.85 },
   logoutText: { fontSize: Theme.typography.body, fontWeight: '700', color: Theme.colors.accentOrange },
+  dangerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: '#C62828',
+    borderRadius: Theme.borderRadius.large,
+    paddingVertical: 16,
+    marginBottom: Theme.spacing.m,
+  },
+  dangerBtnText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: Theme.typography.body,
+  },
+  policyLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Theme.spacing.s,
+    backgroundColor: Theme.colors.surfaceWhite,
+    borderRadius: Theme.borderRadius.large,
+    borderWidth: 1,
+    borderColor: Theme.colors.border,
+    padding: Theme.spacing.m,
+  },
+  policyLinkText: {
+    flex: 1,
+    fontSize: Theme.typography.body,
+    fontWeight: '700',
+  },
 });

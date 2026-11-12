@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
+import * as Localization from 'expo-localization';
 import { router } from 'expo-router';
 import { usersAPI } from './api';
 import {
@@ -8,6 +9,8 @@ import {
   type MeProfile,
 } from './postAuthRouting';
 import { clearGoogleAuthPending } from '../utils/googleWebRedirect';
+import { applyAppLanguage, getStoredAppLanguage } from './appLanguage';
+import { resolveDeviceLanguage } from '../i18n/resolveLanguage';
 
 type AuthUser = {
   role?: string | null;
@@ -38,14 +41,31 @@ async function persistTokenWithoutRole(token: string) {
   }
 }
 
+async function seedNewAccountLanguage(): Promise<void> {
+  try {
+    const stored = await getStoredAppLanguage();
+    const lang = stored ?? resolveDeviceLanguage(Localization.getLocales());
+    await applyAppLanguage(lang);
+    await usersAPI.updateSettings({ appLanguage: lang });
+  } catch {
+    // Język lokalny i tak jest już ustawiony; API może być niedostępne.
+  }
+}
+
 export async function finishAuthSession(options: {
   accessToken: string;
   user: AuthUser;
   setUserSession: (token: string, role: 'CARETAKER' | 'DEPENDENT' | 'HYBRID' | null) => Promise<void>;
+  /** Nowe konto: zapisz język systemu (lub PL) w profilu. */
+  seedAppLanguage?: boolean;
 }): Promise<void> {
-  const { accessToken, user, setUserSession } = options;
+  const { accessToken, user, setUserSession, seedAppLanguage } = options;
 
   await persistTokenWithoutRole(accessToken);
+
+  if (seedAppLanguage) {
+    await seedNewAccountLanguage();
+  }
 
   const needsName = !user?.name?.trim();
   await setNeedsDisplayName(needsName);
