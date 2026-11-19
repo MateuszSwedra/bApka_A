@@ -52,10 +52,22 @@ export type PrismaMock = {
     findMany: jest.Mock;
     create: jest.Mock;
   };
+  device: {
+    findUnique: jest.Mock;
+    findFirst: jest.Mock;
+    findMany: jest.Mock;
+    create: jest.Mock;
+    update: jest.Mock;
+    deleteMany: jest.Mock;
+  };
+  deviceEvent: {
+    create: jest.Mock;
+  };
+  $transaction: jest.Mock;
 };
 
 export function createPrismaMock(): PrismaMock {
-  return {
+  const mock: PrismaMock = {
     user: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
@@ -108,5 +120,21 @@ export function createPrismaMock(): PrismaMock {
       findMany: jest.fn(),
       create: jest.fn(),
     },
+    device: {
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
+    },
+    deviceEvent: {
+      create: jest.fn(),
+    },
+    $transaction: jest.fn(),
   };
+  mock.$transaction.mockImplementation(
+    async (fn: (tx: PrismaMock) => Promise<unknown>) => fn(mock),
+  );
+  return mock;
 }

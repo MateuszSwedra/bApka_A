@@ -152,7 +152,12 @@ export class SchedulesService {
     };
   }
 
-  async markDose(actorId: string, scheduleId: string, status: 'TAKEN' | 'MISSED') {
+  async markDose(
+    actorId: string,
+    scheduleId: string,
+    status: 'TAKEN' | 'MISSED',
+    source: 'APP_SENIOR' | 'APP_CARETAKER' | 'DEVICE_ESP32' = 'APP_SENIOR',
+  ) {
     await this.access.assertCanAccessSchedule(actorId, scheduleId);
 
     const now = new Date();
@@ -238,7 +243,7 @@ export class SchedulesService {
           status: newStatus,
           scheduledAt: planned,
           takenAt: status === 'TAKEN' ? now : null,
-          source: 'APP_SENIOR',
+          source,
         },
       });
 
@@ -282,7 +287,7 @@ export class SchedulesService {
           status: newStatus,
           scheduledAt: planned,
           takenAt: status === 'TAKEN' ? now : null,
-          source: 'APP_SENIOR'
+          source,
         },
       });
 

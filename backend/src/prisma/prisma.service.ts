@@ -29,6 +29,8 @@ export class PrismaService implements OnModuleInit, OnModuleDestroy {
   get connection() { return this.client.connection; }
   get sosLog() { return this.client.sosLog; }
   get healthMetricLog() { return this.client.healthMetricLog; }
+  get device() { return this.client.device; }
+  get deviceEvent() { return this.client.deviceEvent; }
 
   $transaction<T>(
     fn: (tx: PrismaClient) => Promise<T>,

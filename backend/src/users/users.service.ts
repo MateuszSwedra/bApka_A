@@ -17,7 +17,11 @@ export class UsersService {
     private access: AccessControlService,
   ) {}
 
-  async createSosLog(userId: string, note?: string) {
+  async createSosLog(
+    userId: string,
+    note?: string,
+    source: string = 'APP_SENIOR',
+  ) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: { id: true, name: true, email: true },
@@ -30,7 +34,7 @@ export class UsersService {
       data: {
         userId,
         note: note?.trim() || null,
-        source: 'APP_SENIOR',
+        source,
       },
     });
 
@@ -264,7 +268,11 @@ export class UsersService {
     return connections.map(conn => conn.dependent);
   }
 
-  async updateMood(userId: string, mood: string) {
+  async updateMood(
+    userId: string,
+    mood: string,
+    source: string = 'APP_SENIOR',
+  ) {
     const normalized = mood?.trim()?.toLowerCase();
     if (!['happy', 'neutral', 'sad'].includes(normalized)) {
       throw new BadRequestException('Nieprawidłowa wartość nastroju');
@@ -291,7 +299,7 @@ export class UsersService {
       data: {
         userId,
         mood: normalized,
-        source: 'APP_SENIOR',
+        source,
       },
     });
 
@@ -484,6 +492,9 @@ export class UsersService {
       await tx.moodLog.deleteMany({ where: { userId } });
       await tx.sosLog.deleteMany({ where: { userId } });
       await tx.healthMetricLog.deleteMany({ where: { userId } });
+      await tx.device.deleteMany({
+        where: { OR: [{ caretakerId: userId }, { dependentUserId: userId }] },
+      });
       await tx.connection.deleteMany({
         where: { OR: [{ caretakerId: userId }, { dependentId: userId }] },
       });
