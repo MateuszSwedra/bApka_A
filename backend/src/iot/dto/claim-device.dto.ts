@@ -4,7 +4,7 @@ import { IsOptional, IsString, MinLength } from 'class-validator';
 export class ClaimDeviceDto {
   @ApiProperty({ description: 'Jednorazowy claim token z prepare' })
   @IsString()
-  @MinLength(16)
+  @MinLength(6)
   claimToken!: string;
 
   @ApiPropertyOptional({ description: 'Opcjonalnie publicId z SoftAP' })
