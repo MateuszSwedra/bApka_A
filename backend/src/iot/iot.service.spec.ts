@@ -76,7 +76,7 @@ describe('IotService', () => {
       const result = await service.prepareDevice('c1', 'Płytka');
 
       expect(result.deviceId).toBe('dev-1');
-      expect(result.claimToken).toHaveLength(48);
+      expect(result.claimToken).toHaveLength(8);
       expect(result.softApSsid).toBe('bApka-ABCD');
       expect(prisma.connection.create).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -92,7 +92,7 @@ describe('IotService', () => {
 
   describe('claimDevice', () => {
     it('exchanges claimToken for deviceSecret', async () => {
-      const claimToken = 'a'.repeat(48);
+      const claimToken = 'ABCD2345';
       prisma.device.findFirst.mockResolvedValue({
         id: 'dev-1',
         publicId: 'ABCD',

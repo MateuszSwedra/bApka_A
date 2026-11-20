@@ -24,8 +24,6 @@ import { DeviceSosDto } from './dto/device-sos.dto';
 export class IotController {
   constructor(private readonly iot: IotService) {}
 
-  // ——— Opiekun (JWT) ———
-
   @Post('devices/prepare')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
@@ -53,8 +51,6 @@ export class IotController {
     return this.iot.deleteDevice(req.user.userId, id);
   }
 
-  // ——— Public claim (firmware po SoftAP) ———
-
   @Post('devices/claim')
   @HttpCode(200)
   @ApiOperation({
@@ -63,8 +59,6 @@ export class IotController {
   claim(@Body() body: ClaimDeviceDto) {
     return this.iot.claimDevice(body.claimToken, body.publicId);
   }
-
-  // ——— Urządzenie (Bearer deviceSecret) ———
 
   @Get('device/me/state')
   @UseGuards(DeviceAuthGuard)

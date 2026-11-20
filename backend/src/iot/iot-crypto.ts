@@ -8,13 +8,21 @@ export function randomTokenHex(bytes = 24): string {
   return randomBytes(bytes).toString('hex');
 }
 
-/** Krótki publiczny ID do SoftAP (np. bApka-A1B2). */
-export function randomPublicId(length = 4): string {
-  const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+const HUMAN_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
+function randomFromAlphabet(length: number): string {
   const buf = randomBytes(length);
   let out = '';
   for (let i = 0; i < length; i++) {
-    out += alphabet[buf[i]! % alphabet.length];
+    out += HUMAN_ALPHABET[buf[i]! % HUMAN_ALPHABET.length];
   }
   return out;
+}
+
+export function randomPublicId(length = 4): string {
+  return randomFromAlphabet(length);
+}
+
+export function randomClaimCode(length = 8): string {
+  return randomFromAlphabet(length);
 }

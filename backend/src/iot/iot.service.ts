@@ -15,7 +15,12 @@ import {
   getAppTimezone,
   getLocalDayRange,
 } from '../common/app-timezone';
-import { randomPublicId, randomTokenHex, sha256Hex } from './iot-crypto';
+import {
+  randomClaimCode,
+  randomPublicId,
+  randomTokenHex,
+  sha256Hex,
+} from './iot-crypto';
 
 const CLAIM_TTL_MS = 15 * 60 * 1000;
 
@@ -45,7 +50,7 @@ export class IotService {
     }
 
     const publicId = await this.allocatePublicId();
-    const claimToken = randomTokenHex(24);
+    const claimToken = randomClaimCode(8);
     const claimTokenHash = sha256Hex(claimToken);
     const claimTokenExpiresAt = new Date(Date.now() + CLAIM_TTL_MS);
     const displayName = name?.trim() || `Urządzenie ${publicId}`;
@@ -107,7 +112,7 @@ export class IotService {
   }
 
   async claimDevice(claimToken: string, publicId?: string) {
-    const token = claimToken?.trim();
+    const token = claimToken?.trim().toUpperCase();
     if (!token) {
       throw new BadRequestException('Brak claimToken');
     }
@@ -195,7 +200,6 @@ export class IotService {
       throw new NotFoundException('Urządzenie nie istnieje');
     }
 
-    // Usuwa Device + Connection + wirtualnego DEPENDENT (purgeUserData kasuje Device).
     await this.users.deleteDependentAccount(
       caretakerId,
       device.dependentUserId,

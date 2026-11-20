@@ -366,6 +366,47 @@ export const inventoryAPI = {
   },
 };
 
+export type IotPrepareResult = {
+  deviceId: string;
+  publicId: string;
+  name: string | null;
+  dependentUserId: string;
+  claimToken: string;
+  claimExpiresAt: string;
+  softApSsid?: string;
+};
+
+export type IotDevice = {
+  id: string;
+  publicId: string;
+  name: string | null;
+  dependentUserId: string;
+  claimedAt: string | null;
+  lastSeenAt: string | null;
+  wifiConfigured: boolean;
+  createdAt: string;
+};
+
+export const IOT_SOFTAP_SSID = 'bApka-Setup';
+export const IOT_SOFTAP_PASS = 'bapka1234';
+export const IOT_PROVISION_URL = 'http://192.168.4.1';
+
+export const iotAPI = {
+  prepare: async (name?: string): Promise<IotPrepareResult> => {
+    return fetchApi('/iot/devices/prepare', {
+      method: 'POST',
+      body: JSON.stringify(name?.trim() ? { name: name.trim() } : {}),
+    });
+  },
+  listDevices: async (): Promise<IotDevice[]> => {
+    const data = await fetchApi('/iot/devices');
+    return Array.isArray(data) ? data : [];
+  },
+  deleteDevice: async (deviceId: string) => {
+    return fetchApi(`/iot/devices/${deviceId}`, { method: 'DELETE' });
+  },
+};
+
 export const scheduleAPI = {
   getSchedules: async (userId: string) => {
     try {

@@ -152,6 +152,13 @@ export default function CaretakerDashboard() {
     router.push('/(caretaker)/pairing');
   };
 
+  const handleAddIot = () => {
+    if (Platform.OS !== 'web') {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    }
+    router.push('/(caretaker)/add-iot-device' as never);
+  };
+
   const handleDependentPress = (id: string) => {
     if (Platform.OS !== 'web') {
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -242,7 +249,13 @@ export default function CaretakerDashboard() {
             <HugeButton
               title={t('caretaker.dashboard.emptyCta')}
               onPress={handleAddDependent}
-              style={[styles.emptyCtaWrap, styles.emptyCta]}
+              style={styles.emptyCta}
+            />
+            <HugeButton
+              title={t('caretaker.dashboard.emptyIotCta')}
+              variant="outline"
+              onPress={handleAddIot}
+              style={styles.emptyCta}
             />
           </View>
         ) : (
@@ -269,6 +282,23 @@ export default function CaretakerDashboard() {
                 <View style={styles.addTextWrap}>
                   <Text style={styles.addTitle}>{t('caretaker.dashboard.addCardTitle')}</Text>
                   <Text style={styles.addSubtitle}>{t('caretaker.dashboard.addCardSubtitle')}</Text>
+                </View>
+                <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} style={styles.addCircleIcon} />
+              </Pressable>
+            </View>
+
+            <View style={styles.addCardWrap}>
+              <Pressable
+                onPress={handleAddIot}
+                accessibilityRole="button"
+                style={({ pressed }) => [styles.addCard, pressed && styles.profileCardPressed]}
+              >
+                <View style={styles.addIconWrap}>
+                  <MaterialIcons name="developer-board" size={26} color={Theme.colors.primaryLimeDark} />
+                </View>
+                <View style={styles.addTextWrap}>
+                  <Text style={styles.addTitle}>{t('caretaker.dashboard.addIotTitle')}</Text>
+                  <Text style={styles.addSubtitle}>{t('caretaker.dashboard.addIotSubtitle')}</Text>
                 </View>
                 <MaterialIcons name="add-circle" size={28} color={Theme.colors.primaryLimeDark} style={styles.addCircleIcon} />
               </Pressable>
