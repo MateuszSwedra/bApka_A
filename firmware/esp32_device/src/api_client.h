@@ -13,3 +13,5 @@ struct DeviceState {
 bool wifiConnect(const DeviceConfig &cfg);
 bool apiClaim(DeviceConfig &cfg, const String &claimToken, String &errorOut);
 bool apiGetState(const DeviceConfig &cfg, DeviceState &state, String &errorOut);
+bool apiSos(const DeviceConfig &cfg, const String &note, const String &clientEventId,
+            String &errorOut);

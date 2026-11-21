@@ -28,6 +28,7 @@ Hold **BOOT** ~1.5 s within the first seconds after boot to clear NVS.
 
 | GPIO | Role |
 |------|------|
-| 33, 25, 26, 27, 14, 21, 13 | Weekday LEDs (Mon…Sun) |
+| 33, 25, 26, 27, 14, 12, 13 | Weekday LEDs (Mon…Sun) |
 | 32 | Buzzer |
+| 4 | SOS button (to GND) |
 | 0 | BOOT / factory reset |

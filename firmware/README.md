@@ -8,7 +8,7 @@ Production firmware: SoftAP → claim → API poll. See [`esp32_device/README.md
 
 LED + buzzer hardware check.
 
-- LED: GPIO 33, 25, 26, 27, 14, 21, 13
+- LED: GPIO 33, 25, 26, 27, 14, 12, 13
 - Buzzer: GPIO 32
 
 ```powershell

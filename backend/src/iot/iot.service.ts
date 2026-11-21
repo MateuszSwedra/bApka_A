@@ -14,7 +14,9 @@ import {
   formatLocalYmd,
   getAppTimezone,
   getLocalDayRange,
+  scheduledAtOnLocalDay,
 } from '../common/app-timezone';
+import { scheduleAppliesToDate } from '../schedules/schedule-applies';
 import {
   randomClaimCode,
   randomPublicId,
@@ -240,6 +242,8 @@ export class IotService {
     const { start, end } = getLocalDayRange(todayYmd, tz);
     const windowMs = DOSE_CONFIRMATION_WINDOW_MINUTES * 60 * 1000;
 
+    await this.ensureTodayPendingLogs(device.dependentUserId, todayYmd, tz, start, end);
+
     const [logs, dependent] = await Promise.all([
       this.prisma.doseLog.findMany({
         where: {
@@ -391,6 +395,49 @@ export class IotService {
     }
 
     return fn();
+  }
+
+  private async ensureTodayPendingLogs(
+    dependentUserId: string,
+    todayYmd: string,
+    tz: string,
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
+    const schedules = await this.prisma.schedule.findMany({
+      where: { userId: dependentUserId },
+      select: {
+        id: true,
+        time: true,
+        type: true,
+        startDate: true,
+        endDate: true,
+        daysOfWeek: true,
+      },
+    });
+
+    for (const schedule of schedules) {
+      if (!scheduleAppliesToDate(schedule, todayYmd, tz)) continue;
+      if (!schedule.time || !/^\d{2}:\d{2}$/.test(schedule.time)) continue;
+
+      const existing = await this.prisma.doseLog.findFirst({
+        where: {
+          scheduleId: schedule.id,
+          scheduledAt: { gte: dayStart, lt: dayEnd },
+        },
+        select: { id: true },
+      });
+      if (existing) continue;
+
+      const planned = scheduledAtOnLocalDay(schedule.time, todayYmd, tz);
+      await this.prisma.doseLog.create({
+        data: {
+          scheduleId: schedule.id,
+          status: 'PENDING',
+          scheduledAt: planned,
+        },
+      });
+    }
   }
 
   private async allocatePublicId(): Promise<string> {

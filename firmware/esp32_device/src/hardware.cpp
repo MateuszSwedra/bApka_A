@@ -1,9 +1,17 @@
 #include "hardware.h"
 #include "pins.h"
 
+static inline void buzzerWriteOn() {
+  digitalWrite(BUZZER_PIN, BUZZER_ACTIVE_LOW ? LOW : HIGH);
+}
+
+static inline void buzzerWriteOff() {
+  digitalWrite(BUZZER_PIN, BUZZER_ACTIVE_LOW ? HIGH : LOW);
+}
+
 void hardwareBegin() {
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);
+  buzzerWriteOff();
 
   for (int i = 0; i < 7; i++) {
     pinMode(LED_PINS[i], OUTPUT);
@@ -17,9 +25,15 @@ void hardwareAllLedsOff() {
   }
 }
 
+void hardwareAllLedsOn() {
+  for (int i = 0; i < 7; i++) {
+    digitalWrite(LED_PINS[i], HIGH);
+  }
+}
+
 void hardwareBuzzerOff() {
   pinMode(BUZZER_PIN, OUTPUT);
-  digitalWrite(BUZZER_PIN, LOW);
+  buzzerWriteOff();
 }
 
 void hardwareSetWeekdayLed(int weekday0to6) {
@@ -30,17 +44,25 @@ void hardwareSetWeekdayLed(int weekday0to6) {
 }
 
 void hardwareBeep(uint32_t ms) {
-  digitalWrite(BUZZER_PIN, HIGH);
+  buzzerWriteOn();
   delay(ms);
-  digitalWrite(BUZZER_PIN, LOW);
+  buzzerWriteOff();
 }
 
 void hardwareAlarmPattern(bool on) {
   if (!on) {
-    digitalWrite(BUZZER_PIN, LOW);
+    buzzerWriteOff();
     return;
   }
-  digitalWrite(BUZZER_PIN, HIGH);
+  buzzerWriteOn();
   delay(120);
-  digitalWrite(BUZZER_PIN, LOW);
+  buzzerWriteOff();
+}
+
+void hardwareSosBegin() {
+  pinMode(SOS_PIN, INPUT_PULLUP);
+}
+
+bool hardwareSosPressedRaw() {
+  return digitalRead(SOS_PIN) == LOW;
 }

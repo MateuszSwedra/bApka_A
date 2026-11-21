@@ -162,3 +162,21 @@ bool apiGetState(const DeviceConfig &cfg, DeviceState &state, String &errorOut) 
   state.shouldAlarm = doc["shouldAlarm"] | false;
   return true;
 }
+
+bool apiSos(const DeviceConfig &cfg, const String &note, const String &clientEventId,
+            String &errorOut) {
+  const String url = trimSlash(cfg.apiBaseUrl) + "/iot/device/me/sos";
+  JsonDocument doc;
+  if (note.length() > 0) {
+    doc["note"] = note;
+  }
+  if (clientEventId.length() >= 8) {
+    doc["clientEventId"] = clientEventId;
+  }
+  String body;
+  serializeJson(doc, body);
+
+  int code = 0;
+  String resp;
+  return httpsPostJson(url, cfg.deviceSecret, body, code, resp, errorOut);
+}

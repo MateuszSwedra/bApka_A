@@ -1,6 +1,7 @@
 #include "provision.h"
 #include "device_config.h"
 #include "hardware.h"
+#include "sos.h"
 #include "storage.h"
 #include "wifi_mac.h"
 #include <ArduinoJson.h>
@@ -148,6 +149,7 @@ bool runProvisioningPortal(DeviceConfig &cfg) {
   while (!gRestartPending) {
     server.handleClient();
     hardwareBuzzerOff();
+    sosPoll(cfg);
     delay(5);
   }
 
