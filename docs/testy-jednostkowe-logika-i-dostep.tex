@@ -1,0 +1,558 @@
+
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[polish]{babel}
+\usepackage{lmodern}
+\usepackage{geometry}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{array}
+\usepackage{xcolor}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{ragged2e}
+\usepackage{caption}
+\usepackage{fancyhdr}
+
+\geometry{margin=2.2cm, bottom=2.8cm}
+\hypersetup{colorlinks=true, linkcolor=black, urlcolor=blue!50!black}
+
+\newcolumntype{L}[1]{>{\RaggedRight\arraybackslash}p{#1}}
+\newcommand{\kryt}{\textcolor{red!70!black}{\textbf{[K]}}}
+\newcommand{\testid}[1]{\texttt{#1}}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small bApka --- katalog testów jednostkowych (43)}
+\fancyhead[R]{\small logika biznesowa i reguły dostępu}
+\fancyfoot[C]{\thepage}
+
+\title{Katalog przypadków testowych\\[0.4em]
+\large Testy jednostkowe logiki biznesowej i reguł dostępu\\[0.3em]
+\normalsize Plan rdzenny: 43 przypadków}
+\author{Projekt bApka (wersja robocza pod rozdział pracy inżynierskiej)}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+\noindent
+Dokument zawiera \textbf{43 rdzenne} przypadki testów jednostkowych
+(wcześniejszy katalog roboczy został zawężony; z E usunięto FCM dedup i SOS create).
+Priorytet: bezpieczeństwo dostępu (IDOR), integralność dawek/magazynu,
+auth (credentials / rate limit), SOS oraz krytyczne ścieżki UI seniora.
+Oznaczenie \kryt{} = przypadek krytyczny.
+Warstwa: Jest + mocki --- bez kontraktu REST, live PostgreSQL i E2E sprzętowego.
+\end{abstract}
+
+\tableofcontents
+\newpage
+
+\section{Konwencje i zakres}
+
+\begin{itemize}[leftmargin=*]
+  \item \textbf{Liczba planowana:} 43 ID (A--H), rozłożone równomiernie z naciskiem
+        na przypadki krytyczne.
+  \item \textbf{Usunięte z planu:} m.in.\ trywialne NotFound, duplikaty CRUD,
+        drobne normalizacje, drugorzędne utils FE, stepper/HugeButton, IoT stub.
+  \item \textbf{Poza zakresem:} testy kontraktowe REST, integracja DB, E2E, obciążenie.
+\end{itemize}
+
+\subsection*{Rozkład 43 przypadków}
+\begin{center}
+\begin{tabular}{@{}lc@{}}
+\toprule
+Kategoria & Liczba ID \\
+\midrule
+A Reguły dostępu / IDOR & 7 \\
+B Auth / credentials & 5 \\
+C Harmonogramy / dawki & 8 \\
+D Magazyn & 5 \\
+E Pairing / profil & 3 \\
+F Powiadomienia / cron & 5 \\
+G Frontend (bramki / routing) & 5 \\
+H Interakcje seniora & 5 \\
+\midrule
+\textbf{Razem} & \textbf{43} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\newcommand{\casetablehead}{%
+  \toprule
+  ID & Skrót & Funkcja / plik & Opis: co testujemy i po co & Oczekiwany wynik \\
+  \midrule
+}
+\newcommand{\casetablefoot}{\bottomrule}
+
+% =============================================================================
+\section{A. Reguły dostępu (7)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria A --- 7 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria A (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{A-01} &
+Self-access &
+\texttt{assertCanAccessUser} &
+Właściciel danych ma dostęp do własnego \texttt{userId} bez odpytywania Connection. &
+OK; \texttt{findFirst} nie wołane. \\
+\midrule
+
+\testid{A-02} \kryt &
+Opiekun sparowany &
+\texttt{assertCanAccessUser} &
+Sparowany caretaker może zarządzać danymi podopiecznego. &
+OK przy \texttt{isPaired=true}. \\
+\midrule
+
+\testid{A-03} \kryt &
+Obcy / IDOR &
+\texttt{assertCanAccessUser} &
+Brak pairingu $\to$ odmowa (klasyczny IDOR na UUID). &
+\texttt{ForbiddenException}. \\
+\midrule
+
+\testid{A-06} \kryt &
+Harmonogram obcy &
+\texttt{assertCanAccessSchedule} &
+Schedule istnieje, aktor niesparowany $\to$ 403. &
+Forbidden po odczycie właściciela. \\
+\midrule
+
+\testid{A-08} \kryt &
+Magazyn obcy &
+\texttt{assertCanAccessInventory} &
+Inventory istnieje, brak pairingu $\to$ 403. &
+\texttt{ForbiddenException}. \\
+\midrule
+
+\testid{A-09} \kryt &
+Settings seniora &
+\texttt{updateDependentSettingsByCaretaker} &
+Tylko sparowany caretaker + rola DEPENDENT. &
+403 / NotFound gdy warunki niespełnione. \\
+\midrule
+
+\testid{A-10} \kryt &
+Unpair / delete &
+\texttt{unpairDependent}, \texttt{deleteDependentAccount} &
+Operacje destrukcyjne tylko dla sparowanego opiekuna. &
+Obcy $\to$ Forbidden. \\
+
+\end{longtable}
+
+\noindent\textit{Usunięte z A:} A-04 (HYBRID=self --- wariant A-01/A-03), A-05/A-07 (same NotFound),
+A-11 (listy --- pokryte wzorcem access), A-12 (JWT --- warstwa auth).
+
+% =============================================================================
+\section{B. Auth (5)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria B --- 5 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria B (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{B-02} \kryt &
+Wrogie e-maile &
+\texttt{isValidAuthEmail} &
+Odrzucenie formatów wrogich / spoof / CRLF / granic długości. &
+\texttt{false} / issue. \\
+\midrule
+
+\testid{B-03} &
+Granice hasła &
+\texttt{isValidAuthPassword} &
+Min/max długość (bcrypt) + znaki kontrolne. &
+Za krótkie/długie odrzucone. \\
+\midrule
+
+\testid{B-04} &
+Duplikat e-mail &
+\texttt{AuthService.register} &
+Ponowna rejestracja tego samego adresu. &
+\texttt{BadRequestException}. \\
+\midrule
+
+\testid{B-07} &
+Login OK &
+\texttt{login} / \texttt{validateUser} &
+Poprawne credentials $\to$ JWT + skrót profilu. &
+\texttt{access\_token} + user. \\
+\midrule
+
+\testid{B-09} \kryt &
+Rate limit &
+\texttt{AuthRateLimitGuard} &
+Anty brute-force: 10/min login, 5/min register. &
+429 po przekroczeniu. \\
+
+\end{longtable}
+
+\noindent\textit{Usunięte z B:} B-01 (trywialna normalizacja), B-05 (default role),
+B-06 (wariant B-07), B-08 (Google --- opcjonalny tor), B-10 (konfig env).
+
+% =============================================================================
+\section{C. Harmonogramy i dawki (8)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria C --- 8 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria C (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{C-01} &
+ONCE tylko w dniu &
+\texttt{scheduleAppliesToDate} &
+Terapia jednorazowa nie wycieka na inne dni. &
+Tylko \texttt{startDate}. \\
+\midrule
+
+\testid{C-04} \kryt &
+Spójność BE$\leftrightarrow$FE &
+oba \texttt{scheduleAppliesToDate} &
+Ten sam zestaw dat $\to$ identyczny wynik BE/FE. &
+Parametrycznie równe. \\
+\midrule
+
+\testid{C-05} \kryt &
+TAKEN w oknie &
+\texttt{markDose} &
+Potwierdzenie w $\pm$5\,min $\to$ TAKEN. &
+Status TAKEN + \texttt{APP\_SENIOR}. \\
+\midrule
+
+\testid{C-06} \kryt &
+LATE po oknie &
+\texttt{markDose} &
+Po oknie klik ``wziąłem'' $\to$ LATE. &
+Status LATE. \\
+\midrule
+
+\testid{C-07} &
+MISSED &
+\texttt{markDose(..., MISSED)} &
+Jawne pominięcie; bez zużycia tabletek. &
+MISSED; brak dekrementacji. \\
+\midrule
+
+\testid{C-10} \kryt &
+Europe/Warsaw &
+\texttt{getLocalDayRange} &
+Granice dnia lokalnego, nie UTC. &
+Poprawny zakres doby. \\
+\midrule
+
+\testid{C-14} \kryt &
+Brak logu = MISSED &
+\texttt{buildDoseStatsPayload} &
+Po deadline slot bez logu nie jest ``OK''. &
+MISSED w stats. \\
+\midrule
+
+\testid{C-15} &
+Create + access &
+\texttt{SchedulesService.create} &
+Tworzenie harmonogramu wymaga dostępu do userId. &
+403 lub OK z defaultami. \\
+
+\end{longtable}
+
+\noindent\textit{Usunięte z C:} C-02/C-03 (pokryte zestawem C-04), C-08/C-09 (mechanika update/create),
+C-11 (\texttt{normalizeHm}), C-12/C-13 (adherence UI), C-16 (cascade --- bliżej D).
+
+% =============================================================================
+\section{D. Magazyn (5)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria D --- 5 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria D (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{D-01} &
+Tylko MEDICATION &
+\texttt{isMedicationInventory} &
+Pomiary/ćwiczenia nie są zapasem tabletek. &
+\texttt{true} tylko dla leku. \\
+\midrule
+
+\testid{D-02} &
+Dni do wyczerpania &
+\texttt{calculateInventoryDepletion} &
+Szacunek \texttt{daysLeft} z recurring schedules. &
+Poprawna arytmetyka / wysoki daysLeft. \\
+\midrule
+
+\testid{D-03} \kryt &
+Pierwsze TAKEN odejmuje &
+\texttt{markDose} + inventory &
+Pierwsze PENDING$\to$TAKEN/LATE zmniejsza zapas. &
+\texttt{inventory.update}. \\
+\midrule
+
+\testid{D-04} \kryt &
+Idempotencja &
+\texttt{markDose} &
+Drugie potwierdzenie nie odejmuje ponownie. &
+Brak drugiego update odejmującego. \\
+\midrule
+
+\testid{D-05} &
+MISSED bez odejmowania &
+\texttt{markDose} &
+Pominięcie nie zużywa opakowania. &
+Brak dekrementacji. \\
+
+\end{longtable}
+
+% =============================================================================
+\section{E. Pairing i profil (3)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria E --- 3 przypadki}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria E (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{E-01} \kryt &
+Pair tylko DEPENDENT &
+\texttt{pairWithPin} &
+HYBRID/CARETAKER nie paruje się jako dependent. &
+Odrzucenie złej roli. \\
+\midrule
+
+\testid{E-02} \kryt &
+Zły / zużyty PIN &
+\texttt{pairWithPin} &
+PIN sparowany lub nieistniejący nie łączy kont. &
+Błąd biznesowy. \\
+\midrule
+
+\testid{E-03} &
+Pair sukces &
+\texttt{pairWithPin} &
+Po sukcesie \texttt{isPaired=true}, PIN wyczyszczony. &
+Connection sparowane. \\
+
+\end{longtable}
+
+\noindent\textit{Usunięte z E:} FCM dedup (\texttt{updateFcmToken}), SOS create self
+(\texttt{createSosLog}) --- pokryte częściowo w F / istniejący \texttt{users.service.spec}.
+
+% =============================================================================
+\section{F. Powiadomienia i cron (5)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria F --- 5 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria F (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{F-01} &
+Treści powiadomień &
+\texttt{activity-notification-messages} &
+Copy zależny od kind / late / języka. &
+Macierz asercji. \\
+\midrule
+
+\testid{F-02} \kryt &
+SOS do caretakerów &
+\texttt{notifySos} &
+Alarm tylko do sparowanych tokenów. &
+Push do paired; cleanup stale. \\
+\midrule
+
+\testid{F-03} \kryt &
+Progi magazynu &
+\texttt{processInventoryAlerts} &
+Low/empty + flagi ``już wysłano'' (bez spamu). &
+Pierwszy raz wyślij; drugi skip. \\
+\midrule
+
+\testid{F-04} &
+Reminder minuty &
+\texttt{handleMedicationReminders} &
+Slot = minuta zegara, brak logu $\to$ PENDING + push. &
+Create + reminder. \\
+\midrule
+
+\testid{F-05} \kryt &
+PENDING$\to$MISSED &
+\texttt{markMissedDoses} &
+Po oknie 5\,min PENDING staje się MISSED + notify. &
+Update + powiadomienia. \\
+
+\end{longtable}
+
+% =============================================================================
+\section{G. Frontend bramki (5)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria G --- 5 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria G (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{G-01} \kryt &
+Assert dependent &
+\texttt{assertCaretakerDependent} &
+UI nie buduje żądań na obcym UUID. &
+Błąd gdy unlinked. \\
+\midrule
+
+\testid{G-02} \kryt &
+DEPENDENT$\to$PIN &
+\texttt{postAuthRouting} &
+Niesparowany dependent idzie na \texttt{/enter-pin}. &
+Właściwy route. \\
+\midrule
+
+\testid{G-03} &
+Dose stats FE &
+\texttt{doseStats.ts} &
+Spójność adherence z backend helpers. &
+Te same statusy/\%. \\
+\midrule
+
+\testid{G-04} &
+Push router &
+\texttt{incomingPushRouter} &
+Decyzje sync/nawigacji po typie push. &
+Właściwy emit/route. \\
+\midrule
+
+\testid{G-05} &
+Mood schedule &
+\texttt{computeMoodScheduleState} &
+Kafelek nastroju: disabled / active / inactive. &
+Poprawny kind. \\
+
+\end{longtable}
+
+% =============================================================================
+\section{H. Interakcje seniora (5)}
+% =============================================================================
+
+\begin{longtable}{@{}L{1.6cm}L{2.4cm}L{3.2cm}L{5.2cm}L{3.4cm}@{}}
+\caption{Kategoria H --- 5 przypadków}\\
+\casetablehead
+\endfirsthead
+\caption[]{Kategoria H (kontynuacja)}\\
+\casetablehead
+\endhead
+\casetablefoot
+\endfoot
+
+\testid{H-01} \kryt &
+Klik dawki due &
+dashboard + \texttt{markTaken} &
+W oknie $\to$ modal TAK $\to$ API markTaken. &
+API raz + completion. \\
+\midrule
+
+\testid{H-02} \kryt &
+Klik upcoming &
+dashboard &
+Poza oknem nie wolno markTaken. &
+Brak wywołania API. \\
+\midrule
+
+\testid{H-03} &
+Mood pick &
+\texttt{MoodPickerModal} / gate &
+Wybór buźki $\to$ \texttt{updateMood}. &
+Właściwy mood. \\
+\midrule
+
+\testid{H-04} \kryt &
+SOS confirm &
+\texttt{SeniorConfirmModal} &
+SOS dopiero po potwierdzeniu. &
+Anuluj bez API; TAK raz. \\
+\midrule
+
+\testid{H-05} &
+Modal TAK/NIE &
+\texttt{SeniorConfirmModal} &
+Kontrakt callbacków confirm/cancel. &
+Właściwy callback. \\
+
+\end{longtable}
+
+% =============================================================================
+\section{Zestawienie krytycznych i stan implementacji}
+% =============================================================================
+
+\begin{table}[h]
+\centering
+\caption{Przypadki \kryt{} w planie 43}
+\begin{tabular}{@{}ll@{}}
+\toprule
+ID & Temat \\
+\midrule
+A-02, A-03, A-06, A-08, A-09, A-10 & IDOR / pairing \\
+B-02, B-09 & credentials / rate limit \\
+C-04, C-05, C-06, C-10, C-14 & dawki / czas / stats \\
+D-03, D-04 & magazyn idempotentny \\
+E-01, E-02 & PIN pairing \\
+F-02, F-03, F-05 & SOS / alerty / MISSED \\
+G-01, G-02 & FE gate / PIN route \\
+H-01, H-02, H-04 & klik seniora / SOS \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{itemize}[leftmargin=*]
+  \item Zaimplementowane pliki kategorii: \texttt{category-a-access-rules.spec.ts},
+        \texttt{category-b-auth-identity.spec.ts}, \texttt{category-c-schedules-doses.spec.ts},
+        \texttt{category-d-inventory.spec.ts}, \texttt{category-e-pairing-profile.spec.ts},
+        \texttt{category-f-notifications-cron.spec.ts},
+        \texttt{category-g-frontend-gates.test.ts},
+        \texttt{category-h-senior-interactions.test.ts} (frontend)
+        (mogą zawierać \emph{więcej} niż ID z planu 43 --- nadmiar to pokrycie dodatkowe).
+  \item Do zrobienia wg planu: --- (A--H wg katalogu 43).
+\end{itemize}
+
+\end{document}

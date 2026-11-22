@@ -1,4 +1,4 @@
-/** Wspólny mock PrismaService do testów jednostkowych i integracyjnych. */
+
 export type PrismaMock = {
   user: {
     findFirst: jest.Mock;
@@ -52,10 +52,11 @@ export type PrismaMock = {
     findMany: jest.Mock;
     create: jest.Mock;
   };
+  $transaction: jest.Mock;
 };
 
 export function createPrismaMock(): PrismaMock {
-  return {
+  const prisma: PrismaMock = {
     user: {
       findFirst: jest.fn(),
       findMany: jest.fn(),
@@ -108,5 +109,10 @@ export function createPrismaMock(): PrismaMock {
       findMany: jest.fn(),
       create: jest.fn(),
     },
+    $transaction: jest.fn(),
   };
+  prisma.$transaction.mockImplementation(
+    async (fn: (tx: PrismaMock) => Promise<unknown>) => fn(prisma),
+  );
+  return prisma;
 }

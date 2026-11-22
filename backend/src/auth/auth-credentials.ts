@@ -1,11 +1,13 @@
-/** Limity zgodne z RFC 5321 (email) i bcrypt (hasło ~72 bajty). */
+
 export const AUTH_EMAIL_MAX_LENGTH = 254;
+
+export const AUTH_EMAIL_LOCAL_MAX_LENGTH = 64;
 export const AUTH_PASSWORD_MIN_LENGTH = 6;
 export const AUTH_PASSWORD_MAX_LENGTH = 72;
 export const AUTH_GOOGLE_ID_TOKEN_MAX_LENGTH = 4096;
 
 const CONTROL_OR_SEPARATOR = /[\u0000-\u001F\u007F\u2028\u2029]/;
-/** Prosty, praktyczny format e-mail (bez spacji, jednej @, domeny z kropką). */
+
 const EMAIL_PATTERN =
   /^[a-z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)+$/i;
 
@@ -18,6 +20,13 @@ export function isValidAuthEmail(email: string): boolean {
   if (!email || email.length > AUTH_EMAIL_MAX_LENGTH) return false;
   if (CONTROL_OR_SEPARATOR.test(email) || /\s/.test(email)) return false;
   if (email.includes('..')) return false;
+
+  const at = email.lastIndexOf('@');
+  if (at <= 0 || at === email.length - 1) return false;
+  const local = email.slice(0, at);
+  if (local.length > AUTH_EMAIL_LOCAL_MAX_LENGTH) return false;
+  if (local.startsWith('.') || local.endsWith('.')) return false;
+
   return EMAIL_PATTERN.test(email);
 }
 
