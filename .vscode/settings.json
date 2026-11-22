@@ -1,0 +1,9 @@
+{
+  "jestrunner.enableCodeLens": true,
+  "jestrunner.enableTestExplorer": true,
+  "jestrunner.changeDirectoryToWorkspaceRoot": true,
+  "jestrunner.useNearestConfig": true,
+  "jestrunner.jestCommand": "npx jest",
+  "jestrunner.projectPath": "backend",
+  "jestrunner.codeLens": ["run", "debug", "coverage"]
+}

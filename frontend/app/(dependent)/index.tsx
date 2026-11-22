@@ -40,6 +40,11 @@ import { useForegroundDataRefresh } from '../../hooks/useForegroundDataRefresh';
 import { treatmentTypeForSchedule } from '../../utils/scheduleTreatmentType';
 import { seniorActionTileContent } from '../../utils/seniorActionTile';
 import { phoneIntactWordsStyle, phoneIntactWordsTextProps } from '../../utils/phoneText';
+import {
+  canSubmitMarkTaken,
+  canSubmitMood,
+  resolveMedPressAction,
+} from '../../utils/seniorHomeInteractions';
 
 const DEFAULT_TILE_COLORS = {
   medActive: '#2E7D32',
@@ -172,11 +177,12 @@ export default function DependentDashboard() {
   };
 
   const onMedPress = () => {
-    if (mainState.kind === 'due' || mainState.kind === 'missed') {
+    const action = resolveMedPressAction(mainState.kind);
+    if (action === 'open_confirm') {
       setMedConfirmVisible(true);
       return;
     }
-    if (mainState.kind === 'upcoming') {
+    if (action === 'open_upcoming_info') {
       setUpcomingInfoVisible(true);
     }
   };
@@ -194,7 +200,7 @@ export default function DependentDashboard() {
   };
 
   const confirmMed = async () => {
-    if (mainState.kind !== 'due' && mainState.kind !== 'missed') return;
+    if (!canSubmitMarkTaken(mainState.kind)) return;
     const scheduleId = mainState.scheduleId;
     setMedConfirmVisible(false);
     try {
@@ -209,13 +215,13 @@ export default function DependentDashboard() {
   };
 
   const onMoodPress = () => {
-    if (moodState.kind !== 'active') return;
+    if (!canSubmitMood(moodState.kind)) return;
     setMoodPickerVisible(true);
   };
 
   const onMoodPick = async (mood: 'sad' | 'neutral' | 'happy') => {
     setMoodPickerVisible(false);
-    if (moodState.kind !== 'active') return;
+    if (!canSubmitMood(moodState.kind)) return;
     try {
       await usersAPI.updateMood(mood);
       await markMoodSlotCompletedForDate(todayStr, moodState.slotTime);
@@ -235,9 +241,9 @@ export default function DependentDashboard() {
     }
   };
 
-  const medActive = mainState.kind === 'due' || mainState.kind === 'missed';
+  const medActive = canSubmitMarkTaken(mainState.kind);
   const medPressEnabled = medActive || mainState.kind === 'upcoming';
-  const moodActive = moodState.kind === 'active';
+  const moodActive = canSubmitMood(moodState.kind);
 
   const actionTile = useMemo(
     () => seniorActionTileContent(mainState, schedules, treatments, t),
